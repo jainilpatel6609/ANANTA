@@ -1,0 +1,23 @@
+{
+  "name": "ananta-traders",
+  "version": "1.0.0",
+  "description": "ANANTA TRADERS — Full-Stack Dynamic Material Ordering & Dealer Delivery Management System",
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "seed": "cd backend && npm run seed",
+    "test": "cd backend && npm test",
+    "build": "cd frontend && npm run build"
+  },
+  "keywords": [
+    "sand",
+    "aggregate",
+    "grit",
+    "dealer-management",
+    "razorpay",
+    "delivery-otp",
+    "ananta-traders"
+  ],
+  "author": "ANANTA TRADERS",
+  "license": "ISC"
+}

@@ -1,0 +1,42 @@
+{
+  "name": "ananta-traders-backend",
+  "version": "1.0.0",
+  "description": "ANANTA TRADERS - Full-Stack Dynamic Material Ordering & Dealer Delivery Management System Backend",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "seed": "node src/seed/seed.js",
+    "test": "node tests/integration.test.js && node tests/pincode_nearest_dealer.test.js && node tests/admin_profile.test.js && node tests/dealer_management.test.js && node tests/forgot_password.test.js && node tests/super_admin_auth_security.test.js && node tests/real_sms_otp_verification.test.js && node tests/dealer_alarm_escalation.test.js && node tests/fcm_push_notification.test.js && node tests/dynamic_order_flow.test.js && node tests/dumper_tractor_separation.test.js && node tests/tractor_customer_flow.test.js && node tests/aggregate_dumper_tractor_flow.test.js"
+  },
+  "keywords": [
+    "sand",
+    "aggregate",
+    "construction-supply",
+    "dealer-management",
+    "razorpay",
+    "delivery-otp"
+  ],
+  "author": "ANANTA TRADERS",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^1.41.3",
+    "cors": "^2.8.5",
+    "csv-writer": "^1.6.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.3.1",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.5.2",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "razorpay": "^2.9.4",
+    "validator": "^13.12.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
