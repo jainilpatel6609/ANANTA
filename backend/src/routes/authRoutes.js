@@ -3,13 +3,25 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const { authenticateToken } = require('../middleware/auth');
 const { validateRegistration, validateLogin } = require('../middleware/validate');
+const { upload } = require('../middleware/upload');
 
+// Customer registration & login
 router.post('/register', validateRegistration, authController.register);
-router.post('/dealer/register', authController.registerDealer);
-router.post('/super-admin/register', authController.registerSuperAdmin);
 router.post('/login', validateLogin, authController.login);
 router.get('/me', authenticateToken, authController.getProfile);
 router.put('/profile', authenticateToken, authController.updateProfile);
+router.post('/live-location', authenticateToken, authController.updateLiveLocation);
+
+// Dealer KYC registration flow with Phone OTP and Document Uploads
+router.post('/dealer/send-otp', authController.sendDealerSignupOtp);
+router.post('/dealer/verify-otp', authController.verifyDealerSignupOtp);
+router.post('/upload-doc', upload.single('document'), authController.uploadRegistrationDoc);
+router.post('/dealer/register', authController.registerDealer);
+
+// Super Admin registration
+router.post('/super-admin/register', authController.registerSuperAdmin);
+
+// Mobile OTP update
 router.post('/mobile-otp/send', authenticateToken, authController.sendMobileOtp);
 router.post('/mobile-otp/verify', authenticateToken, authController.verifyMobileOtp);
 

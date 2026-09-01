@@ -75,12 +75,65 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: null
     },
+    isLocationActive: {
+      type: Boolean,
+      default: false
+    },
+    locationUpdatedAt: {
+      type: Date,
+      default: null
+    },
+    locationAccuracyMeters: {
+      type: Number,
+      default: null
+    },
     userType: {
       type: String,
       enum: ['Contractor', 'Trader', 'Builder', 'Individual'],
       default: 'Contractor'
     },
     companyName: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    // Dealer KYC & Identity Fields
+    dob: {
+      type: String,
+      trim: true,
+      default: null
+    },
+    gender: {
+      type: String,
+      enum: ['Male', 'Female', 'Other', null],
+      default: null
+    },
+    aadharFrontUrl: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    aadharBackUrl: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    panFrontUrl: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    panBackUrl: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    dealerPhotoUrl: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    officeFrontPhotoUrl: {
       type: String,
       trim: true,
       default: ''

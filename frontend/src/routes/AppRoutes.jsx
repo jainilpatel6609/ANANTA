@@ -69,7 +69,7 @@ export default function AppRoutes() {
       <Route path="/auth-success" element={<AuthSuccessAnimation />} />
 
       {/* User Portal Routes */}
-      <Route element={<ProtectedRoute allowedRoles={['USER', 'ADMIN']} />}>
+      <Route element={<ProtectedRoute allowedRoles={['USER', 'ADMIN', 'DEALER']} />}>
         <Route element={<UserLayout />}>
           <Route path="/user/dashboard" element={<UserDashboard />} />
           <Route path="/user/create-order" element={<CreateOrder />} />

@@ -4,10 +4,12 @@ const Location = require('../models/Location');
 const VehicleConfig = require('../models/VehicleConfig');
 const VehicleSetting = require('../models/VehicleSetting');
 const User = require('../models/User');
+const Driver = require('../models/Driver');
 const { generateOrderNumber } = require('../utils/orderNumber');
 const RazorpayService = require('../services/razorpayService');
 const NotificationService = require('../services/notificationService');
 const PincodeService = require('../services/pincodeService');
+const SmsService = require('../services/smsService');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
 const {
   TRACTOR_TYPES,
@@ -373,28 +375,40 @@ const getOrderById = async (req, res) => {
 
 // @desc    Get new available orders for Dealers (Assigned to this dealer or open pool)
 // @route   GET /api/orders/dealer/available
-// @access  Private (Dealer)
+// @access  Private (Dealer, Admin)
 const getDealerAvailableOrders = async (req, res) => {
   try {
-    const orders = await Order.find({
+    const dealer = await User.findById(req.user._id);
+    const dealerLat = dealer?.latitude !== undefined ? dealer.latitude : req.user.latitude;
+    const dealerLng = dealer?.longitude !== undefined ? dealer.longitude : req.user.longitude;
+
+    const isAdmin = req.user.role === 'ADMIN';
+
+    // Find orders that are confirmed/paid and pending dealer acceptance
+    const filter = {
       orderStatus: 'PLACED',
       dealerId: null,
       paymentStatus: 'PAID',
-      declinedBy: { $ne: req.user._id },
-      $or: [
+      declinedBy: { $ne: req.user._id }
+    };
+
+    if (!isAdmin) {
+      filter.$or = [
         { assignedDealerId: req.user._id },
-        { assignedDealerId: null }
-      ]
-    })
+        { assignedDealerId: null },
+        { dealerResponseDeadline: { $lte: new Date() } } // Expired 15-min SLA orders open to all active dealers
+      ];
+    }
+
+    const orders = await Order.find(filter)
       .populate('userId', 'name mobile city')
-      .populate('assignedDealerId', 'name companyName pincode')
+      .populate('assignedDealerId', 'name companyName pincode mobile')
       .sort({ createdAt: -1 });
 
-    // Enrich with real-time distance from this dealer's registered location
-    const dealerLat = req.user.latitude;
-    const dealerLng = req.user.longitude;
+    const MAX_DISPATCH_RADIUS_KM = 5.0;
+    const filteredAndEnriched = [];
 
-    const enrichedOrders = orders.map((order) => {
+    for (const order of orders) {
       let distanceToDealer = order.dealerDistanceKm;
       if (dealerLat && dealerLng && order.latitude && order.longitude) {
         distanceToDealer = PincodeService.calculateHaversineDistanceKm(
@@ -404,13 +418,29 @@ const getDealerAvailableOrders = async (req, res) => {
           order.longitude
         );
       }
-      return {
-        ...order.toObject(),
-        distanceToDealer: distanceToDealer !== null ? distanceToDealer : order.dealerDistanceKm
-      };
-    });
 
-    return successResponse(res, 'Available orders retrieved.', { orders: enrichedOrders });
+      const isDirectlyAssigned =
+        order.assignedDealerId &&
+        order.assignedDealerId._id.toString() === req.user._id.toString();
+      const isWithin5km = distanceToDealer !== null && distanceToDealer <= MAX_DISPATCH_RADIUS_KM;
+
+      // Always include if assigned to this dealer, or if within 5km, or if open pool
+      filteredAndEnriched.push({
+        ...order.toObject(),
+        distanceToDealer: distanceToDealer !== null ? distanceToDealer : order.dealerDistanceKm,
+        isWithin5km: distanceToDealer !== null ? distanceToDealer <= MAX_DISPATCH_RADIUS_KM : true,
+        isDirectlyAssigned
+      });
+    }
+
+    return successResponse(res, 'Available orders retrieved.', {
+      orders: filteredAndEnriched,
+      dealerLocation: {
+        latitude: dealerLat,
+        longitude: dealerLng,
+        isLocationActive: dealer?.isLocationActive || Boolean(dealerLat)
+      }
+    });
   } catch (error) {
     return errorResponse(res, error.message, 500);
   }
@@ -501,6 +531,55 @@ const acceptOrder = async (req, res) => {
       }
     }
 
+    // Optional Driver Assignment right at Acceptance / Claim Time
+    const { driverId, driverName, driverMobile, vehicleNumber } = req.body || {};
+    let finalDriverName = (driverName || '').trim();
+    let finalDriverMobile = (driverMobile || '').trim();
+    let finalVehicleNumber = (vehicleNumber || '').trim().toUpperCase();
+    let driverDoc = null;
+
+    if (driverId) {
+      driverDoc = await Driver.findById(driverId);
+      if (driverDoc) {
+        finalDriverName = driverDoc.name;
+        finalDriverMobile = driverDoc.mobile;
+        finalVehicleNumber = driverDoc.vehicleNumber;
+      }
+    }
+
+    if (finalDriverName && finalDriverMobile && finalVehicleNumber) {
+      const cleanDriverMobile = String(finalDriverMobile).replace(/\D/g, '').slice(-10);
+      order.driverId = driverDoc ? driverDoc._id : null;
+      order.driverName = finalDriverName;
+      order.driverMobile = cleanDriverMobile;
+      order.vehicleNumber = finalVehicleNumber;
+      order.driverAssignedAt = now;
+      order.driverTaskDispatchedAt = now;
+
+      if (driverDoc) {
+        driverDoc.status = 'ON_DELIVERY';
+        await driverDoc.save().catch(() => {});
+      }
+
+      // Dispatch real-time SMS & live Google Maps navigation link to driver
+      SmsService.sendDriverAssignmentSms({
+        mobile: cleanDriverMobile,
+        driverName: finalDriverName,
+        orderNumber: order.orderNumber,
+        productName: order.productNameSnapshot,
+        quantity: `${order.numberOfTractors || order.quantity} ${order.transportType || 'Loads'}`,
+        transportType: order.tractorType || order.vehicleType || order.transportType,
+        customerName: order.shippingDetails?.fullName || order.userId?.name,
+        customerMobile: order.shippingDetails?.mobile || order.userId?.mobile,
+        shippingAddress: order.shippingAddress,
+        landmark: order.shippingDetails?.landmark || '',
+        instructions: order.deliveryInstructions || '',
+        latitude: order.latitude,
+        longitude: order.longitude,
+        dealerName: req.user.companyName || req.user.name
+      }).catch((err) => console.warn('[SMS Driver Assignment Warning]', err.message));
+    }
+
     await order.save();
 
     // Notify Customer
@@ -514,7 +593,11 @@ const acceptOrder = async (req, res) => {
       targetPhone: order.userId.whatsappNumber || order.userId.mobile
     });
 
-    return successResponse(res, 'Order accepted successfully. Please assign driver and weighbridge details.', { order });
+    const responseMsg = finalDriverName
+      ? `Order #${order.orderNumber} accepted and Driver ${finalDriverName} assigned! Google Maps location sent to driver.`
+      : 'Order accepted successfully. You can assign driver and dispatch details anytime.';
+
+    return successResponse(res, responseMsg, { order });
   } catch (error) {
     return errorResponse(res, error.message, 500);
   }

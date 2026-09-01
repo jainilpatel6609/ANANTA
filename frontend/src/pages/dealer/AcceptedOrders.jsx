@@ -48,7 +48,7 @@ export default function AcceptedOrders() {
       setLoading(true);
       const [orderRes, driverRes] = await Promise.all([
         orderService.getDealerDeliveries('ACCEPTED'),
-        driverService.getDrivers({ status: 'AVAILABLE' }).catch(() => ({ data: { drivers: [] } }))
+        driverService.getDrivers().catch(() => ({ data: { drivers: [] } }))
       ]);
 
       if (orderRes.data?.orders) {

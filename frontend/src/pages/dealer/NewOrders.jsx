@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { orderService } from '../../services';
+import { orderService, driverService } from '../../services';
 import StatusBadge from '../../components/StatusBadge';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
@@ -19,19 +19,34 @@ import {
   AlertCircle,
   Loader2,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  User,
+  Phone,
+  Zap,
+  Navigation,
+  ArrowRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function NewOrders() {
   const [orders, setOrders] = useState([]);
+  const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [acceptingId, setAcceptingId] = useState(null);
+
+  // Accept & Assign Driver Modal State
+  const [acceptingOrder, setAcceptingOrder] = useState(null);
+  const [selectedDriverId, setSelectedDriverId] = useState('');
+  const [driverName, setDriverName] = useState('');
+  const [driverMobile, setDriverMobile] = useState('');
+  const [vehicleNumber, setVehicleNumber] = useState('');
+  const [isSubmittingAccept, setIsSubmittingAccept] = useState(false);
+
+  // Decline Modal State
   const [rejectingOrder, setRejectingOrder] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [submittingReject, setSubmittingReject] = useState(false);
-  const [now, setNow] = useState(Date.now());
 
+  const [now, setNow] = useState(Date.now());
   const { isAlarming, isMuted, triggerAlarm, clearAlarm, toggleMute } = useAlarm();
 
   // Tick for countdown timer every second
@@ -40,14 +55,17 @@ export default function NewOrders() {
     return () => clearInterval(timer);
   }, []);
 
-  const loadOrders = async () => {
+  const loadData = async () => {
     try {
-      const res = await orderService.getDealerAvailable();
-      if (res.data?.orders) {
-        const orderList = res.data.orders;
+      const [ordersRes, driversRes] = await Promise.all([
+        orderService.getDealerAvailable(),
+        driverService.getDrivers().catch(() => ({ data: { drivers: [] } }))
+      ]);
+
+      if (ordersRes.data?.orders) {
+        const orderList = ordersRes.data.orders;
         setOrders(orderList);
 
-        // Check if any order is assigned specifically to this dealer and has active alarm / pending response
         const hasUrgentOrder = orderList.some(
           (o) => o.dealerAlarmActive || (o.dealerResponseStatus === 'PENDING' && o.assignedDealerId)
         );
@@ -58,6 +76,10 @@ export default function NewOrders() {
           clearAlarm();
         }
       }
+
+      if (driversRes.data?.drivers) {
+        setDrivers(driversRes.data.drivers);
+      }
     } catch (err) {
       console.warn('Failed to load available orders:', err.message);
     } finally {
@@ -66,23 +88,88 @@ export default function NewOrders() {
   };
 
   useEffect(() => {
-    loadOrders();
-    const interval = setInterval(loadOrders, 8000); // Polling every 8s
+    loadData();
+    const interval = setInterval(loadData, 8000); // Polling every 8s
     return () => clearInterval(interval);
   }, []);
 
-  const handleAccept = async (orderId) => {
-    setAcceptingId(orderId);
+  // Open Accept & Assign Driver Modal
+  const openAcceptModal = (order) => {
+    setAcceptingOrder(order);
+    setSelectedDriverId('');
+    setDriverName('');
+    setDriverMobile('');
+    setVehicleNumber('');
+  };
+
+  // Handle Driver Select Dropdown
+  const handleDriverSelect = (e) => {
+    const dId = e.target.value;
+    setSelectedDriverId(dId);
+
+    if (!dId) {
+      setDriverName('');
+      setDriverMobile('');
+      setVehicleNumber('');
+      return;
+    }
+
+    const matched = drivers.find((d) => d._id === dId);
+    if (matched) {
+      setDriverName(matched.name);
+      setDriverMobile(matched.mobile);
+      setVehicleNumber(matched.vehicleNumber);
+      toast.success(`Selected driver: ${matched.name} (${matched.vehicleNumber})`);
+    }
+  };
+
+  // Submit Accept (with or without driver)
+  const handleConfirmAccept = async (e, withDriver = false) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!acceptingOrder) return;
+
+    let payload = {};
+
+    if (withDriver) {
+      if (!driverName.trim() || !driverMobile.trim() || !vehicleNumber.trim()) {
+        toast.error('Driver name, 10-digit mobile, and vehicle plate number are required.');
+        return;
+      }
+
+      const cleanMobile = driverMobile.replace(/\D/g, '').slice(-10);
+      if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
+        toast.error('Please enter a valid 10-digit Indian mobile number for driver.');
+        return;
+      }
+
+      payload = {
+        driverId: selectedDriverId || undefined,
+        driverName: driverName.trim(),
+        driverMobile: cleanMobile,
+        vehicleNumber: vehicleNumber.trim().toUpperCase()
+      };
+    }
+
+    setIsSubmittingAccept(true);
     try {
-      await orderService.acceptOrder(orderId);
-      clearAlarm(); // Stop Dealer Alarm
-      toast.success('Order accepted successfully! You can now assign driver and royalty documents.');
-      setOrders((prev) => prev.filter((o) => o._id !== orderId));
+      const res = await orderService.acceptOrder(acceptingOrder._id, payload);
+      clearAlarm();
+
+      if (withDriver) {
+        toast.success(
+          `✓ Order #${acceptingOrder.orderNumber} accepted & Driver ${driverName} assigned! Google Maps link sent to driver.`
+        );
+      } else {
+        toast.success(`✓ Order #${acceptingOrder.orderNumber} accepted! You can assign a driver anytime from Accepted Orders.`);
+      }
+
+      setOrders((prev) => prev.filter((o) => o._id !== acceptingOrder._id));
+      setAcceptingOrder(null);
     } catch (err) {
-      toast.error(err.message || 'Could not accept order (already claimed or reassigned)');
-      loadOrders();
+      toast.error(err.response?.data?.message || err.message || 'Could not accept order.');
+      loadData();
     } finally {
-      setAcceptingId(null);
+      setIsSubmittingAccept(false);
     }
   };
 
@@ -98,12 +185,12 @@ export default function NewOrders() {
     setSubmittingReject(true);
     try {
       await orderService.declineOrder(rejectingOrder._id, rejectReason || 'Depot capacity full / Unavailable');
-      clearAlarm(); // Stop Dealer Alarm
+      clearAlarm();
       toast.success('Order declined. Super Admin has been immediately alerted for dispatch re-routing.');
       setOrders((prev) => prev.filter((o) => o._id !== rejectingOrder._id));
       setRejectingOrder(null);
     } catch (err) {
-      toast.error(err.message || 'Failed to decline order');
+      toast.error(err.response?.data?.message || err.message || 'Failed to decline order');
     } finally {
       setSubmittingReject(false);
     }
@@ -119,33 +206,31 @@ export default function NewOrders() {
     const diffSec = Math.max(0, Math.floor((deadlineMs - now) / 1000));
     const mins = Math.floor(diffSec / 60);
     const secs = diffSec % 60;
+
     return {
       diffSec,
-      formatted: `${mins}:${secs < 10 ? '0' : ''}${secs}`,
-      isExpired: diffSec === 0
+      isExpired: diffSec === 0,
+      formatted: `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
     };
   };
 
   if (loading) {
-    return <LoadingSpinner message="Scanning nearest available delivery dispatches..." />;
+    return <LoadingSpinner message="Loading incoming customer orders..." />;
   }
-
-  const assignedOrders = orders.filter((o) => o.dealerAlarmActive || o.assignedDealerId);
 
   return (
     <div className="space-y-6">
-      {/* Mobile Device Push Permission Prompt */}
-      <NotificationPermissionPrompt role="DEALER" />
+      {/* Browser Notification Permissions Banner */}
+      <NotificationPermissionPrompt />
 
-      {/* 1. Alarm Banner when urgent orders exist */}
-      {assignedOrders.length > 0 && (
+      {/* Real-time Order Alarm Banner */}
+      {isAlarming && (
         <OrderAlarmBanner
-          role="DEALER"
-          count={assignedOrders.length}
-          type="NEW_ORDER"
-          latestOrder={assignedOrders[0]}
+          title="⚠️ Urgent Dispatch Alert: Incoming Customer Order Assigned!"
+          message="An order has been routed to your depot based on geographic proximity. A mandatory 15-minute response SLA is running."
           isMuted={isMuted}
           onToggleMute={toggleMute}
+          onDismiss={clearAlarm}
         />
       )}
 
@@ -158,8 +243,8 @@ export default function NewOrders() {
           </p>
         </div>
         <button
-          onClick={loadOrders}
-          className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-brand-400 border border-slate-800"
+          onClick={loadData}
+          className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-brand-400 border border-slate-800 cursor-pointer"
         >
           Refresh Pool
         </button>
@@ -241,7 +326,7 @@ export default function NewOrders() {
 
                   <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/80 space-y-1">
                     <span className="text-slate-400 block uppercase tracking-wider text-[10px] font-bold">
-                      Required Tractors
+                      Required Tractors / Quantity
                     </span>
                     <div className="text-base font-bold text-brand-400 font-mono">{formatOrderQuantity(order)}</div>
                     <div className="text-slate-300 font-medium">{formatOrderTransport(order)}</div>
@@ -302,7 +387,7 @@ export default function NewOrders() {
                   <button
                     type="button"
                     onClick={() => openRejectModal(order)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-950 hover:bg-red-950/40 border border-slate-800 hover:border-red-500/40 text-slate-400 hover:text-red-300 text-xs font-bold transition-all"
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-950 hover:bg-red-950/40 border border-slate-800 hover:border-red-500/40 text-slate-400 hover:text-red-300 text-xs font-bold transition-all cursor-pointer"
                   >
                     <XCircle className="w-4 h-4 text-red-400" />
                     <span>Decline Order</span>
@@ -310,27 +395,154 @@ export default function NewOrders() {
 
                   <button
                     type="button"
-                    disabled={acceptingId === order._id}
-                    onClick={() => handleAccept(order._id)}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 font-black text-sm transition-all shadow-lg shadow-brand-500/20 disabled:opacity-50"
+                    onClick={() => openAcceptModal(order)}
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 font-black text-sm transition-all shadow-lg shadow-brand-500/20 cursor-pointer active:scale-95"
                   >
-                    {acceptingId === order._id ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Locking Order...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="w-4 h-4" />
-                        Accept Order & Claim Dispatch
-                      </>
-                    )}
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Accept Order & Claim Dispatch</span>
                   </button>
                 </div>
               </div>
             );
           })}
         </div>
+      )}
+
+      {/* ================= ACCEPT & ASSIGN DRIVER MODAL ================= */}
+      {acceptingOrder && (
+        <Modal
+          isOpen={!!acceptingOrder}
+          onClose={() => setAcceptingOrder(null)}
+          title={`Accept & Claim Dispatch: Order #${acceptingOrder.orderNumber}`}
+        >
+          <div className="space-y-5">
+            {/* Order Brief */}
+            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs space-y-1.5">
+              <div className="flex justify-between items-center text-slate-400">
+                <span>Material: <strong className="text-white">{acceptingOrder.productNameSnapshot}</strong></span>
+                <span className="text-amber-400 font-mono font-bold">{formatOrderQuantity(acceptingOrder)}</span>
+              </div>
+              <div className="text-slate-300 text-[11px] truncate">
+                📍 Destination: {acceptingOrder.shippingAddress}
+              </div>
+            </div>
+
+            {/* Driver Selection Section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Truck className="w-4 h-4" />
+                  <span>Assign Fleet Driver for Delivery</span>
+                </label>
+                <span className="text-[10px] text-slate-400">SMS with GPS Link sent on submit</span>
+              </div>
+
+              {/* Saved Fleet Dropdown */}
+              {drivers.length > 0 && (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-1">
+                  <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1">
+                    <Zap className="w-3.5 h-3.5" />
+                    Quick Select from Saved Driver Fleet:
+                  </span>
+                  <select
+                    value={selectedDriverId}
+                    onChange={handleDriverSelect}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-500 font-medium"
+                  >
+                    <option value="">-- Select saved driver or type details below --</option>
+                    {drivers.map((d) => (
+                      <option key={d._id} value={d._id}>
+                        {d.name} (+91 {d.mobile}) — {d.vehicleNumber} ({d.vehicleType})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Manual / Editable Fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                    Driver Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Ramesh Patel"
+                    value={driverName}
+                    onChange={(e) => setDriverName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                    Driver 10-Digit Mobile *
+                  </label>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    placeholder="98XXXXXXXX"
+                    value={driverMobile}
+                    onChange={(e) => setDriverMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                    Vehicle Number *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="GJ-02-AB-1234"
+                    value={vehicleNumber}
+                    onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500 uppercase font-mono font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* Automated Google Maps Notification Notice */}
+              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-start gap-2 text-xs text-slate-300">
+                <Navigation className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-white">Live Route Sharing:</strong> Driver will immediately receive an automated SMS with Customer Name, Site Address, and a **Direct Google Maps Navigation Link**!
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                disabled={isSubmittingAccept}
+                onClick={(e) => handleConfirmAccept(e, false)}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+              >
+                Accept Order (Assign Driver Later)
+              </button>
+
+              <button
+                type="button"
+                disabled={isSubmittingAccept}
+                onClick={(e) => handleConfirmAccept(e, true)}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-brand-500/20 cursor-pointer active:scale-95 disabled:opacity-50"
+              >
+                {isSubmittingAccept ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Assigning Driver & Accepting...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Confirm & Assign Driver for Dispatch</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {/* Decline Confirmation Modal */}

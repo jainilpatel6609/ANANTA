@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
+const SignupOtp = require('../models/SignupOtp');
+const { processUploadedFile } = require('../middleware/upload');
 const { JWT_SECRET, JWT_EXPIRES_IN, SUPER_ADMIN_SECRET_KEY } = require('../config/env');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
 const PincodeService = require('../services/pincodeService');
@@ -76,7 +78,130 @@ const register = async (req, res) => {
   }
 };
 
-// @desc    Register a new Authorized Dealer (Role forced to DEALER)
+// @desc    Send OTP to Mobile Number for Dealer Sign-up
+// @route   POST /api/auth/dealer/send-otp
+// @access  Public
+const sendDealerSignupOtp = async (req, res) => {
+  try {
+    const { mobile } = req.body;
+    if (!mobile || !/^[6-9]\d{9}$/.test(mobile.toString().trim())) {
+      return errorResponse(res, 'Please provide a valid 10-digit Indian mobile number.', 400);
+    }
+
+    const cleanMobile = mobile.toString().trim();
+    const existing = await User.findOne({ mobile: cleanMobile, isDeleted: { $ne: true } });
+    if (existing) {
+      return errorResponse(res, 'An account is already registered with this mobile number. Please sign in.', 400);
+    }
+
+    // Rate limit: check if active unexpired OTP was sent within last 30s
+    const recentOtp = await SignupOtp.findOne({ mobile: cleanMobile }).sort({ createdAt: -1 });
+    if (recentOtp && recentOtp.expiresAt > new Date()) {
+      const remainingMs = recentOtp.expiresAt.getTime() - Date.now();
+      const elapsedMs = 5 * 60 * 1000 - remainingMs;
+      if (elapsedMs < 30 * 1000) {
+        return errorResponse(res, 'Please wait 30 seconds before requesting another OTP.', 429);
+      }
+    }
+
+    // Generate secure 6-digit OTP valid for 5 minutes
+    const { rawOtp, otpHash, expiresAt } = await OtpService.generateOtp(5);
+
+    // Save or update pending signup OTP record
+    await SignupOtp.deleteMany({ mobile: cleanMobile });
+    await SignupOtp.create({
+      mobile: cleanMobile,
+      otpHash,
+      expiresAt,
+      attempts: 0,
+      isVerified: false
+    });
+
+    // Send SMS via SMS Service
+    await SmsService.sendOtpSms({
+      mobile: cleanMobile,
+      otp: rawOtp,
+      expiryMinutes: 5,
+      type: 'DEALER_SIGNUP'
+    });
+
+    return successResponse(res, `6-digit OTP sent successfully. Demo OTP: ${rawOtp}`, {
+      mobile: cleanMobile,
+      expiresAt,
+      demoOtp: rawOtp
+    });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+// @desc    Verify OTP for Dealer Sign-up
+// @route   POST /api/auth/dealer/verify-otp
+// @access  Public
+const verifyDealerSignupOtp = async (req, res) => {
+  try {
+    const { mobile, otp } = req.body;
+    if (!mobile || !/^[6-9]\d{9}$/.test(mobile.toString().trim())) {
+      return errorResponse(res, 'Please provide a valid 10-digit mobile number.', 400);
+    }
+    if (!otp || !/^\d{6}$/.test(otp.toString().trim())) {
+      return errorResponse(res, 'Please enter a valid 6-digit OTP.', 400);
+    }
+
+    const cleanMobile = mobile.toString().trim();
+    const cleanOtp = otp.toString().trim();
+
+    const record = await SignupOtp.findOne({ mobile: cleanMobile }).sort({ createdAt: -1 });
+    if (!record) {
+      return errorResponse(res, 'No OTP request found for this mobile number. Please request a new OTP.', 400);
+    }
+
+    const verification = await OtpService.verifyOtp(
+      cleanOtp,
+      record.otpHash,
+      record.expiresAt,
+      record.attempts || 0,
+      5
+    );
+
+    if (!verification.isValid) {
+      record.attempts = (record.attempts || 0) + 1;
+      await record.save();
+      return errorResponse(res, verification.reason || 'Invalid OTP.', 400);
+    }
+
+    record.isVerified = true;
+    await record.save();
+
+    return successResponse(res, 'Mobile number verified successfully! You may now complete registration.', {
+      mobile: cleanMobile,
+      isVerified: true
+    });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+// @desc    Upload Dealer Registration / KYC Document
+// @route   POST /api/auth/upload-doc
+// @access  Public
+const uploadRegistrationDoc = async (req, res) => {
+  try {
+    if (!req.file) {
+      return errorResponse(res, 'Please select a document image file (JPG, PNG, WEBP).', 400);
+    }
+
+    const fileUrl = await processUploadedFile(req.file, 'dealer_kyc');
+    return successResponse(res, 'Document uploaded successfully.', {
+      url: fileUrl,
+      fileName: req.file.originalname
+    });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+// @desc    Register a new Authorized Dealer (Role forced to DEALER with Full KYC & Live GPS Location)
 // @route   POST /api/auth/dealer/register
 // @access  Public
 const registerDealer = async (req, res) => {
@@ -86,48 +211,112 @@ const registerDealer = async (req, res) => {
       mobile,
       whatsappNumber,
       email,
+      dob,
+      gender,
       companyName,
+      officeAddress,
       addressLine1,
       addressLine2,
       area,
       city,
       state,
       pincode,
-      officeAddress,
+      gstNumber,
+      aadharFrontUrl,
+      aadharBackUrl,
+      panFrontUrl,
+      panBackUrl,
+      dealerPhotoUrl,
+      officeFrontPhotoUrl,
+      latitude,
+      longitude,
       password
     } = req.body;
 
+    // 1. Mandatory Name
     if (!name || !name.trim()) {
-      return errorResponse(res, 'Dealer representative name is required.', 400);
+      return errorResponse(res, 'Dealer Representative Full Name is mandatory.', 400);
     }
+
+    // 2. Mandatory Mobile
     if (!mobile || !/^[6-9]\d{9}$/.test(mobile.toString().trim())) {
       return errorResponse(res, 'Please provide a valid 10-digit Indian mobile number.', 400);
     }
+    const cleanMobile = mobile.toString().trim();
+    const existing = await User.findOne({ mobile: cleanMobile, isDeleted: { $ne: true } });
+    if (existing) {
+      return errorResponse(res, 'An account with this mobile number already exists. Please login.', 400);
+    }
+
+    // 3. Mandatory Email
+    if (!email || !email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      return errorResponse(res, 'A valid official Email ID is mandatory for Dealer registration.', 400);
+    }
+
+    // 4. Mandatory DOB & Gender
+    if (!dob || !dob.trim()) {
+      return errorResponse(res, 'Date of Birth is mandatory.', 400);
+    }
+    if (!gender || !['Male', 'Female', 'Other'].includes(gender.trim())) {
+      return errorResponse(res, 'Please select Gender (Male / Female / Other).', 400);
+    }
+
+    // 5. Mandatory Dealership Firm Name & Office Address
+    if (!companyName || !companyName.trim()) {
+      return errorResponse(res, 'Dealership / Firm Name is mandatory.', 400);
+    }
+    const cleanAddress = (officeAddress || addressLine1 || '').trim();
+    if (!cleanAddress) {
+      return errorResponse(res, 'Dealer Office / Depot Address is mandatory.', 400);
+    }
+
+    // 6. Mandatory GST Number
+    if (!gstNumber || !gstNumber.trim()) {
+      return errorResponse(res, 'GST Number is mandatory for Authorized Dealer registration.', 400);
+    }
+
+    // 7. Mandatory KYC Documents & Photos
+    if (!aadharFrontUrl || !aadharFrontUrl.trim()) {
+      return errorResponse(res, 'Aadhar Card (Front Side) photo is mandatory.', 400);
+    }
+    if (!aadharBackUrl || !aadharBackUrl.trim()) {
+      return errorResponse(res, 'Aadhar Card (Back Side) photo is mandatory.', 400);
+    }
+    if (!panFrontUrl || !panFrontUrl.trim()) {
+      return errorResponse(res, 'PAN Card (Front Side) photo is mandatory.', 400);
+    }
+    if (!panBackUrl || !panBackUrl.trim()) {
+      return errorResponse(res, 'PAN Card (Back Side) photo is mandatory.', 400);
+    }
+    if (!dealerPhotoUrl || !dealerPhotoUrl.trim()) {
+      return errorResponse(res, 'Dealer Portrait / Selfie photo is mandatory.', 400);
+    }
+    if (!officeFrontPhotoUrl || !officeFrontPhotoUrl.trim()) {
+      return errorResponse(res, 'Dealer Office / Depot Front photo is mandatory.', 400);
+    }
+
+    // 8. Mandatory Live GPS Location
+    const lat = latitude !== undefined && latitude !== null ? parseFloat(latitude) : null;
+    const lng = longitude !== undefined && longitude !== null ? parseFloat(longitude) : null;
+    if (lat === null || lng === null || Number.isNaN(lat) || Number.isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      return errorResponse(res, 'Compulsory Live GPS Location is required. Please turn ON your device location.', 400);
+    }
+
+    // 9. Mandatory Password
     if (!password || password.trim().length < 6) {
       return errorResponse(res, 'Password must be at least 6 characters long.', 400);
     }
 
     const cleanPin = String(pincode || '').trim();
-    if (!cleanPin || !PincodeService.isValidIndianPincode(cleanPin)) {
-      return errorResponse(res, 'Mandatory 6-digit Indian PIN code is required (e.g. 384001).', 400);
-    }
-
-    const cleanMobile = mobile.toString().trim();
-    const existing = await User.findOne({ mobile: cleanMobile });
-    if (existing) {
-      return errorResponse(res, 'A user or dealer with this mobile number already exists.', 400);
-    }
-
-    const pinGeo = await PincodeService.lookup(cleanPin);
-    const resolvedCity = (city || pinGeo?.city || '').trim();
-    const resolvedState = (state || pinGeo?.state || 'Gujarat').trim();
+    const resolvedCity = (city || '').trim();
+    const resolvedState = (state || 'Gujarat').trim();
     const resolvedArea = (area || '').trim();
-    const resolvedLine1 = (addressLine1 || '').trim();
+    const resolvedLine1 = (addressLine1 || officeAddress || '').trim();
     const resolvedLine2 = (addressLine2 || '').trim();
 
     const formattedAddress = officeAddress
       ? officeAddress.trim()
-      : [resolvedLine1, resolvedLine2, resolvedArea, resolvedCity, `${resolvedState} - ${cleanPin}`]
+      : [resolvedLine1, resolvedLine2, resolvedArea, resolvedCity, cleanPin ? `${resolvedState} - ${cleanPin}` : resolvedState]
           .filter(Boolean)
           .join(', ');
 
@@ -137,28 +326,42 @@ const registerDealer = async (req, res) => {
       name: name.trim(),
       mobile: cleanMobile,
       whatsappNumber: whatsappNumber ? whatsappNumber.trim() : cleanMobile,
-      email: email ? email.trim().toLowerCase() : '',
-      companyName: companyName ? companyName.trim() : '',
+      email: email.trim().toLowerCase(),
+      dob: dob.trim(),
+      gender: gender.trim(),
+      companyName: companyName.trim(),
+      officeAddress: formattedAddress,
       addressLine1: resolvedLine1,
       addressLine2: resolvedLine2,
       area: resolvedArea,
       city: resolvedCity,
       state: resolvedState,
       pincode: cleanPin,
-      latitude: pinGeo ? pinGeo.latitude : null,
-      longitude: pinGeo ? pinGeo.longitude : null,
-      officeAddress: formattedAddress,
+      gstNumber: gstNumber.trim().toUpperCase(),
+      aadharFrontUrl: aadharFrontUrl.trim(),
+      aadharBackUrl: aadharBackUrl.trim(),
+      panFrontUrl: panFrontUrl.trim(),
+      panBackUrl: panBackUrl.trim(),
+      dealerPhotoUrl: dealerPhotoUrl.trim(),
+      officeFrontPhotoUrl: officeFrontPhotoUrl.trim(),
+      latitude: lat,
+      longitude: lng,
+      isLocationActive: true,
+      locationUpdatedAt: new Date(),
       passwordHash,
       role: 'DEALER',
       isActive: true,
       isDeleted: false
     });
 
+    // Cleanup signup OTP record after successful registration
+    await SignupOtp.deleteMany({ mobile: cleanMobile });
+
     const token = generateToken(dealer);
 
     return successResponse(
       res,
-      'Authorized Dealer registration successful. Welcome to ANANTA TRADERS!',
+      'Authorized Dealer registration completed successfully with verified KYC. Welcome to ANANTA TRADERS!',
       { token, user: dealer },
       201
     );
@@ -264,11 +467,69 @@ const login = async (req, res) => {
       }
     }
 
+    // If live location coordinates passed on login, update them immediately
+    if (req.body.latitude !== undefined && req.body.longitude !== undefined) {
+      const lat = parseFloat(req.body.latitude);
+      const lng = parseFloat(req.body.longitude);
+      if (!Number.isNaN(lat) && !Number.isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        user.latitude = lat;
+        user.longitude = lng;
+        user.isLocationActive = true;
+        user.locationUpdatedAt = new Date();
+        if (req.body.accuracy) user.locationAccuracyMeters = parseFloat(req.body.accuracy);
+        await user.save();
+      }
+    }
+
     const token = generateToken(user);
 
     return successResponse(res, 'Login successful.', {
       token,
       user
+    });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+// @desc    Update Dealer / User Live GPS Location
+// @route   POST /api/auth/live-location
+// @access  Private
+const updateLiveLocation = async (req, res) => {
+  try {
+    const { latitude, longitude, accuracy } = req.body;
+
+    if (latitude === undefined || longitude === undefined || latitude === null || longitude === null) {
+      return errorResponse(res, 'Latitude and longitude coordinates are required.', 400);
+    }
+
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+
+    if (Number.isNaN(lat) || Number.isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      return errorResponse(res, 'Invalid GPS coordinates.', 400);
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return errorResponse(res, 'User not found.', 404);
+    }
+
+    user.latitude = lat;
+    user.longitude = lng;
+    user.isLocationActive = true;
+    user.locationUpdatedAt = new Date();
+    if (accuracy !== undefined && !Number.isNaN(parseFloat(accuracy))) {
+      user.locationAccuracyMeters = parseFloat(accuracy);
+    }
+
+    await user.save();
+
+    return successResponse(res, 'Live location updated successfully.', {
+      latitude: user.latitude,
+      longitude: user.longitude,
+      isLocationActive: user.isLocationActive,
+      locationUpdatedAt: user.locationUpdatedAt
     });
   } catch (error) {
     return errorResponse(res, error.message, 500);
@@ -663,8 +924,12 @@ const forgotPasswordReset = async (req, res) => {
 module.exports = {
   register,
   registerDealer,
+  sendDealerSignupOtp,
+  verifyDealerSignupOtp,
+  uploadRegistrationDoc,
   registerSuperAdmin,
   login,
+  updateLiveLocation,
   getProfile,
   updateProfile,
   sendMobileOtp,

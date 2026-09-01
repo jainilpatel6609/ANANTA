@@ -43,9 +43,9 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = async (mobile, password, expectedRole) => {
+  const login = async (mobile, password, expectedRole, locationData = {}) => {
     try {
-      const res = await authService.login(mobile, password, expectedRole);
+      const res = await authService.login(mobile, password, expectedRole, locationData);
       const { token: newToken, user: authUser } = res.data;
 
       localStorage.setItem('ananta_token', newToken);

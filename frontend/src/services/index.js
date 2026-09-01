@@ -1,12 +1,18 @@
 import api from './api';
 
 export const authService = {
-  login: (mobile, password, expectedRole) => api.post('/auth/login', { mobile, password, expectedRole }),
+  login: (mobile, password, expectedRole, locationData = {}) =>
+    api.post('/auth/login', { mobile, password, expectedRole, ...locationData }),
   register: (userData) => api.post('/auth/register', userData),
   registerDealer: (dealerData) => api.post('/auth/dealer/register', dealerData),
+  sendDealerSignupOtp: (mobile) => api.post('/auth/dealer/send-otp', { mobile }),
+  verifyDealerSignupOtp: (mobile, otp) => api.post('/auth/dealer/verify-otp', { mobile, otp }),
+  uploadDoc: (formData) =>
+    api.post('/auth/upload-doc', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   registerSuperAdmin: (adminData) => api.post('/auth/super-admin/register', adminData),
   getMe: () => api.get('/auth/me'),
   updateProfile: (profileData) => api.put('/auth/profile', profileData),
+  updateLiveLocation: (locationData) => api.post('/auth/live-location', locationData),
   sendMobileOtp: (newMobile) => api.post('/auth/mobile-otp/send', { newMobile }),
   verifyMobileOtp: (newMobile, otp) => api.post('/auth/mobile-otp/verify', { newMobile, otp }),
   forgotPasswordSendOtp: (mobile) => api.post('/auth/forgot-password/send-otp', { mobile }),

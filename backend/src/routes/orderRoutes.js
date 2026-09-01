@@ -4,16 +4,16 @@ const orderController = require('../controllers/orderController');
 const { authenticateToken } = require('../middleware/auth');
 const { authorizeRoles } = require('../middleware/rbac');
 
-// User routes
-router.post('/', authenticateToken, authorizeRoles('USER'), orderController.createOrder);
-router.get('/my-orders', authenticateToken, authorizeRoles('USER'), orderController.getMyOrders);
+// Order creation and customer order history (Allows USER, DEALER, ADMIN for testing & cross-purchasing)
+router.post('/', authenticateToken, authorizeRoles('USER', 'DEALER', 'ADMIN'), orderController.createOrder);
+router.get('/my-orders', authenticateToken, authorizeRoles('USER', 'DEALER', 'ADMIN'), orderController.getMyOrders);
 
 // Dealer routes
-router.get('/dealer/available', authenticateToken, authorizeRoles('DEALER'), orderController.getDealerAvailableOrders);
-router.get('/dealer/my-deliveries', authenticateToken, authorizeRoles('DEALER'), orderController.getDealerDeliveries);
-router.post('/:id/accept', authenticateToken, authorizeRoles('DEALER'), orderController.acceptOrder);
-router.post('/:id/decline', authenticateToken, authorizeRoles('DEALER'), orderController.declineOrder);
-router.post('/:id/reject', authenticateToken, authorizeRoles('DEALER'), orderController.declineOrder);
+router.get('/dealer/available', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), orderController.getDealerAvailableOrders);
+router.get('/dealer/my-deliveries', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), orderController.getDealerDeliveries);
+router.post('/:id/accept', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), orderController.acceptOrder);
+router.post('/:id/decline', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), orderController.declineOrder);
+router.post('/:id/reject', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), orderController.declineOrder);
 
 // Admin Escalation & Reassignment routes
 router.get('/admin/escalations', authenticateToken, authorizeRoles('ADMIN'), orderController.getAdminEscalations);

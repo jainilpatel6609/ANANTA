@@ -183,14 +183,15 @@ class PincodeService {
   }
 
   /**
-   * Identifies the geographically nearest dealer for a given customer location.
+   * Identifies the geographically nearest dealer for a given customer location within radius (default: 5.0 KM).
    * Compares the customer's coordinates with all active dealers registered in the system.
    *
    * @param {Object} customerCoords { lat, lng } or { latitude, longitude }
    * @param {Array} activeDealers Array of User documents with role DEALER and isActive true
-   * @returns {Promise<Object>} { nearestDealer, distanceKm, dealersEvaluated }
+   * @param {number} maxRadiusKm Maximum radius in kilometers (default: 5.0 km)
+   * @returns {Promise<Object>} { nearestDealer, distanceKm, isWithinRadius, dealersWithinRadius, dealersEvaluated }
    */
-  static async findNearestDealer(customerCoords, activeDealers = []) {
+  static async findNearestDealer(customerCoords, activeDealers = [], maxRadiusKm = 5.0) {
     const custLat = customerCoords.latitude !== undefined ? customerCoords.latitude : customerCoords.lat;
     const custLng = customerCoords.longitude !== undefined ? customerCoords.longitude : customerCoords.lng;
 
@@ -198,6 +199,8 @@ class PincodeService {
       return {
         nearestDealer: null,
         distanceKm: null,
+        isWithinRadius: false,
+        dealersWithinRadius: [],
         dealersEvaluated: []
       };
     }
@@ -229,6 +232,7 @@ class PincodeService {
           evaluated.push({
             dealer,
             distanceKm: distance,
+            isWithinRadius: distance <= maxRadiusKm,
             dealerPincode: dealer.pincode || '',
             dealerName: dealer.companyName || dealer.name,
             dealerCoords: { lat: dLat, lng: dLng }
@@ -240,11 +244,18 @@ class PincodeService {
     // Sort ascending by geographic distance
     evaluated.sort((a, b) => a.distanceKm - b.distanceKm);
 
-    const nearest = evaluated.length > 0 ? evaluated[0] : null;
+    const dealersWithinRadius = evaluated.filter((e) => e.distanceKm <= maxRadiusKm);
+    const nearestWithinRadius = dealersWithinRadius.length > 0 ? dealersWithinRadius[0] : null;
+    const nearestOverall = evaluated.length > 0 ? evaluated[0] : null;
+
+    // Pick nearest within 5km if available, else closest overall
+    const chosen = nearestWithinRadius || nearestOverall;
 
     return {
-      nearestDealer: nearest ? nearest.dealer : null,
-      distanceKm: nearest ? nearest.distanceKm : null,
+      nearestDealer: chosen ? chosen.dealer : null,
+      distanceKm: chosen ? chosen.distanceKm : null,
+      isWithinRadius: Boolean(nearestWithinRadius),
+      dealersWithinRadius: dealersWithinRadius.map((d) => d.dealer),
       dealersEvaluated: evaluated
     };
   }
