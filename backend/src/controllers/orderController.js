@@ -297,7 +297,7 @@ const createOrder = async (req, res) => {
       recipientRole: 'USER',
       type: 'ORDER_PLACED',
       title: 'Order Initiated',
-      message: `Your order #${orderNumber} for ${tractorQty} Tractor${tractorQty === 1 ? '' : 's'} (${tractorType}) of ${product.name} has been initiated. Complete payment to confirm.`,
+      message: `Your order #${orderNumber} for ${qty} ${vehicleType === 'TRACTOR' ? 'Tractor' : 'Dumper'} load${qty === 1 ? '' : 's'} of ${product.name} has been initiated. Complete payment to confirm.`,
       orderId: order._id
     });
 

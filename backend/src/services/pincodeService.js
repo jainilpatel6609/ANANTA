@@ -362,12 +362,42 @@ class PincodeService {
   }
 
   /**
+   * Finds nearest Indian PIN code from embedded dataset based on coordinates
+   */
+  static findNearestPincode(lat, lng) {
+    let nearestPin = '';
+    let minDistance = Infinity;
+    for (const [pin, data] of Object.entries(PINCODE_DATA)) {
+      const dLat = ((data.lat - lat) * Math.PI) / 180;
+      const dLng = ((data.lng - lng) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((lat * Math.PI) / 180) *
+          Math.cos((data.lat * Math.PI) / 180) *
+          Math.sin(dLng / 2) *
+          Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const distKm = 6371 * c;
+      if (distKm < minDistance) {
+        minDistance = distKm;
+        nearestPin = pin;
+      }
+    }
+    if (nearestPin && minDistance <= 35) {
+      return { pin: nearestPin, data: PINCODE_DATA[nearestPin], distanceKm: minDistance };
+    }
+    return null;
+  }
+
+  /**
    * Reverse Geocoder with multi-provider fallback and structured Gujarat addresses.
    */
   static async reverseGeocode(latitude, longitude) {
     const lat = parseFloat(latitude);
     const lng = parseFloat(longitude);
     if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+
+    let resolvedData = null;
 
     // 1. Nominatim Reverse (Detailed road/suburb/postcode)
     try {
@@ -383,19 +413,24 @@ class PincodeService {
         const data = await res.json();
         if (data && data.address) {
           const addr = data.address;
-          const road = addr.road || addr.street || '';
-          const building = addr.building || addr.house_number || '';
-          const addressLine1 = [building, road].filter(Boolean).join(', ') || addr.suburb || '';
-          const area = addr.suburb || addr.neighbourhood || addr.village || addr.county || addr.commercial || '';
-          const city = addr.city || addr.town || addr.village || addr.state_district || addr.county || '';
+          const road = addr.road || addr.street || addr.residential || '';
+          const building = addr.building || addr.house_number || addr.hamlet || '';
+          const addressLine1 = [building, road].filter(Boolean).join(', ') || addr.suburb || addr.neighbourhood || '';
+          const area = addr.suburb || addr.neighbourhood || addr.village || addr.county || addr.commercial || addr.industrial || '';
+          const city = addr.city || addr.town || addr.village || addr.state_district || addr.county || 'Gujarat';
           const district = addr.state_district || addr.county || city;
           const state = addr.state || 'Gujarat';
-          const pincode = addr.postcode ? addr.postcode.replace(/\D/g, '').slice(0, 6) : '';
-          const landmark = addr.amenity || addr.shop || addr.tourism || addr.historic || '';
+          let pincode = addr.postcode ? addr.postcode.replace(/\D/g, '').slice(0, 6) : '';
+          const landmark = addr.amenity || addr.shop || addr.tourism || addr.historic || addr.leisure || '';
 
-          return {
-            addressLine1,
-            area,
+          if (!pincode || !/^[1-9][0-9]{5}$/.test(pincode)) {
+            const nearest = this.findNearestPincode(lat, lng);
+            if (nearest) pincode = nearest.pin;
+          }
+
+          resolvedData = {
+            addressLine1: addressLine1 || area || city,
+            area: area || city,
             city,
             district,
             state,
@@ -412,6 +447,8 @@ class PincodeService {
       logger.warn(`Nominatim reverse geocode error: ${e.message}`);
     }
 
+    if (resolvedData) return resolvedData;
+
     // 2. BigDataCloud Fallback
     try {
       const bdcUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`;
@@ -420,12 +457,18 @@ class PincodeService {
         const d = await res.json();
         const city = d.city || d.locality || '';
         const state = d.principalSubdivision || 'Gujarat';
-        const pincode = d.postcode ? d.postcode.replace(/\D/g, '').slice(0, 6) : '';
+        let pincode = d.postcode ? d.postcode.replace(/\D/g, '').slice(0, 6) : '';
+
+        if (!pincode || !/^[1-9][0-9]{5}$/.test(pincode)) {
+          const nearest = this.findNearestPincode(lat, lng);
+          if (nearest) pincode = nearest.pin;
+        }
+
         return {
-          addressLine1: d.locality || '',
-          area: d.locality || '',
-          city,
-          district: city,
+          addressLine1: d.locality || city,
+          area: d.locality || city,
+          city: city || 'Gujarat',
+          district: city || 'Gujarat',
           state,
           pincode,
           landmark: '',
@@ -437,6 +480,24 @@ class PincodeService {
       }
     } catch (e) {
       logger.warn(`BigDataCloud reverse geocode error: ${e.message}`);
+    }
+
+    // 3. Embedded Gujarat Offline Coordinates Matcher Fallback
+    const nearest = this.findNearestPincode(lat, lng);
+    if (nearest) {
+      return {
+        addressLine1: `${nearest.data.city} Region`,
+        area: nearest.data.district || nearest.data.city,
+        city: nearest.data.city,
+        district: nearest.data.district,
+        state: nearest.data.state,
+        pincode: nearest.pin,
+        landmark: '',
+        formattedAddress: `${nearest.data.city}, ${nearest.data.district}, ${nearest.data.state} - ${nearest.pin}`,
+        latitude: lat,
+        longitude: lng,
+        source: 'OFFLINE_DATASET'
+      };
     }
 
     return null;

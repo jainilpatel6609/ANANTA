@@ -30,7 +30,9 @@ import {
   Sparkles,
   Info,
   Clock,
-  Check
+  Check,
+  Zap,
+  X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -90,9 +92,12 @@ export default function CreateOrder() {
   const [isLocatingGPS, setIsLocatingGPS] = useState(false);
   const isInternalLocationUpdateRef = useRef(false);
 
-  // Post-order state
+  // Post-order & Payment Modal states
   const [createdOrder, setCreatedOrder] = useState(null);
   const [isPaid, setIsPaid] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [razorpayData, setRazorpayData] = useState(null);
 
   // Derived selected objects
   const selectedMaterial = materials.find((m) => m._id === selectedMaterialId) || materials[0];
@@ -433,41 +438,44 @@ export default function CreateOrder() {
     );
   };
 
-  // Map Click / Marker Drag Handler
+  // Map Click / Marker Drag / Map Pan Handler (Manual Location Setting)
   const handleMapLocationChange = async (lat, lng, source) => {
     setCoordinates({ lat, lng });
 
-    if (source === 'marker_drag' || source === 'map_click') {
-      try {
-        const res = await pincodeService.reverseGeocode(lat, lng);
-        const location = res.data?.location;
-        if (location) {
-          isInternalLocationUpdateRef.current = true;
-          setShippingDetails((prev) => ({
-            ...prev,
-            pincode: (location.pincode && /^[1-9][0-9]{5}$/.test(location.pincode)) ? location.pincode : prev.pincode,
-            addressLine1: location.addressLine1 || prev.addressLine1,
-            area: location.area || prev.area,
-            city: location.city || prev.city,
-            state: location.state || prev.state,
-            landmark: location.landmark || prev.landmark
-          }));
+    try {
+      const res = await pincodeService.reverseGeocode(lat, lng);
+      const location = res.data?.location;
+      if (location) {
+        isInternalLocationUpdateRef.current = true;
+        setShippingDetails((prev) => ({
+          ...prev,
+          pincode: location.pincode && /^[1-9][0-9]{5}$/.test(location.pincode) ? location.pincode : prev.pincode,
+          addressLine1: location.addressLine1 || prev.addressLine1,
+          area: location.area || prev.area,
+          city: location.city || prev.city,
+          state: location.state || prev.state,
+          landmark: location.landmark || prev.landmark
+        }));
 
-          if (location.pincode && /^[1-9][0-9]{5}$/.test(location.pincode)) {
-            setPincodeValidation({
-              valid: true,
-              message: `✓ Verified PIN Code (${location.city || location.state})`,
-              loading: false
-            });
-          }
+        if (location.pincode && /^[1-9][0-9]{5}$/.test(location.pincode)) {
+          setPincodeValidation({
+            valid: true,
+            message: `✓ Verified PIN Code (${location.city || location.state})`,
+            loading: false
+          });
         }
-      } catch (e) {
-        console.warn('Reverse geocode error on marker move:', e);
-      }
 
+        const previewTitle = [location.addressLine1, location.area, location.city].filter(Boolean).join(', ');
+        setMapStatus({
+          type: 'success',
+          text: `✓ Location auto-filled: ${previewTitle || `${lat.toFixed(4)}, ${lng.toFixed(4)}`} (${location.pincode || 'Gujarat'})`
+        });
+      }
+    } catch (e) {
+      console.warn('Reverse geocode error on map move:', e);
       setMapStatus({
         type: 'info',
-        text: `📍 Delivery marker set to (${lat.toFixed(5)}, ${lng.toFixed(5)}). Address updated.`
+        text: `📍 Delivery marker set to (${lat.toFixed(5)}, ${lng.toFixed(5)}).`
       });
     }
   };
@@ -619,61 +627,86 @@ export default function CreateOrder() {
       const res = await orderService.create(payload);
       const { order, razorpayOrder, keyId } = res.data;
       setCreatedOrder(order);
+      setRazorpayData({ razorpayOrder, keyId });
 
-      // Handle Razorpay Payment Modal
-      if (window.Razorpay && razorpayOrder) {
-        const options = {
-          key: keyId,
-          amount: razorpayOrder.amount,
-          currency: razorpayOrder.currency || 'INR',
-          name: 'ANANTA TRADERS',
-          description: `Order #${order.orderNumber} - ${selectedMaterial?.name}`,
-          order_id: razorpayOrder.id,
-          prefill: {
-            name: shippingDetails.fullName,
-            contact: shippingDetails.mobile,
-            email: user?.email || 'sales@anantatraders.com'
-          },
-          theme: {
-            color: '#f59e0b'
-          },
-          handler: async function (response) {
-            try {
-              toast.loading('Verifying secure transaction...', { id: 'pay' });
-              await paymentService.verify({
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
-                orderId: order._id
-              });
-              toast.success('Payment verified! Order dispatched to nearest dealer.', { id: 'pay' });
-              setIsPaid(true);
-              navigate(`/orders/${order._id}`, { state: { justCreated: true } });
-            } catch (err) {
-              toast.error('Payment verification failed. Please contact support.', { id: 'pay' });
-            }
-          },
-          modal: {
-            ondismiss: function () {
-              toast('Payment window dismissed. Your order is saved in pending status.');
-              navigate(`/orders/${order._id}`);
-            }
-          }
-        };
-
-        const rzp = new window.Razorpay(options);
-        rzp.open();
-      } else {
-        // Simulated / Fallback flow
-        toast.success(`Order #${order.orderNumber} placed successfully!`);
-        setIsPaid(true);
-        navigate(`/orders/${order._id}`, { state: { justCreated: true } });
-      }
+      // Open Interactive Payment & Demo Mode Confirmation Modal
+      setShowPaymentModal(true);
+      toast.success(`Order #${order.orderNumber} initiated! Please complete payment to confirm.`);
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Failed to initialize order.');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Instant 1-Click Demo / Test Payment Confirmation
+  const handleDemoPaymentConfirm = async () => {
+    if (!createdOrder?._id) return;
+    setPaymentProcessing(true);
+    toast.loading('Processing 1-click test payment & notifying nearest dealer...', { id: 'pay' });
+
+    try {
+      await paymentService.devConfirm(createdOrder._id);
+      toast.success('🎉 Payment Confirmed (Demo Mode)! Order dispatched to Nearest Dealer.', { id: 'pay' });
+      setIsPaid(true);
+      setShowPaymentModal(false);
+      navigate(`/orders/${createdOrder._id}`, { state: { justCreated: true } });
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Demo payment failed.', { id: 'pay' });
+    } finally {
+      setPaymentProcessing(false);
+    }
+  };
+
+  // Live / Sandbox Razorpay Checkout
+  const handleRazorpayCheckout = () => {
+    if (!createdOrder || !razorpayData?.razorpayOrder || !window.Razorpay) {
+      toast.error('Razorpay SDK is not loaded. Please use Demo Payment mode for instant testing.');
+      return;
+    }
+
+    const { razorpayOrder, keyId } = razorpayData;
+    const options = {
+      key: keyId,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency || 'INR',
+      name: 'ANANTA TRADERS',
+      description: `Order #${createdOrder.orderNumber} - ${selectedMaterial?.name}`,
+      order_id: razorpayOrder.id,
+      prefill: {
+        name: shippingDetails.fullName,
+        contact: shippingDetails.mobile,
+        email: user?.email || 'sales@anantatraders.com'
+      },
+      theme: {
+        color: '#f59e0b'
+      },
+      handler: async function (response) {
+        try {
+          toast.loading('Verifying secure transaction...', { id: 'pay' });
+          await paymentService.verify({
+            razorpayOrderId: response.razorpay_order_id,
+            razorpayPaymentId: response.razorpay_payment_id,
+            razorpaySignature: response.razorpay_signature,
+            orderId: createdOrder._id
+          });
+          toast.success('Payment verified! Order dispatched to nearest dealer.', { id: 'pay' });
+          setIsPaid(true);
+          setShowPaymentModal(false);
+          navigate(`/orders/${createdOrder._id}`, { state: { justCreated: true } });
+        } catch (err) {
+          toast.error('Payment verification failed. Please contact support.', { id: 'pay' });
+        }
+      },
+      modal: {
+        ondismiss: function () {
+          toast('Payment window dismissed. Your order is saved in pending status.');
+        }
+      }
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.open();
   };
 
   if (loading) {
@@ -1759,6 +1792,109 @@ export default function CreateOrder() {
           )}
         </div>
       </div>
+
+      {/* ================= PAYMENT CONFIRMATION & DEMO MODE MODAL ================= */}
+      {showPaymentModal && createdOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 sm:p-7 space-y-6 shadow-2xl relative overflow-hidden">
+            {/* Top Banner */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-white font-display">
+                    Complete Payment & Confirm Order
+                  </h3>
+                  <p className="text-xs text-slate-400 font-mono">
+                    Order #{createdOrder.orderNumber}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPaymentModal(false)}
+                className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Order Snapshot Card */}
+            <div className="p-4.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Material & Fleet:</span>
+                <span className="font-bold text-white">
+                  {createdOrder.productNameSnapshot} • {createdOrder.transportType} ({createdOrder.tractorType || createdOrder.vehicleType})
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Delivery Site:</span>
+                <span className="font-medium text-slate-300 truncate max-w-[220px]">
+                  {createdOrder.shippingDetails?.city || createdOrder.shippingAddress} ({createdOrder.pincode})
+                </span>
+              </div>
+              <div className="border-t border-slate-800/80 pt-2.5 flex justify-between items-center text-sm font-bold">
+                <span className="text-amber-400 uppercase tracking-wider text-xs">Total Amount:</span>
+                <span className="font-mono text-xl font-black text-emerald-400">
+                  {formatINR(createdOrder.totalAmount)}
+                </span>
+              </div>
+            </div>
+
+            {/* DEMO / TESTING MODE SECTION (PROMINENT & 1-CLICK) */}
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-emerald-500/10 to-slate-950 border-2 border-amber-500/40 space-y-3.5 shadow-lg">
+              <div className="flex items-center justify-between">
+                <span className="px-2.5 py-1 rounded-md bg-amber-500/20 text-amber-300 font-black text-[11px] uppercase tracking-wider flex items-center gap-1.5 border border-amber-500/30">
+                  <Zap className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                  Testing & Demo Mode Active
+                </span>
+                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                  1-Click Instant
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Click below to instantly test the full end-to-end order placement, dealer notification (15-min timer), and live tracking without real money deduction.
+              </p>
+
+              <button
+                type="button"
+                disabled={paymentProcessing}
+                onClick={handleDemoPaymentConfirm}
+                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-black text-sm transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+              >
+                {paymentProcessing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                    <span>Confirming Demo Payment...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-slate-950" />
+                    <span>⚡ Confirm & Place Order (Demo Mode)</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* RAZORPAY GATEWAY CHECKOUT (OPTIONAL) */}
+            {window.Razorpay && razorpayData?.razorpayOrder && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  disabled={paymentProcessing}
+                  onClick={handleRazorpayCheckout}
+                  className="w-full py-2.5 px-4 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-300 hover:text-white transition-all flex items-center justify-center gap-2"
+                >
+                  <CreditCard className="w-4 h-4 text-amber-400" />
+                  <span>Pay with Razorpay Gateway (Live / Sandbox)</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

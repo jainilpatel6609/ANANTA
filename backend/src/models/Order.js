@@ -186,6 +186,12 @@ const orderSchema = new mongoose.Schema(
       default: 'PENDING_PAYMENT',
       index: true
     },
+    driverId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Driver',
+      default: null,
+      index: true
+    },
     driverName: {
       type: String,
       default: ''
@@ -197,6 +203,14 @@ const orderSchema = new mongoose.Schema(
     vehicleNumber: {
       type: String,
       default: ''
+    },
+    driverAssignedAt: {
+      type: Date,
+      default: null
+    },
+    driverTaskDispatchedAt: {
+      type: Date,
+      default: null
     },
     riverRoyaltyUrl: {
       type: String,

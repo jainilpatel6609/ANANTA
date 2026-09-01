@@ -138,89 +138,94 @@ export default function OrderDetails() {
             )}
           </div>
 
-          {/* Compliance & Weighbridge Documents */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
-              <FileCheck className="w-4 h-4 text-brand-400" />
-              Verified Compliance Slips & Photos
-            </h3>
+          {/* Compliance & Weighbridge Documents - ONLY FOR DUMPER / TRUCK */}
+          {order.transportType !== 'Tractor' &&
+          order.vehicleTypeSnapshot !== 'TRACTOR' &&
+          !order.tractorType &&
+          !order.vehicleType?.toLowerCase().includes('patiya') && (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+                <FileCheck className="w-4 h-4 text-brand-400" />
+                Verified Compliance Slips & Photos
+              </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* River Royalty Photo */}
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-200">River Royalty Slip</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* River Royalty Photo */}
+                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-200">River Royalty Slip</span>
+                    {order.riverRoyaltyUrl ? (
+                      <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                        <ShieldCheck className="w-3 h-3" />
+                        Uploaded
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-500">Pending Upload</span>
+                    )}
+                  </div>
                   {order.riverRoyaltyUrl ? (
-                    <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3" />
-                      Uploaded
-                    </span>
+                    <div className="relative group rounded-lg overflow-hidden h-36 border border-slate-800">
+                      <img
+                        src={order.riverRoyaltyUrl}
+                        alt="River Royalty Certificate"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                      <a
+                        href={order.riverRoyaltyUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-xs font-bold text-white transition-opacity gap-1"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        View Full Certificate
+                      </a>
+                    </div>
                   ) : (
-                    <span className="text-[10px] text-slate-500">Pending Upload</span>
+                    <div className="h-28 rounded-lg bg-slate-900 flex items-center justify-center text-xs text-slate-500 text-center p-3">
+                      Dealer uploads verified Royalty transit pass prior to departure.
+                    </div>
                   )}
                 </div>
-                {order.riverRoyaltyUrl ? (
-                  <div className="relative group rounded-lg overflow-hidden h-36 border border-slate-800">
-                    <img
-                      src={order.riverRoyaltyUrl}
-                      alt="River Royalty Certificate"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
-                    <a
-                      href={order.riverRoyaltyUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-xs font-bold text-white transition-opacity gap-1"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      View Full Certificate
-                    </a>
-                  </div>
-                ) : (
-                  <div className="h-28 rounded-lg bg-slate-900 flex items-center justify-center text-xs text-slate-500 text-center p-3">
-                    Dealer uploads verified Royalty transit pass prior to departure.
-                  </div>
-                )}
-              </div>
 
-              {/* Waybridge Photo */}
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-200">Certified Weighbridge Slip</span>
+                {/* Waybridge Photo */}
+                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-200">Certified Weighbridge Slip</span>
+                    {order.waybridgePhotoUrl ? (
+                      <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                        <Scale className="w-3 h-3" />
+                        Uploaded
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-500">Pending Upload</span>
+                    )}
+                  </div>
                   {order.waybridgePhotoUrl ? (
-                    <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                      <Scale className="w-3 h-3" />
-                      Uploaded
-                    </span>
+                    <div className="relative group rounded-lg overflow-hidden h-36 border border-slate-800">
+                      <img
+                        src={order.waybridgePhotoUrl}
+                        alt="Weighbridge Slip Photo"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                      <a
+                        href={order.waybridgePhotoUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-xs font-bold text-white transition-opacity gap-1"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        View Weighbridge Slip
+                      </a>
+                    </div>
                   ) : (
-                    <span className="text-[10px] text-slate-500">Pending Upload</span>
+                    <div className="h-28 rounded-lg bg-slate-900 flex items-center justify-center text-xs text-slate-500 text-center p-3">
+                      Dealer captures gross weight slip photo upon scale exit.
+                    </div>
                   )}
                 </div>
-                {order.waybridgePhotoUrl ? (
-                  <div className="relative group rounded-lg overflow-hidden h-36 border border-slate-800">
-                    <img
-                      src={order.waybridgePhotoUrl}
-                      alt="Weighbridge Slip Photo"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
-                    <a
-                      href={order.waybridgePhotoUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-xs font-bold text-white transition-opacity gap-1"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      View Weighbridge Slip
-                    </a>
-                  </div>
-                ) : (
-                  <div className="h-28 rounded-lg bg-slate-900 flex items-center justify-center text-xs text-slate-500 text-center p-3">
-                    Dealer captures gross weight slip photo upon scale exit.
-                  </div>
-                )}
               </div>
             </div>
-          </div>
+          )}
 
           {/* Shipping Coordinates & Destination */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-3">

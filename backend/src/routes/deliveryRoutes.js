@@ -5,7 +5,15 @@ const { authenticateToken } = require('../middleware/auth');
 const { authorizeRoles } = require('../middleware/rbac');
 const { upload } = require('../middleware/upload');
 
-// Dealer dispatch driver & uploads
+// Dealer assigns Driver and dispatches SMS + Live Google Map to driver
+router.post(
+  '/:id/assign-driver',
+  authenticateToken,
+  authorizeRoles('DEALER', 'ADMIN'),
+  deliveryController.assignDriverToOrder
+);
+
+// Dealer dispatch driver & uploads documents
 router.post(
   '/:id/dispatch',
   authenticateToken,

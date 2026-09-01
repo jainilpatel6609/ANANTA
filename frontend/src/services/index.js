@@ -29,6 +29,7 @@ export const productService = {
 };
 
 export const orderService = {
+  create: (orderData) => api.post('/orders', orderData),
   createOrder: (orderData) => api.post('/orders', orderData),
   getMyOrders: () => api.get('/orders/my-orders'),
   getOrderById: (id) => api.get(`/orders/${id}`),
@@ -44,6 +45,7 @@ export const orderService = {
 };
 
 export const deliveryService = {
+  assignDriver: (id, driverData) => api.post(`/deliveries/${id}/assign-driver`, driverData),
   dispatchOrder: (id, formData) => api.post(`/deliveries/${id}/dispatch`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
@@ -51,8 +53,18 @@ export const deliveryService = {
   getOtpStatus: (id) => api.get(`/deliveries/${id}/otp`)
 };
 
+export const driverService = {
+  getDrivers: (params) => api.get('/drivers', { params }),
+  createDriver: (data) => api.post('/drivers', data),
+  updateDriver: (id, data) => api.put(`/drivers/${id}`, data),
+  toggleStatus: (id) => api.patch(`/drivers/${id}/toggle`),
+  deleteDriver: (id) => api.delete(`/drivers/${id}`)
+};
+
 export const paymentService = {
+  verify: (data) => api.post('/payments/verify', data),
   verifyPayment: (data) => api.post('/payments/verify', data),
+  devConfirm: (orderId) => api.post('/payments/dev-confirm', { orderId }),
   devConfirmPayment: (orderId) => api.post('/payments/dev-confirm', { orderId })
 };
 

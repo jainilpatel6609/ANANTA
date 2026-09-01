@@ -13,7 +13,8 @@ import {
   Bell,
   Menu,
   X,
-  ShieldCheck
+  ShieldCheck,
+  Users
 } from 'lucide-react';
 
 export default function DealerLayout() {
@@ -27,6 +28,7 @@ export default function DealerLayout() {
     { name: 'New Orders Pool', path: '/dealer/new-orders', icon: Inbox, alert: true },
     { name: 'Accepted Orders', path: '/dealer/accepted', icon: CheckCircle },
     { name: 'Active Deliveries (OTP)', path: '/dealer/active', icon: Truck, highlight: true },
+    { name: 'Driver Fleet', path: '/dealer/drivers', icon: Users },
     { name: 'Completed Archive', path: '/dealer/completed', icon: History },
     { name: 'Dealer Profile', path: '/dealer/profile', icon: User }
   ];

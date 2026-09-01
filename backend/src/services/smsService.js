@@ -78,6 +78,40 @@ class SmsService {
   }
 
   /**
+   * Dispatches complete Order Summary + Google Maps Live Navigation Link to Driver's Mobile
+   * @param {Object} params
+   */
+  static async sendDriverAssignmentSms({
+    mobile,
+    driverName,
+    orderNumber,
+    productName,
+    quantity,
+    transportType = 'Vehicle',
+    customerName,
+    customerMobile,
+    shippingAddress,
+    landmark,
+    instructions,
+    latitude,
+    longitude,
+    dealerName
+  }) {
+    const cleanMobile = String(mobile).replace(/\D/g, '').slice(-10);
+    const mapUrl = (latitude && longitude)
+      ? `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`
+      : 'https://maps.google.com';
+
+    const message = `🚛 ANANTA TRADERS DELIVERY TASK #${orderNumber}\nHello ${driverName || 'Driver'}, you are assigned by ${dealerName || 'Dealer'}.\n📦 Item: ${quantity} of ${productName} (${transportType})\n👤 Customer: ${customerName || 'Site Contact'} (${customerMobile || 'N/A'})\n📍 Site: ${shippingAddress}${landmark ? ` | Landmark: ${landmark}` : ''}${instructions ? ` | Note: ${instructions}` : ''}\n🗺️ Google Map: ${mapUrl}\n🔑 Collect 6-digit OTP from customer upon unloading.`;
+
+    return await this.sendSms({
+      mobile: cleanMobile,
+      message,
+      type: 'DRIVER_ASSIGNMENT'
+    });
+  }
+
+  /**
    * Core dispatcher that routes to the configured telecom SMS provider
    * @param {Object} params - { mobile, otp, message, type }
    */
