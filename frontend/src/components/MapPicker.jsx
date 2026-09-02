@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import {
   MapPin,
   Navigation,
@@ -9,100 +8,17 @@ import {
   AlertCircle,
   X,
   Crosshair,
-  Plus,
-  Minus,
-  Maximize2
+  Sparkles,
+  Building2
 } from 'lucide-react';
+import { loadGoogleMaps } from '../utils/googleMapsLoader';
+import { parseGoogleAddressComponents } from '../utils/googleAddressParser';
 import { pincodeService } from '../services';
 
-// Center Pin Controller with Rapido / Swiggy / Zepto Drag & Drop Animations
-function MapCenterController({ onCenterChange, onDragStateChange }) {
-  const map = useMap();
-
-  useMapEvents({
-    movestart() {
-      if (onDragStateChange) onDragStateChange(true);
-    },
-    dragstart() {
-      if (onDragStateChange) onDragStateChange(true);
-    },
-    moveend() {
-      const center = map.getCenter();
-      if (onDragStateChange) onDragStateChange(false);
-      if (onCenterChange) {
-        onCenterChange({ lat: center.lat, lng: center.lng });
-      }
-    }
-  });
-
-  return null;
-}
-
-// Controller to smoothly pan & zoom map and invalidate size for Android WebViews
-function MapFlyController({ targetCoordinates, zoom = 17 }) {
-  const map = useMap();
-
-  useEffect(() => {
-    // Invalidate size after mount to prevent grey/blank tiles in mobile WebViews
-    const timer = setTimeout(() => {
-      map.invalidateSize();
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [map]);
-
-  useEffect(() => {
-    if (
-      targetCoordinates?.lat &&
-      targetCoordinates?.lng &&
-      !Number.isNaN(targetCoordinates.lat) &&
-      !Number.isNaN(targetCoordinates.lng)
-    ) {
-      map.flyTo([targetCoordinates.lat, targetCoordinates.lng], zoom, {
-        animate: true,
-        duration: 1.0,
-        easeLinearity: 0.25
-      });
-    }
-  }, [targetCoordinates, zoom, map]);
-
-  return null;
-}
-
-// Modern Floating Map Control Buttons (Zoom In, Zoom Out, Fullscreen)
-function FloatingMapControls() {
-  const map = useMap();
-
-  const handleZoomIn = (e) => {
-    e.stopPropagation();
-    map.zoomIn();
-  };
-
-  const handleZoomOut = (e) => {
-    e.stopPropagation();
-    map.zoomOut();
-  };
-
-  return (
-    <div className="absolute top-3 right-3 z-[400] flex flex-col gap-1.5 shadow-lg">
-      <button
-        type="button"
-        onClick={handleZoomIn}
-        className="w-8 h-8 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-700/80 text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-md"
-        title="Zoom In"
-      >
-        <Plus className="w-4 h-4 text-amber-400" />
-      </button>
-      <button
-        type="button"
-        onClick={handleZoomOut}
-        className="w-8 h-8 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-700/80 text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-md"
-        title="Zoom Out"
-      >
-        <Minus className="w-4 h-4 text-amber-400" />
-      </button>
-    </div>
-  );
-}
+// Default Center: India
+const INDIA_DEFAULT_CENTER = { lat: 22.9734, lng: 78.6569 };
+const DEFAULT_ZOOM = 5;
+const SELECTED_LOCATION_ZOOM = 17;
 
 export default function MapPicker({
   coordinates = { lat: 23.0225, lng: 72.5714 },
@@ -113,338 +29,645 @@ export default function MapPicker({
   isSearching = false,
   isLocating = false,
   statusMessage = null,
-  zoom = 17
+  zoom = SELECTED_LOCATION_ZOOM
 }) {
-  const [currentCenter, setCurrentCenter] = useState(coordinates);
-  const [targetCoords, setTargetCoords] = useState(coordinates);
-  const [isMapDragging, setIsMapDragging] = useState(false);
-  const [searchInput, setSearchInput] = useState('');
+  const mapContainerRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const searchTimerRef = useRef(null);
+
+  const mapInstanceRef = useRef(null);
+  const markerInstanceRef = useRef(null);
+  const autocompleteInstanceRef = useRef(null);
+  const geocoderInstanceRef = useRef(null);
+
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapError, setMapError] = useState(null);
+  const [searchValue, setSearchValue] = useState('');
   const [suggestions, setSuggestions] = useState([]);
-  const [searchingSuggestions, setSearchingSuggestions] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [detectedAddressPreview, setDetectedAddressPreview] = useState('');
-  const searchContainerRef = useRef(null);
-  const debounceTimerRef = useRef(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearchingSuggestions, setIsSearchingSuggestions] = useState(false);
+  const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
+  const [internalStatus, setInternalStatus] = useState(null);
 
+  // Suppress Google Maps authentication failure alert
   useEffect(() => {
-    if (
-      coordinates?.lat &&
-      coordinates?.lng &&
-      (coordinates.lat !== currentCenter.lat || coordinates.lng !== currentCenter.lng)
-    ) {
-      setCurrentCenter(coordinates);
-      setTargetCoords(coordinates);
-    }
-  }, [coordinates]);
-
-  // Click outside listener to close search dropdown
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
+    window.gm_authFailure = () => {
+      console.warn('[Google Maps Platform] Missing or unbilled API Key. Seamless backend fallback active.');
     };
   }, []);
 
-  // Live search suggestions debounce
+  // Initialize Google Maps JavaScript API, Map, Marker, and Places Autocomplete
   useEffect(() => {
-    if (!searchInput || searchInput.trim().length < 2) {
+    let isMounted = true;
+
+    loadGoogleMaps()
+      .then((googleMaps) => {
+        if (!isMounted || !mapContainerRef.current) return;
+
+        const initialCenter =
+          coordinates?.lat && coordinates?.lng
+            ? { lat: Number(coordinates.lat), lng: Number(coordinates.lng) }
+            : INDIA_DEFAULT_CENTER;
+
+        const initialZoom = coordinates?.lat && coordinates?.lng ? SELECTED_LOCATION_ZOOM : DEFAULT_ZOOM;
+
+        // 1. Initialize Google Map Instance
+        const map = new googleMaps.Map(mapContainerRef.current, {
+          center: initialCenter,
+          zoom: initialZoom,
+          mapTypeId: 'roadmap',
+          zoomControl: true,
+          mapTypeControl: false,
+          scaleControl: true,
+          streetViewControl: false,
+          rotateControl: false,
+          fullscreenControl: false,
+          gestureHandling: 'greedy',
+          styles: [
+            { elementType: 'geometry', stylers: [{ color: '#1e293b' }] },
+            { elementType: 'labels.text.stroke', stylers: [{ color: '#0f172a' }] },
+            { elementType: 'labels.text.fill', stylers: [{ color: '#94a3b8' }] },
+            {
+              featureType: 'administrative.locality',
+              elementType: 'labels.text.fill',
+              stylers: [{ color: '#fbbf24' }]
+            },
+            {
+              featureType: 'poi',
+              elementType: 'labels.text.fill',
+              stylers: [{ color: '#64748b' }]
+            },
+            {
+              featureType: 'poi.park',
+              elementType: 'geometry',
+              stylers: [{ color: '#0f291e' }]
+            },
+            {
+              featureType: 'road',
+              elementType: 'geometry',
+              stylers: [{ color: '#334155' }]
+            },
+            {
+              featureType: 'road',
+              elementType: 'geometry.stroke',
+              stylers: [{ color: '#1e293b' }]
+            },
+            {
+              featureType: 'road.highway',
+              elementType: 'geometry',
+              stylers: [{ color: '#f59e0b' }]
+            },
+            {
+              featureType: 'road.highway',
+              elementType: 'geometry.stroke',
+              stylers: [{ color: '#b45309' }]
+            },
+            {
+              featureType: 'transit',
+              elementType: 'geometry',
+              stylers: [{ color: '#1e293b' }]
+            },
+            {
+              featureType: 'water',
+              elementType: 'geometry',
+              stylers: [{ color: '#09152e' }]
+            },
+            {
+              featureType: 'water',
+              elementType: 'labels.text.fill',
+              stylers: [{ color: '#38bdf8' }]
+            }
+          ]
+        });
+
+        mapInstanceRef.current = map;
+        geocoderInstanceRef.current = new googleMaps.Geocoder();
+
+        // 2. Initialize Single Draggable Golden Delivery Marker
+        const marker = new googleMaps.Marker({
+          position: initialCenter,
+          map,
+          draggable: true,
+          title: 'Delivery Spot',
+          animation: googleMaps.Animation.DROP,
+          icon: {
+            path: 'M21 0C9.402 0 0 9.402 0 21C0 35.156 18.396 51.986 20.178 53.58C20.648 54.004 21.352 54.004 21.822 53.58C23.604 51.986 42 35.156 42 21C42 9.402 32.598 0 21 0Z',
+            fillColor: '#f59e0b',
+            fillOpacity: 1,
+            strokeColor: '#78350f',
+            strokeWeight: 2,
+            scale: 0.85,
+            anchor: new googleMaps.Point(21, 54)
+          }
+        });
+
+        markerInstanceRef.current = marker;
+
+        // Marker Drag Listener (dragend)
+        marker.addListener('dragend', () => {
+          const pos = marker.getPosition();
+          if (!pos) return;
+          const lat = pos.lat();
+          const lng = pos.lng();
+          executeReverseGeocode(lat, lng, 'marker_drag');
+        });
+
+        // Map Click Listener
+        map.addListener('click', (e) => {
+          if (!e.latLng) return;
+          const lat = e.latLng.lat();
+          const lng = e.latLng.lng();
+          marker.setPosition({ lat, lng });
+          executeReverseGeocode(lat, lng, 'map_click');
+        });
+
+        // 3. Initialize Google Places Autocomplete on search input
+        if (searchInputRef.current) {
+          try {
+            const autocomplete = new googleMaps.places.Autocomplete(searchInputRef.current, {
+              componentRestrictions: { country: 'in' },
+              fields: ['address_components', 'geometry', 'formatted_address', 'name']
+            });
+
+            autocomplete.bindTo('bounds', map);
+            autocompleteInstanceRef.current = autocomplete;
+
+            autocomplete.addListener('place_changed', () => {
+              const place = autocomplete.getPlace();
+              if (place?.geometry?.location) {
+                const lat = place.geometry.location.lat();
+                const lng = place.geometry.location.lng();
+
+                map.setCenter({ lat, lng });
+                map.setZoom(SELECTED_LOCATION_ZOOM);
+                marker.setPosition({ lat, lng });
+
+                const parsed = parseGoogleAddressComponents(
+                  place.address_components,
+                  place.formatted_address || place.name,
+                  lat,
+                  lng
+                );
+
+                setSearchValue(place.formatted_address || place.name || '');
+                setShowSuggestions(false);
+
+                setInternalStatus({
+                  type: 'success',
+                  text: `✓ Location selected: ${parsed.formattedAddress} (Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)})`
+                });
+
+                if (onSuggestionSelect) {
+                  onSuggestionSelect(parsed);
+                } else if (onLocationChange) {
+                  onLocationChange(lat, lng, 'places_autocomplete', parsed);
+                }
+              }
+            });
+          } catch (e) {
+            console.warn('Places Autocomplete initialization notice:', e);
+          }
+        }
+
+        setMapLoaded(true);
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        console.warn('[Google Maps Loader Error]', err.message);
+        setMapError(err.message);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Sync Map and Marker Position when external coordinates change
+  useEffect(() => {
+    if (
+      mapLoaded &&
+      mapInstanceRef.current &&
+      markerInstanceRef.current &&
+      coordinates?.lat &&
+      coordinates?.lng
+    ) {
+      const currentPos = markerInstanceRef.current.getPosition();
+      const newLat = Number(coordinates.lat);
+      const newLng = Number(coordinates.lng);
+
+      if (
+        !currentPos ||
+        Math.abs(currentPos.lat() - newLat) > 0.00001 ||
+        Math.abs(currentPos.lng() - newLng) > 0.00001
+      ) {
+        const newLatLng = { lat: newLat, lng: newLng };
+        markerInstanceRef.current.setPosition(newLatLng);
+        mapInstanceRef.current.panTo(newLatLng);
+        if (mapInstanceRef.current.getZoom() < 14) {
+          mapInstanceRef.current.setZoom(SELECTED_LOCATION_ZOOM);
+        }
+      }
+    }
+  }, [coordinates?.lat, coordinates?.lng, mapLoaded]);
+
+  // Debounced search query for fallback autocomplete suggestions
+  const handleSearchInputChange = (e) => {
+    const val = e.target.value;
+    setSearchValue(val);
+
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+
+    if (!val || val.trim().length < 3) {
       setSuggestions([]);
-      setShowDropdown(false);
+      setShowSuggestions(false);
       return;
     }
 
-    const timer = setTimeout(async () => {
-      setSearchingSuggestions(true);
+    searchTimerRef.current = setTimeout(async () => {
+      setIsSearchingSuggestions(true);
       try {
-        const res = await pincodeService.geocode(searchInput.trim());
-        if (res.data?.suggestions) {
-          setSuggestions(res.data.suggestions);
-          setShowDropdown(res.data.suggestions.length > 0);
-        }
+        const res = await pincodeService.geocode(val.trim());
+        const list = res.data?.suggestions || [];
+        setSuggestions(list);
+        setShowSuggestions(list.length > 0);
       } catch (err) {
-        console.warn('Geocoding suggestions error:', err);
+        console.warn('Autocomplete fetch error:', err);
       } finally {
-        setSearchingSuggestions(false);
+        setIsSearchingSuggestions(false);
       }
     }, 300);
+  };
 
-    return () => clearTimeout(timer);
-  }, [searchInput]);
+  // Handle Selection from custom suggestions dropdown
+  const handleSelectCustomSuggestion = (item) => {
+    const lat = parseFloat(item.latitude);
+    const lng = parseFloat(item.longitude);
 
-  // Handle center change when user stops dragging the map (Rapido / Swiggy style)
-  const handleMapCenterChanged = useCallback(
-    (newCenter) => {
-      setCurrentCenter(newCenter);
-
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
+    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+      if (mapInstanceRef.current && markerInstanceRef.current) {
+        const newLatLng = { lat, lng };
+        mapInstanceRef.current.setCenter(newLatLng);
+        mapInstanceRef.current.setZoom(SELECTED_LOCATION_ZOOM);
+        markerInstanceRef.current.setPosition(newLatLng);
       }
 
-      debounceTimerRef.current = setTimeout(async () => {
-        if (onLocationChange) {
-          onLocationChange(newCenter.lat, newCenter.lng, 'map_pan');
+      setSearchValue(item.formattedAddress || item.title);
+      setShowSuggestions(false);
+      setSuggestions([]);
+
+      setInternalStatus({
+        type: 'success',
+        text: `✓ Location selected: ${item.formattedAddress || item.title} (Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)})`
+      });
+
+      if (onSuggestionSelect) {
+        onSuggestionSelect(item);
+      } else if (onLocationChange) {
+        onLocationChange(lat, lng, 'suggestion_select', item);
+      }
+    }
+  };
+
+  // Execute Google Maps Reverse Geocode with automatic Backend fallback
+  const executeReverseGeocode = useCallback(
+    (lat, lng, source = 'manual') => {
+      setIsReverseGeocoding(true);
+      setInternalStatus({ type: 'info', text: 'Finding address for delivery spot...' });
+
+      const handleFallbackReverse = async () => {
+        try {
+          const res = await pincodeService.reverseGeocode(lat, lng);
+          const location = res.data?.location;
+          if (location) {
+            const fallbackParsed = {
+              addressLine1: location.addressLine1 || '',
+              area: location.area || '',
+              city: location.city || '',
+              state: location.state || 'Gujarat',
+              pincode: location.pincode || '',
+              landmark: location.landmark || '',
+              formattedAddress: location.formattedAddress || `${location.addressLine1}, ${location.city}`,
+              latitude: lat,
+              longitude: lng
+            };
+
+            setSearchValue(fallbackParsed.formattedAddress);
+            setInternalStatus({
+              type: 'success',
+              text: `✓ Delivery spot set: ${fallbackParsed.formattedAddress} (Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)})`
+            });
+
+            if (onLocationChange) {
+              onLocationChange(lat, lng, source, fallbackParsed);
+            }
+            return;
+          }
+        } catch (err) {
+          console.warn('Backend fallback reverse geocode error:', err);
         }
 
-        // Fetch reverse geocode address preview for bottom pill
-        try {
-          const res = await pincodeService.reverseGeocode(newCenter.lat, newCenter.lng);
-          const loc = res.data?.location;
-          if (loc) {
-            const preview = [loc.addressLine1, loc.area, loc.city].filter(Boolean).join(', ');
-            setDetectedAddressPreview(preview || loc.formattedAddress || 'Location selected');
-          }
-        } catch (e) {
-          // ignore preview error
+        setInternalStatus({
+          type: 'info',
+          text: `📍 Delivery marker set to (${lat.toFixed(5)}, ${lng.toFixed(5)}).`
+        });
+
+        if (onLocationChange) {
+          onLocationChange(lat, lng, source, {
+            latitude: lat,
+            longitude: lng,
+            formattedAddress: `Coordinates: ${lat.toFixed(5)}, ${lng.toFixed(5)}`
+          });
         }
-      }, 400);
+      };
+
+      if (geocoderInstanceRef.current) {
+        geocoderInstanceRef.current.geocode({ location: { lat, lng } }, (results, status) => {
+          setIsReverseGeocoding(false);
+
+          if (status === 'OK' && Array.isArray(results) && results[0]) {
+            const topResult = results[0];
+            const parsed = parseGoogleAddressComponents(
+              topResult.address_components,
+              topResult.formatted_address,
+              lat,
+              lng
+            );
+
+            setSearchValue(parsed.formattedAddress);
+            setInternalStatus({
+              type: 'success',
+              text: `✓ Location pinpointed: ${parsed.formattedAddress} (Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)})`
+            });
+
+            if (onLocationChange) {
+              onLocationChange(lat, lng, source, parsed);
+            }
+          } else {
+            handleFallbackReverse();
+          }
+        });
+      } else {
+        setIsReverseGeocoding(false);
+        handleFallbackReverse();
+      }
     },
     [onLocationChange]
   );
 
-  const handleSelectSuggestion = (item) => {
-    const newPos = { lat: item.latitude, lng: item.longitude };
-    setCurrentCenter(newPos);
-    setTargetCoords(newPos);
-    setSearchInput(item.title);
-    setShowDropdown(false);
-    setDetectedAddressPreview(item.subtitle || item.title);
+  // Manual "Locate Me" handler using browser Geolocation API
+  const handleCurrentGPS = () => {
+    if (!navigator.geolocation) {
+      setInternalStatus({
+        type: 'error',
+        text: 'GPS Geolocation is not supported by your browser.'
+      });
+      return;
+    }
 
-    if (onSuggestionSelect) {
-      onSuggestionSelect(item);
-    } else if (onLocationChange) {
-      onLocationChange(newPos.lat, newPos.lng, 'suggestion_select');
+    setInternalStatus({ type: 'info', text: 'Detecting high-precision GPS coordinates...' });
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const accuracy = pos.coords.accuracy;
+
+        if (mapInstanceRef.current && markerInstanceRef.current) {
+          const newLatLng = { lat, lng };
+          mapInstanceRef.current.setCenter(newLatLng);
+          mapInstanceRef.current.setZoom(SELECTED_LOCATION_ZOOM);
+          markerInstanceRef.current.setPosition(newLatLng);
+        }
+
+        executeReverseGeocode(lat, lng, 'gps');
+
+        if (onGPSDetect) {
+          onGPSDetect(lat, lng, accuracy);
+        }
+      },
+      (err) => {
+        const msg =
+          err.code === 1
+            ? 'Location permission denied. Please allow location access or search your location manually.'
+            : 'Unable to detect your current location. Please search your address above.';
+        setInternalStatus({ type: 'warning', text: msg });
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  };
+
+  // Manual "Sync Address to Map" handler using Google Geocoder with backend fallback
+  const handleSyncAddress = () => {
+    if (onFindOnMap) {
+      onFindOnMap(true);
+      return;
+    }
+
+    if (!searchValue.trim()) return;
+
+    setInternalStatus({ type: 'info', text: 'Locating address on map...' });
+
+    if (geocoderInstanceRef.current) {
+      geocoderInstanceRef.current.geocode(
+        { address: searchValue.trim(), componentRestrictions: { country: 'in' } },
+        async (results, status) => {
+          if (status === 'OK' && Array.isArray(results) && results[0]) {
+            const loc = results[0].geometry.location;
+            const lat = loc.lat();
+            const lng = loc.lng();
+
+            if (mapInstanceRef.current && markerInstanceRef.current) {
+              const newLatLng = { lat, lng };
+              mapInstanceRef.current.setCenter(newLatLng);
+              mapInstanceRef.current.setZoom(SELECTED_LOCATION_ZOOM);
+              markerInstanceRef.current.setPosition(newLatLng);
+            }
+
+            const parsed = parseGoogleAddressComponents(
+              results[0].address_components,
+              results[0].formatted_address,
+              lat,
+              lng
+            );
+
+            setInternalStatus({
+              type: 'success',
+              text: `✓ Address found: ${parsed.formattedAddress} (Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)})`
+            });
+
+            if (onLocationChange) {
+              onLocationChange(lat, lng, 'sync_address', parsed);
+            }
+          } else {
+            // Try backend geocode
+            try {
+              const res = await pincodeService.geocode(searchValue.trim());
+              const suggestions = res.data?.suggestions || [];
+              if (suggestions.length > 0) {
+                handleSelectCustomSuggestion(suggestions[0]);
+                return;
+              }
+            } catch (e) {
+              console.warn('Backend geocode error:', e);
+            }
+
+            setInternalStatus({
+              type: 'warning',
+              text: 'Unable to determine coordinates for entered address. Try searching a specific road or area.'
+            });
+          }
+        }
+      );
     }
   };
 
+  const activeStatus = statusMessage || internalStatus;
+
   return (
     <div className="space-y-3">
-      {/* Top Header Bar */}
+      {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
         <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
           <MapPin className="w-4 h-4 text-amber-400" />
-          <span>Set Exact Delivery Location on Map</span>
+          <span>Set Exact Delivery Location on Google Maps</span>
         </label>
 
-        {/* Sync Address Button */}
-        {onFindOnMap && (
-          <button
-            type="button"
-            onClick={onFindOnMap}
-            disabled={isSearching || isLocating}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition-all shadow-md shadow-amber-500/10 disabled:opacity-50 active:scale-95"
-            title="Sync manual address to map location"
-          >
-            {isSearching ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Navigation className="w-3.5 h-3.5 rotate-45" />
-            )}
-            <span>{isSearching ? 'Locating...' : 'Sync Address to Map'}</span>
-          </button>
-        )}
+        {/* Sync Manual Address to Map Button */}
+        <button
+          type="button"
+          onClick={handleSyncAddress}
+          disabled={isSearching || isLocating || isReverseGeocoding}
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition-all shadow-md shadow-amber-500/10 disabled:opacity-50 active:scale-95 cursor-pointer"
+          title="Sync manual address to map location"
+        >
+          {isSearching || isReverseGeocoding ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Navigation className="w-3.5 h-3.5 rotate-45" />
+          )}
+          <span>{isSearching || isReverseGeocoding ? 'Locating on Map...' : 'Sync Address to Map'}</span>
+        </button>
       </div>
 
-      {/* Swiggy / Zepto Style Live Places Autocomplete Search Bar */}
-      <div ref={searchContainerRef} className="relative z-30">
+      {/* Search Input & Suggestions Container */}
+      <div className="relative z-30">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-            {searchingSuggestions ? (
+            {isSearching || isReverseGeocoding || isSearchingSuggestions ? (
               <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
             ) : (
               <Search className="w-4 h-4 text-amber-400" />
             )}
           </div>
           <input
+            ref={searchInputRef}
             type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
+            value={searchValue}
+            onChange={handleSearchInputChange}
             onFocus={() => {
-              if (suggestions.length > 0) setShowDropdown(true);
+              if (suggestions.length > 0) setShowSuggestions(true);
             }}
-            placeholder="🔍 Search site, building, road, area, or PIN code (e.g. Mehsana Highway, Patan)..."
+            placeholder="Search address, site, road, highway..."
             className="w-full pl-10 pr-10 py-3 rounded-2xl bg-slate-950/95 border border-slate-700 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 transition-all shadow-xl"
           />
-          {searchInput && (
+          {searchValue && (
             <button
               type="button"
               onClick={() => {
-                setSearchInput('');
+                setSearchValue('');
                 setSuggestions([]);
-                setShowDropdown(false);
+                setShowSuggestions(false);
               }}
-              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white"
+              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        {/* Places Autocomplete Suggestions Dropdown */}
-        {showDropdown && suggestions.length > 0 && (
-          <div className="absolute left-0 right-0 mt-2 rounded-2xl bg-slate-900/98 backdrop-blur-xl border border-slate-700 shadow-2xl overflow-hidden max-h-64 overflow-y-auto divide-y divide-slate-800/80 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+        {/* Fallback Autocomplete Suggestions Dropdown */}
+        {showSuggestions && suggestions.length > 0 && (
+          <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden z-50 max-h-60 overflow-y-auto">
             {suggestions.map((item, idx) => (
-              <div
-                key={`${item.latitude}-${item.longitude}-${idx}`}
-                onClick={() => handleSelectSuggestion(item)}
-                className="p-3.5 hover:bg-amber-500/10 cursor-pointer transition-colors flex items-start gap-3 text-xs group"
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleSelectCustomSuggestion(item)}
+                className="w-full text-left px-4 py-2.5 hover:bg-slate-800/80 border-b border-slate-800/50 last:border-0 transition-colors flex items-start gap-2.5 cursor-pointer"
               >
-                <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-amber-500/20 group-hover:text-amber-400 text-slate-400 transition-colors">
-                  <MapPin className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-bold text-white group-hover:text-amber-300 transition-colors truncate text-xs">
-                    {item.title}
-                  </div>
-                  <div className="text-[11px] text-slate-400 truncate mt-0.5">
-                    {item.subtitle}
-                  </div>
+                <Building2 className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold text-white truncate">{item.title}</div>
+                  <div className="text-[11px] text-slate-400 truncate">{item.formattedAddress || item.subtitle}</div>
                 </div>
                 {item.pincode && (
-                  <span className="px-2 py-0.5 rounded-lg bg-slate-800 text-[10px] font-mono font-bold text-amber-400 border border-slate-700 shrink-0">
+                  <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md shrink-0">
                     {item.pincode}
                   </span>
                 )}
-              </div>
+              </button>
             ))}
           </div>
         )}
       </div>
 
       {/* Status Feedback Banner */}
-      {statusMessage && statusMessage.text && (
+      {activeStatus && activeStatus.text && (
         <div
-          className={`p-2.5 rounded-xl border flex items-start gap-2 text-xs transition-all ${
-            statusMessage.type === 'success'
+          className={`p-3 rounded-2xl border flex items-start gap-2.5 text-xs transition-all shadow-md ${
+            activeStatus.type === 'success'
               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-              : statusMessage.type === 'warning'
+              : activeStatus.type === 'warning'
               ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-              : statusMessage.type === 'error'
+              : activeStatus.type === 'error'
               ? 'bg-red-500/10 border-red-500/30 text-red-300'
               : 'bg-slate-900 border-slate-800 text-slate-300'
           }`}
         >
-          {statusMessage.type === 'success' ? (
+          {activeStatus.type === 'success' ? (
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
           ) : (
             <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
           )}
-          <span>{statusMessage.text}</span>
+          <span className="font-medium leading-relaxed">{activeStatus.text}</span>
         </div>
       )}
 
-      {/* Swiggy / Rapido / Zepto Style Interactive Map Container */}
+      {/* Google Maps Container */}
       <div className="h-72 sm:h-96 w-full rounded-3xl overflow-hidden border-2 border-slate-700/80 shadow-2xl relative z-10 select-none bg-slate-950">
-        <MapContainer
-          center={[currentCenter.lat, currentCenter.lng]}
-          zoom={zoom}
-          zoomControl={false} // Clean modern look - removes ugly default +- box
-          scrollWheelZoom={true}
-          touchZoom={true}
-          tap={false}
-          preferCanvas={true}
-          bounceAtZoomLimits={false}
-          className="h-full w-full"
-        >
-          {/* Authentic Google Maps Standard Roads & Landmarks Tiles (Zero Watermark, 100% Crisp) */}
-          <TileLayer
-            attribution='&copy; <a href="https://maps.google.com/">Google Maps</a>'
-            url="https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
-            maxZoom={20}
-            subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
-          />
+        <div ref={mapContainerRef} className="h-full w-full" />
 
-          <MapCenterController
-            onCenterChange={handleMapCenterChanged}
-            onDragStateChange={setIsMapDragging}
-          />
-          <MapFlyController targetCoordinates={targetCoords} zoom={zoom} />
-          <FloatingMapControls />
-        </MapContainer>
-
-        {/* SWIGGY / RAPIDO / ZEPTO SIGNATURE FIXED CENTER DELIVERY PIN */}
-        <div className="absolute inset-0 pointer-events-none z-[450] flex items-center justify-center">
-          <div className="relative flex flex-col items-center">
-            {/* Top Floating Speech Bubble Tooltip */}
-            <div
-              className={`absolute -top-12 whitespace-nowrap px-3.5 py-1.5 rounded-full bg-slate-950/95 backdrop-blur-md border border-amber-500/50 shadow-2xl text-[11px] font-bold text-amber-300 flex items-center gap-1.5 transition-all duration-300 ${
-                isMapDragging
-                  ? 'opacity-100 scale-105 -translate-y-2'
-                  : 'opacity-90 scale-100'
-              }`}
-            >
-              <div className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-              <span>{isMapDragging ? 'Move map to pinpoint delivery spot' : 'Order will be delivered here'}</span>
-            </div>
-
-            {/* Premium Animated Delivery Pin */}
-            <div
-              className={`transition-transform duration-300 ease-out origin-bottom ${
-                isMapDragging ? '-translate-y-4 scale-110' : 'translate-y-0 scale-100'
-              }`}
-            >
-              <svg
-                width="42"
-                height="54"
-                viewBox="0 0 42 54"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="drop-shadow-2xl"
-              >
-                <path
-                  d="M21 0C9.402 0 0 9.402 0 21C0 35.156 18.396 51.986 20.178 53.58C20.648 54.004 21.352 54.004 21.822 53.58C23.604 51.986 42 35.156 42 21C42 9.402 32.598 0 21 0Z"
-                  fill="url(#pinGradient)"
-                />
-                <circle cx="21" cy="21" r="11" fill="#0f172a" />
-                <circle cx="21" cy="21" r="6" fill="#f59e0b" />
-                <defs>
-                  <linearGradient id="pinGradient" x1="0" y1="0" x2="42" y2="54" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#fbbf24" />
-                    <stop offset="1" stopColor="#d97706" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-
-            {/* Pin Ground Shadow Animation */}
-            <div
-              className={`w-5 h-2 bg-black/40 rounded-full blur-[2px] transition-all duration-300 -mt-1 ${
-                isMapDragging ? 'scale-50 opacity-20' : 'scale-100 opacity-60'
-              }`}
-            />
+        {/* Loading Spinner overlay before Google Maps mounts */}
+        {!mapLoaded && !mapError && (
+          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center gap-3 text-slate-400">
+            <Loader2 className="w-8 h-8 animate-spin text-amber-400" />
+            <span className="text-xs font-bold text-slate-300">Loading Google Maps Platform...</span>
           </div>
-        </div>
-
-        {/* Floating Uber / Swiggy Style "Use My Current Location" Round GPS Button */}
-        {onGPSDetect && (
-          <button
-            type="button"
-            onClick={onGPSDetect}
-            disabled={isLocating}
-            className="absolute bottom-4 right-4 z-[400] px-4 py-2.5 rounded-2xl bg-slate-900/95 hover:bg-slate-800/95 backdrop-blur-xl border border-slate-700 text-xs font-black text-emerald-400 flex items-center gap-2 shadow-2xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 group"
-            title="Locate me using GPS"
-          >
-            {isLocating ? (
-              <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
-            ) : (
-              <Crosshair className="w-4 h-4 text-emerald-400 group-hover:rotate-45 transition-transform" />
-            )}
-            <span>{isLocating ? 'Locating GPS...' : 'Locate Me'}</span>
-          </button>
         )}
+
+        {/* Floating "Locate Me" GPS Button */}
+        <button
+          type="button"
+          onClick={handleCurrentGPS}
+          disabled={isLocating || isReverseGeocoding}
+          className="absolute bottom-4 right-4 z-[400] px-4 py-2.5 rounded-2xl bg-slate-900/95 hover:bg-slate-800/95 backdrop-blur-xl border border-slate-700 text-xs font-black text-emerald-400 flex items-center gap-2 shadow-2xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 group cursor-pointer"
+          title="Use My Current Location via GPS"
+        >
+          {isLocating ? (
+            <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+          ) : (
+            <Crosshair className="w-4 h-4 text-emerald-400 group-hover:rotate-45 transition-transform" />
+          )}
+          <span>{isLocating ? 'Detecting GPS...' : 'Use My Current Location'}</span>
+        </button>
 
         {/* Real-Time Location Pill at Bottom Left */}
         <div className="absolute bottom-4 left-4 z-[400] max-w-[65%] sm:max-w-[70%] pointer-events-none">
           <div className="px-3.5 py-2 rounded-2xl bg-slate-950/90 backdrop-blur-md border border-slate-800 text-[11px] font-medium text-slate-300 flex items-center gap-2 shadow-2xl truncate">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-            <span className="truncate">
-              {detectedAddressPreview || `Coords: ${currentCenter.lat.toFixed(4)}, ${currentCenter.lng.toFixed(4)}`}
+            <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0 animate-pulse" />
+            <span className="truncate font-mono text-[10px] text-amber-300">
+              {coordinates?.lat ? Number(coordinates.lat).toFixed(5) : '0.00000'},{' '}
+              {coordinates?.lng ? Number(coordinates.lng).toFixed(5) : '0.00000'}
             </span>
           </div>
         </div>
@@ -452,10 +675,11 @@ export default function MapPicker({
 
       {/* Helper Footer */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-slate-400 px-1">
-        <span>💡 Drag & move the map to place the golden pin at your exact delivery gate / site.</span>
+        <span>💡 Drag the Delivery Spot marker or click on Google Map to pinpoint exact unloading spot.</span>
         <span className="font-mono text-slate-500">
-          Lat: <strong className="text-amber-400">{currentCenter.lat.toFixed(5)}</strong>, Lng:{' '}
-          <strong className="text-amber-400">{currentCenter.lng.toFixed(5)}</strong>
+          Lat: <strong className="text-amber-400">{coordinates?.lat ? Number(coordinates.lat).toFixed(5) : '—'}</strong>
+          , Lng:{' '}
+          <strong className="text-amber-400">{coordinates?.lng ? Number(coordinates.lng).toFixed(5) : '—'}</strong>
         </span>
       </div>
     </div>

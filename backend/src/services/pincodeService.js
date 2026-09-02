@@ -261,6 +261,101 @@ class PincodeService {
   }
 
   /**
+   * Universal component extractor for OSM, Photon, and Nominatim responses.
+   * Maps house/building -> addressLine1, road/highway/suburb -> area, city/town/village -> city.
+   */
+  static parseAddressComponents(addr = {}, displayName = '', fallbackTitle = '', lat = 0, lon = 0) {
+    const road = (addr.road || addr.street || addr.highway || addr.residential || addr.path || '').trim();
+    const building = (
+      addr.building ||
+      addr.house_name ||
+      addr.house_number ||
+      addr.amenity ||
+      addr.shop ||
+      addr.commercial ||
+      addr.industrial ||
+      addr.office ||
+      ''
+    ).trim();
+    const locality = (
+      addr.suburb ||
+      addr.neighbourhood ||
+      addr.quarter ||
+      addr.subdivision ||
+      addr.locality ||
+      addr.residential ||
+      ''
+    ).trim();
+    const village = (addr.village || addr.hamlet || '').trim();
+    const town = (addr.town || '').trim();
+    const rawCity = (addr.city || addr.municipality || '').trim();
+    const county = (addr.county || '').trim();
+    const stateDistrict = (addr.state_district || '').trim();
+    const state = (addr.state || addr.province || 'Gujarat').trim();
+
+    // 1. PIN Code extraction
+    let pincode = '';
+    if (addr.postcode) {
+      const m = String(addr.postcode).match(/\b([1-9][0-9]{5})\b/);
+      if (m) pincode = m[1];
+    }
+    if (!pincode && displayName) {
+      const m = String(displayName).match(/\b([1-9][0-9]{5})\b/);
+      if (m) pincode = m[1];
+    }
+
+    // 2. City extraction (Clean up "Taluka" suffix)
+    let city = rawCity || town || (village && stateDistrict && village !== stateDistrict ? stateDistrict : village) || stateDistrict || county || 'Gujarat';
+    if (city.toLowerCase().endsWith(' taluka')) {
+      city = city.replace(/ taluka$/i, '').trim();
+    }
+
+    // 3. Area / Highway extraction (Avoid duplicating City)
+    let area = '';
+    if (road && road.toLowerCase() !== city.toLowerCase()) {
+      area = road;
+    } else if (locality && locality.toLowerCase() !== city.toLowerCase()) {
+      area = locality;
+    } else if (village && village.toLowerCase() !== city.toLowerCase()) {
+      area = village;
+    } else if (county && county.toLowerCase() !== city.toLowerCase()) {
+      area = county;
+    } else {
+      area = locality || road || '';
+    }
+
+    // 4. Address Line 1 / Site / Building extraction
+    const primaryName = (fallbackTitle || (displayName ? displayName.split(',')[0].trim() : '')).trim();
+    let addressLine1 = '';
+    if (building && road && building.toLowerCase() !== road.toLowerCase()) {
+      addressLine1 = `${building}, ${road}`;
+    } else if (building) {
+      addressLine1 = building;
+    } else if (primaryName && primaryName.toLowerCase() !== city.toLowerCase() && primaryName.toLowerCase() !== area.toLowerCase()) {
+      addressLine1 = primaryName;
+    } else if (locality && locality.toLowerCase() !== city.toLowerCase()) {
+      addressLine1 = locality;
+    } else if (road) {
+      addressLine1 = road;
+    } else {
+      addressLine1 = primaryName || `${city} Site`;
+    }
+
+    return {
+      addressLine1,
+      area,
+      city,
+      district: stateDistrict || county || city,
+      state,
+      pincode,
+      landmark: addr.amenity || addr.shop || addr.tourism || addr.historic || addr.leisure || '',
+      formattedAddress: displayName || [addressLine1, area, city, state, pincode].filter(Boolean).join(', '),
+      latitude: parseFloat(lat),
+      longitude: parseFloat(lon)
+    };
+  }
+
+  /**
    * High-accuracy multi-tier forward geocoder for addresses, landmarks, roads, areas, and PIN codes.
    */
   static async geocode(queryText) {
@@ -278,6 +373,7 @@ class PincodeService {
             latitude: pinResult.latitude,
             longitude: pinResult.longitude,
             pincode: pinResult.pincode,
+            addressLine1: pinResult.city,
             area: pinResult.district,
             city: pinResult.city,
             state: pinResult.state,
@@ -289,50 +385,117 @@ class PincodeService {
     }
 
     const suggestions = [];
+    const seenTitles = new Set();
 
-    // Tier 1: Photon Geocoder (Fast, tuned for fuzzy search in India with Gujarat center bias)
-    try {
-      const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lat=23.0225&lon=72.5714&limit=6`;
-      const pRes = await fetch(photonUrl, {
-        headers: { 'User-Agent': 'AnantaTradersApp/1.0' },
-        signal: AbortSignal.timeout(3500)
-      });
-      if (pRes.ok) {
-        const pData = await pRes.json();
-        const features = pData?.features || [];
-        for (const f of features) {
-          const props = f.properties || {};
-          const coords = f.geometry?.coordinates || [];
-          if (coords.length >= 2) {
-            const lat = coords[1];
-            const lon = coords[0];
-            const title = props.name || props.street || props.city || 'Location';
-            const subtitle = [props.street, props.city, props.county, props.state, props.postcode]
-              .filter(Boolean)
-              .join(', ');
-            suggestions.push({
-              title,
-              subtitle: subtitle || 'India',
-              latitude: lat,
-              longitude: lon,
-              pincode: props.postcode || '',
-              area: props.district || props.county || '',
-              city: props.city || props.county || '',
-              state: props.state || 'Gujarat',
-              formattedAddress: [title, subtitle].filter(Boolean).join(', '),
-              source: 'PHOTON'
-            });
+    // Tier 0: Official Google Geocoding API (If GOOGLE_MAPS_API_KEY configured)
+    if (process.env.GOOGLE_MAPS_API_KEY) {
+      try {
+        const gUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${process.env.GOOGLE_MAPS_API_KEY}&components=country:IN`;
+        const gRes = await fetch(gUrl, { signal: AbortSignal.timeout(4000) });
+        if (gRes.ok) {
+          const gData = await gRes.json();
+          if (gData.status === 'OK' && Array.isArray(gData.results)) {
+            for (const item of gData.results) {
+              const lat = item.geometry?.location?.lat;
+              const lon = item.geometry?.location?.lng;
+              if (lat !== undefined && lon !== undefined) {
+                // Convert Google address_components format
+                const addrMap = {};
+                if (Array.isArray(item.address_components)) {
+                  for (const c of item.address_components) {
+                    if (c.types.includes('premise')) addrMap.building = c.long_name;
+                    if (c.types.includes('route')) addrMap.road = c.long_name;
+                    if (c.types.includes('sublocality_level_1') || c.types.includes('sublocality')) addrMap.suburb = c.long_name;
+                    if (c.types.includes('locality')) addrMap.city = c.long_name;
+                    if (c.types.includes('administrative_area_level_3')) addrMap.county = c.long_name;
+                    if (c.types.includes('administrative_area_level_2')) addrMap.state_district = c.long_name;
+                    if (c.types.includes('administrative_area_level_1')) addrMap.state = c.long_name;
+                    if (c.types.includes('postal_code')) addrMap.postcode = c.long_name;
+                  }
+                }
+
+                const title = item.formatted_address.split(',')[0];
+                const parsed = this.parseAddressComponents(addrMap, item.formatted_address, title, lat, lon);
+                const key = `${title}-${parsed.city}-${parsed.pincode}`.toLowerCase();
+
+                if (!seenTitles.has(key)) {
+                  seenTitles.add(key);
+                  suggestions.push({
+                    ...parsed,
+                    title,
+                    subtitle: item.formatted_address,
+                    source: 'GOOGLE_MAPS'
+                  });
+                }
+              }
+            }
           }
         }
+      } catch (err) {
+        logger.warn(`Google geocoding error: ${err.message}`);
       }
-    } catch (e) {
-      logger.warn(`Photon forward geocode error: ${e.message}`);
     }
 
-    // Tier 2: If Photon had no results, fallback to Nominatim
+    // Tier 1: Photon Geocoder (Fast, tuned for fuzzy search in India with Gujarat center bias)
     if (suggestions.length === 0) {
       try {
-        const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&countrycodes=in&addressdetails=1&limit=5`;
+        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lat=23.0225&lon=72.5714&limit=8`;
+        const pRes = await fetch(photonUrl, {
+          headers: { 'User-Agent': 'AnantaTradersApp/1.0' },
+          signal: AbortSignal.timeout(3500)
+        });
+        if (pRes.ok) {
+          const pData = await pRes.json();
+          const features = pData?.features || [];
+          for (const f of features) {
+            const props = f.properties || {};
+            const coords = f.geometry?.coordinates || [];
+            if (coords.length >= 2) {
+              const lon = coords[0];
+              const lat = coords[1];
+              const title = props.name || props.street || props.city || 'Location';
+              const subtitle = [props.street, props.city, props.county, props.state, props.postcode]
+                .filter(Boolean)
+                .join(', ');
+
+              const parsed = this.parseAddressComponents(
+                {
+                  building: props.name !== props.street ? props.name : '',
+                  road: props.street,
+                  suburb: props.district,
+                  city: props.city,
+                  county: props.county,
+                  state: props.state,
+                  postcode: props.postcode
+                },
+                [title, subtitle].filter(Boolean).join(', '),
+                title,
+                lat,
+                lon
+              );
+
+              const key = `${title}-${parsed.city}-${parsed.pincode}`.toLowerCase();
+              if (!seenTitles.has(key)) {
+                seenTitles.add(key);
+                suggestions.push({
+                  ...parsed,
+                  title,
+                  subtitle: subtitle || 'India',
+                  source: 'PHOTON'
+                });
+              }
+            }
+          }
+        }
+      } catch (e) {
+        logger.warn(`Photon forward geocode error: ${e.message}`);
+      }
+    }
+
+    // Tier 2: Nominatim Geocoder with India restriction
+    if (suggestions.length === 0) {
+      try {
+        const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&countrycodes=in&addressdetails=1&limit=8`;
         const nRes = await fetch(nomUrl, {
           headers: {
             'User-Agent': 'AnantaTradersApp/1.0 (contact@anantatraders.com)',
@@ -348,18 +511,19 @@ class PincodeService {
               const lat = parseFloat(item.lat);
               const lon = parseFloat(item.lon);
               if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
-                suggestions.push({
-                  title: item.display_name.split(',')[0],
-                  subtitle: item.display_name,
-                  latitude: lat,
-                  longitude: lon,
-                  pincode: addr.postcode || '',
-                  area: addr.neighbourhood || addr.suburb || addr.village || addr.county || '',
-                  city: addr.city || addr.town || addr.village || addr.state_district || '',
-                  state: addr.state || 'Gujarat',
-                  formattedAddress: item.display_name,
-                  source: 'NOMINATIM'
-                });
+                const title = item.display_name.split(',')[0];
+                const parsed = this.parseAddressComponents(addr, item.display_name, title, lat, lon);
+                const key = `${title}-${parsed.city}-${parsed.pincode}`.toLowerCase();
+
+                if (!seenTitles.has(key)) {
+                  seenTitles.add(key);
+                  suggestions.push({
+                    ...parsed,
+                    title,
+                    subtitle: item.display_name,
+                    source: 'NOMINATIM'
+                  });
+                }
               }
             }
           }
@@ -410,6 +574,43 @@ class PincodeService {
 
     let resolvedData = null;
 
+    // Tier 0: Official Google Geocoding API (If GOOGLE_MAPS_API_KEY configured)
+    if (process.env.GOOGLE_MAPS_API_KEY) {
+      try {
+        const gUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${process.env.GOOGLE_MAPS_API_KEY}&language=en`;
+        const gRes = await fetch(gUrl, { signal: AbortSignal.timeout(4000) });
+        if (gRes.ok) {
+          const gData = await gRes.json();
+          if (gData.status === 'OK' && Array.isArray(gData.results) && gData.results[0]) {
+            const topResult = gData.results[0];
+            const addrMap = {};
+            if (Array.isArray(topResult.address_components)) {
+              for (const c of topResult.address_components) {
+                if (c.types.includes('premise')) addrMap.building = c.long_name;
+                if (c.types.includes('route')) addrMap.road = c.long_name;
+                if (c.types.includes('sublocality_level_1') || c.types.includes('sublocality')) addrMap.suburb = c.long_name;
+                if (c.types.includes('locality')) addrMap.city = c.long_name;
+                if (c.types.includes('administrative_area_level_3')) addrMap.county = c.long_name;
+                if (c.types.includes('administrative_area_level_2')) addrMap.state_district = c.long_name;
+                if (c.types.includes('administrative_area_level_1')) addrMap.state = c.long_name;
+                if (c.types.includes('postal_code')) addrMap.postcode = c.long_name;
+              }
+            }
+
+            const parsed = this.parseAddressComponents(addrMap, topResult.formatted_address, '', lat, lng);
+            resolvedData = {
+              ...parsed,
+              source: 'GOOGLE_MAPS'
+            };
+          }
+        }
+      } catch (err) {
+        logger.warn(`Google reverse geocode error: ${err.message}`);
+      }
+    }
+
+    if (resolvedData) return resolvedData;
+
     // 1. Nominatim Reverse (Detailed road/suburb/postcode)
     try {
       const nomUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=18&addressdetails=1`;
@@ -423,33 +624,15 @@ class PincodeService {
       if (res.ok) {
         const data = await res.json();
         if (data && data.address) {
-          const addr = data.address;
-          const road = addr.road || addr.street || addr.residential || '';
-          const building = addr.building || addr.house_number || addr.hamlet || '';
-          const addressLine1 = [building, road].filter(Boolean).join(', ') || addr.suburb || addr.neighbourhood || '';
-          const area = addr.suburb || addr.neighbourhood || addr.village || addr.county || addr.commercial || addr.industrial || '';
-          const city = addr.city || addr.town || addr.village || addr.state_district || addr.county || 'Gujarat';
-          const district = addr.state_district || addr.county || city;
-          const state = addr.state || 'Gujarat';
-          let pincode = addr.postcode ? addr.postcode.replace(/\D/g, '').slice(0, 6) : '';
-          const landmark = addr.amenity || addr.shop || addr.tourism || addr.historic || addr.leisure || '';
+          const parsed = this.parseAddressComponents(data.address, data.display_name, '', lat, lng);
 
-          if (!pincode || !/^[1-9][0-9]{5}$/.test(pincode)) {
+          if (!parsed.pincode || !/^[1-9][0-9]{5}$/.test(parsed.pincode)) {
             const nearest = this.findNearestPincode(lat, lng);
-            if (nearest) pincode = nearest.pin;
+            if (nearest) parsed.pincode = nearest.pin;
           }
 
           resolvedData = {
-            addressLine1: addressLine1 || area || city,
-            area: area || city,
-            city,
-            district,
-            state,
-            pincode,
-            landmark,
-            formattedAddress: data.display_name || '',
-            latitude: lat,
-            longitude: lng,
+            ...parsed,
             source: 'NOMINATIM'
           };
         }
@@ -477,7 +660,7 @@ class PincodeService {
 
         return {
           addressLine1: d.locality || city,
-          area: d.locality || city,
+          area: d.locality !== city ? d.locality : '',
           city: city || 'Gujarat',
           district: city || 'Gujarat',
           state,
@@ -498,7 +681,7 @@ class PincodeService {
     if (nearest) {
       return {
         addressLine1: `${nearest.data.city} Region`,
-        area: nearest.data.district || nearest.data.city,
+        area: nearest.data.district !== nearest.data.city ? nearest.data.district : '',
         city: nearest.data.city,
         district: nearest.data.district,
         state: nearest.data.state,
@@ -516,4 +699,5 @@ class PincodeService {
 }
 
 module.exports = PincodeService;
+
 

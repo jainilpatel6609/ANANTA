@@ -105,10 +105,18 @@ const orderSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Shipping address is required']
     },
+    deliveryAddress: {
+      type: String,
+      default: ''
+    },
     pincode: {
       type: String,
       required: [true, 'PIN code is required'],
       index: true
+    },
+    deliveryPincode: {
+      type: String,
+      default: ''
     },
     shippingDetails: {
       fullName: { type: String, default: '' },
@@ -121,6 +129,18 @@ const orderSchema = new mongoose.Schema(
       pincode: { type: String, default: '' },
       landmark: { type: String, default: '' }
     },
+    deliveryArea: {
+      type: String,
+      default: ''
+    },
+    deliveryCity: {
+      type: String,
+      default: ''
+    },
+    deliveryState: {
+      type: String,
+      default: ''
+    },
     latitude: {
       type: Number,
       required: [true, 'Latitude coordinate is required']
@@ -128,6 +148,14 @@ const orderSchema = new mongoose.Schema(
     longitude: {
       type: Number,
       required: [true, 'Longitude coordinate is required']
+    },
+    deliveryLatitude: {
+      type: Number,
+      default: null
+    },
+    deliveryLongitude: {
+      type: Number,
+      default: null
     },
     deliveryDate: {
       type: Date,

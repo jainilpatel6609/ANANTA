@@ -248,21 +248,24 @@ export default function CreateOrder() {
         area,
         landmark,
         city,
+        state || 'Gujarat',
         pincode,
-        'Gujarat'
+        'India'
       ].map((s) => String(s || '').trim()).filter(Boolean).join(', ');
 
       const queryArea = [
-        area,
+        area || landmark,
         city,
+        state || 'Gujarat',
         pincode,
-        'Gujarat'
+        'India'
       ].map((s) => String(s || '').trim()).filter(Boolean).join(', ');
 
       const queryCity = [
         city,
+        state || 'Gujarat',
         pincode,
-        'Gujarat'
+        'India'
       ].map((s) => String(s || '').trim()).filter(Boolean).join(', ');
 
       let suggestions = [];
@@ -309,40 +312,50 @@ export default function CreateOrder() {
 
         if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
           setCoordinates({ lat, lng });
+          isInternalLocationUpdateRef.current = true;
 
-          const isExact = suggestions.length === 1 || bestMatch.pincode === pincode;
-          if (isExact) {
-            setMapStatus({
-              type: 'success',
-              text: `✓ Location pinpointed: ${bestMatch.title}. Drag marker if needed to adjust exact spot.`
+          setShippingDetails((prev) => ({
+            ...prev,
+            addressLine1: bestMatch.addressLine1 || bestMatch.title || prev.addressLine1,
+            area: bestMatch.area || prev.area,
+            city: bestMatch.city || prev.city,
+            state: bestMatch.state || prev.state || 'Gujarat',
+            pincode: bestMatch.pincode && /^[1-9][0-9]{5}$/.test(bestMatch.pincode) ? bestMatch.pincode : prev.pincode
+          }));
+
+          if (bestMatch.pincode && /^[1-9][0-9]{5}$/.test(bestMatch.pincode)) {
+            setPincodeValidation({
+              valid: true,
+              message: `✓ Verified PIN Code (${bestMatch.city || bestMatch.state})`,
+              loading: false
             });
-            if (isExplicit) toast.success('Location found on map!');
-          } else {
-            setMapStatus({
-              type: 'warning',
-              text: `📍 Nearby location found (${bestMatch.title}). Please verify marker on map.`
-            });
-            if (isExplicit) toast.success('Nearby location found on map.');
           }
-          setIsSearchingMap(false);
+
+          setMapStatus({
+            type: 'success',
+            text: `✓ Location synced to map: ${bestMatch.formattedAddress || bestMatch.title} (Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)})`
+          });
+          if (isExplicit) toast.success('Location synced to map!');
           return;
         }
       }
 
       // If everything failed
-      setMapStatus({
-        type: 'warning',
-        text: `We couldn't find this exact address. Please check address, city and PIN code or drag the map pin.`
-      });
       if (isExplicit) {
-        toast.error("Couldn't pinpoint address on map. Please position the marker manually.");
+        setMapStatus({
+          type: 'warning',
+          text: `Location not found. Try a more specific address or drag the map marker.`
+        });
+        toast.error("Location not found. Try a more specific address or position the marker manually.");
       }
     } catch (err) {
-      setMapStatus({
-        type: 'error',
-        text: 'Unable to find location right now. Please try again or select location manually on map.'
-      });
-      if (isExplicit) toast.error('Geocoding service unavailable.');
+      if (isExplicit) {
+        setMapStatus({
+          type: 'error',
+          text: 'Unable to find location right now. Please position the marker manually on map.'
+        });
+        toast.error('Geocoding service unavailable.');
+      }
     } finally {
       setIsSearchingMap(false);
     }
@@ -382,12 +395,13 @@ export default function CreateOrder() {
     }
 
     setIsLocatingGPS(true);
-    setMapStatus({ type: 'info', text: 'Detecting high-precision device GPS coordinates...' });
+    setMapStatus({ type: 'info', text: 'Detecting your current location...' });
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
+        const accuracy = pos.coords.accuracy;
 
         setCoordinates({ lat, lng });
 
@@ -399,11 +413,11 @@ export default function CreateOrder() {
             isInternalLocationUpdateRef.current = true;
             setShippingDetails((prev) => ({
               ...prev,
-              pincode: (location.pincode && /^[1-9][0-9]{5}$/.test(location.pincode)) ? location.pincode : prev.pincode,
               addressLine1: location.addressLine1 || prev.addressLine1,
               area: location.area || prev.area,
               city: location.city || prev.city,
-              state: location.state || prev.state,
+              state: location.state || prev.state || 'Gujarat',
+              pincode: (location.pincode && /^[1-9][0-9]{5}$/.test(location.pincode)) ? location.pincode : prev.pincode,
               landmark: location.landmark || prev.landmark
             }));
 
@@ -420,27 +434,57 @@ export default function CreateOrder() {
         }
 
         setIsLocatingGPS(false);
+        const accuracyText = accuracy ? ` (Accuracy: ${Math.round(accuracy)} meters)` : '';
         setMapStatus({
           type: 'success',
-          text: `✓ Current GPS Location detected (${lat.toFixed(5)}, ${lng.toFixed(5)}). Address fields updated.`
+          text: `✓ GPS location detected${accuracyText} — Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}. Address fields updated.`
         });
-        toast.success('Current location detected successfully!');
+        toast.success(`Current location detected${accuracy ? ` (Accuracy: ${Math.round(accuracy)}m)` : ''}!`);
       },
       (err) => {
         setIsLocatingGPS(false);
+        const errorMsg =
+          err.code === 1
+            ? 'Location permission denied. Please allow location access.'
+            : 'Unable to detect your current location.';
         setMapStatus({
           type: 'warning',
-          text: `GPS access unavailable: ${err.message}. You can search your address or drag the pin.`
+          text: `${errorMsg} You can search your address or drag the golden marker.`
         });
-        toast.error(`Location access denied or unavailable: ${err.message}`);
+        toast.error(errorMsg);
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
 
-  // Map Click / Marker Drag / Map Pan Handler (Manual Location Setting)
-  const handleMapLocationChange = async (lat, lng, source) => {
+  // Map Click / Marker Drag Handler (Manual Location Setting via Google Maps)
+  const handleMapLocationChange = async (lat, lng, source, parsedLocation = null) => {
     setCoordinates({ lat, lng });
+
+    if (parsedLocation && parsedLocation.city) {
+      isInternalLocationUpdateRef.current = true;
+      setShippingDetails((prev) => ({
+        ...prev,
+        addressLine1: parsedLocation.addressLine1 || prev.addressLine1,
+        area: parsedLocation.area || prev.area,
+        city: parsedLocation.city || prev.city,
+        state: parsedLocation.state || prev.state || 'Gujarat',
+        pincode:
+          parsedLocation.pincode && /^[1-9][0-9]{5}$/.test(parsedLocation.pincode)
+            ? parsedLocation.pincode
+            : prev.pincode,
+        landmark: parsedLocation.landmark || prev.landmark
+      }));
+
+      if (parsedLocation.pincode && /^[1-9][0-9]{5}$/.test(parsedLocation.pincode)) {
+        setPincodeValidation({
+          valid: true,
+          message: `✓ Verified PIN Code (${parsedLocation.city || parsedLocation.state})`,
+          loading: false
+        });
+      }
+      return;
+    }
 
     try {
       const res = await pincodeService.reverseGeocode(lat, lng);
@@ -449,11 +493,11 @@ export default function CreateOrder() {
         isInternalLocationUpdateRef.current = true;
         setShippingDetails((prev) => ({
           ...prev,
-          pincode: location.pincode && /^[1-9][0-9]{5}$/.test(location.pincode) ? location.pincode : prev.pincode,
           addressLine1: location.addressLine1 || prev.addressLine1,
           area: location.area || prev.area,
           city: location.city || prev.city,
-          state: location.state || prev.state,
+          state: location.state || prev.state || 'Gujarat',
+          pincode: location.pincode && /^[1-9][0-9]{5}$/.test(location.pincode) ? location.pincode : prev.pincode,
           landmark: location.landmark || prev.landmark
         }));
 
@@ -468,7 +512,7 @@ export default function CreateOrder() {
         const previewTitle = [location.addressLine1, location.area, location.city].filter(Boolean).join(', ');
         setMapStatus({
           type: 'success',
-          text: `✓ Location auto-filled: ${previewTitle || `${lat.toFixed(4)}, ${lng.toFixed(4)}`} (${location.pincode || 'Gujarat'})`
+          text: `✓ Marker placed: ${previewTitle || `${lat.toFixed(5)}, ${lng.toFixed(5)}`} (${location.pincode || 'Gujarat'}) — Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`
         });
       }
     } catch (e) {
@@ -480,7 +524,7 @@ export default function CreateOrder() {
     }
   };
 
-  // Handle Selection from Live Map Search Dropdown
+  // Handle Selection from Google Places Autocomplete Dropdown
   const handleSuggestionSelect = (item) => {
     const lat = parseFloat(item.latitude);
     const lng = parseFloat(item.longitude);
@@ -491,11 +535,11 @@ export default function CreateOrder() {
 
       setShippingDetails((prev) => ({
         ...prev,
-        pincode: (item.pincode && /^[1-9][0-9]{5}$/.test(item.pincode)) ? item.pincode : prev.pincode,
-        addressLine1: item.title || prev.addressLine1,
+        addressLine1: item.addressLine1 || item.formattedAddress?.split(',')[0] || item.title || prev.addressLine1,
         area: item.area || prev.area,
         city: item.city || prev.city,
-        state: item.state || prev.state
+        state: item.state || prev.state || 'Gujarat',
+        pincode: item.pincode && /^[1-9][0-9]{5}$/.test(item.pincode) ? item.pincode : prev.pincode
       }));
 
       if (item.pincode && /^[1-9][0-9]{5}$/.test(item.pincode)) {
@@ -508,9 +552,9 @@ export default function CreateOrder() {
 
       setMapStatus({
         type: 'success',
-        text: `✓ Location selected: ${item.title}. You can drag the pin to fine-tune exact unloading spot.`
+        text: `✓ Location selected: ${item.formattedAddress || item.title} (Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)})`
       });
-      toast.success(`Location set to ${item.title}`);
+      toast.success(`Location set to ${item.city || item.title || 'Selected Site'}`);
     }
   };
 
