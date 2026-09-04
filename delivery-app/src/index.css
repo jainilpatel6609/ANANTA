@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-950 text-slate-100 antialiased selection:bg-brand-500 selection:text-slate-950;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+/* Custom industrial scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #090d16;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #273549;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #d97706;
+}
+
+/* Google Places Autocomplete Dark Theme Styling */
+.pac-container {
+  background-color: #0f172a !important;
+  border: 1px solid #334155 !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6) !important;
+  font-family: inherit !important;
+  margin-top: 6px !important;
+  z-index: 99999 !important;
+}
+
+.pac-item {
+  border-top: 1px solid #1e293b !important;
+  color: #cbd5e1 !important;
+  cursor: pointer !important;
+  font-size: 12px !important;
+  padding: 10px 14px !important;
+  line-height: 1.4 !important;
+}
+
+.pac-item:hover, .pac-item-selected {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+}
+
+.pac-item-query {
+  color: #ffffff !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
+.pac-matched {
+  color: #fbbf24 !important;
+}
+
+.pac-icon {
+  filter: invert(1) hue-rotate(180deg) !important;
+}
+
+/* Dismiss Google Development / Missing Key Popup */
+.gm-err-container {
+  display: none !important;
+}
+
+.gm-err-autocomplete {
+  display: none !important;
+}
+
+.gm-err-message {
+  display: none !important;
+}
+
+/* Hide Google Terms and Map Data small noise if unauthenticated */
+.gm-style-cc {
+  opacity: 0.8 !important;
+}
+
+

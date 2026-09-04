@@ -5,6 +5,7 @@ const SmsService = require('../services/smsService');
 const NotificationService = require('../services/notificationService');
 const { processUploadedFile } = require('../middleware/upload');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
+const { emitOrderStatusUpdate } = require('../sockets/socket');
 
 // @desc    Dealer assigns a Driver to an accepted order & dispatches SMS + Live Google Maps Link to Driver's phone
 // @route   POST /api/deliveries/:id/assign-driver
@@ -236,6 +237,9 @@ const dispatchOrder = async (req, res) => {
       targetPhone: customerMobile
     });
 
+    // Emit Real-Time Socket.IO Status Update to Customer and Admin
+    emitOrderStatusUpdate(order);
+
     return successResponse(res, 'Order dispatched successfully. Driver details, Google Maps live location, and Delivery OTP sent via SMS.', {
       order
     });
@@ -323,6 +327,9 @@ const verifyDeliveryOtp = async (req, res) => {
       message: `Order #${order.orderNumber} successfully delivered by dealer ${req.user.companyName || req.user.name}.`,
       orderId: order._id
     });
+
+    // Emit Real-Time Socket.IO Status Update to Customer and Admin
+    emitOrderStatusUpdate(order);
 
     return successResponse(res, 'Delivery OTP verified successfully! Order marked as DELIVERED.', { order });
   } catch (error) {

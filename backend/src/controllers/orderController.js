@@ -11,6 +11,7 @@ const NotificationService = require('../services/notificationService');
 const PincodeService = require('../services/pincodeService');
 const SmsService = require('../services/smsService');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
+const { emitOrderAccepted, emitOrderStatusUpdate } = require('../sockets/socket');
 const {
   TRACTOR_TYPES,
   getPricePerTractor,
@@ -599,6 +600,9 @@ const acceptOrder = async (req, res) => {
       orderId: order._id,
       targetPhone: order.userId.whatsappNumber || order.userId.mobile
     });
+
+    // Emit Real-Time Socket.IO event to Customer and Admin
+    emitOrderAccepted(order);
 
     const responseMsg = finalDriverName
       ? `Order #${order.orderNumber} accepted and Driver ${finalDriverName} assigned! Google Maps location sent to driver.`

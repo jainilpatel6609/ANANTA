@@ -1,0 +1,19 @@
+{
+  "name": "ANANTA TRADERS - Building Materials & Logistics",
+  "short_name": "ANANTA",
+  "description": "Leading River Sand, Aggregate & Construction Supply Platform in Gujarat",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#f59e0b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

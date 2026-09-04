@@ -81,13 +81,18 @@ app.use('/api/drivers', require('./routes/driverRoutes'));
 // Global Error Handler
 app.use(errorHandler);
 
+const http = require('http');
+const { initSocket } = require('./sockets/socket');
 const EscalationScheduler = require('./services/escalationScheduler');
+
+const server = http.createServer(app);
+initSocket(server);
 
 // Start Server
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`=======================================================`);
-    console.log(`  ANANTA TRADERS API SERVER`);
+    console.log(`  ANANTA TRADERS API SERVER & REAL-TIME SOCKET.IO`);
     console.log(`  Quality Materials. Reliable Delivery.`);
     console.log(`  Running on: http://localhost:${PORT}`);
     console.log(`  Environment: ${NODE_ENV}`);
@@ -98,4 +103,5 @@ if (process.env.NODE_ENV !== 'test') {
   });
 }
 
+app.server = server;
 module.exports = app;

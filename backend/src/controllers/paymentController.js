@@ -4,6 +4,7 @@ const User = require('../models/User');
 const RazorpayService = require('../services/razorpayService');
 const NotificationService = require('../services/notificationService');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
+const { emitNewOrder } = require('../sockets/socket');
 
 // @desc    Verify Razorpay Payment Signature
 // @route   POST /api/payments/verify
@@ -135,6 +136,9 @@ const verifyPayment = async (req, res) => {
       });
     }
 
+    // Emit Real-Time Socket.IO event to Assigned / Nearby Dealers
+    emitNewOrder(order.assignedDealerId, order);
+
     return successResponse(res, 'Payment verified successfully! Order is placed and nearest dealer is notified.', { order });
   } catch (error) {
     return errorResponse(res, error.message, 500);
@@ -237,7 +241,10 @@ const devConfirmPayment = async (req, res) => {
       });
     }
 
-    return successResponse(res, 'Dev payment processed successfully.', { order });
+    // Emit Real-Time Socket.IO event to Assigned / Nearby Dealers
+    emitNewOrder(order.assignedDealerId, order);
+
+    return successResponse(res, 'Development payment simulated successfully! Order placed & dealer notified.', { order });
   } catch (error) {
     return errorResponse(res, error.message, 500);
   }

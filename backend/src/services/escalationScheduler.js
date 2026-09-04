@@ -63,6 +63,15 @@ class EscalationScheduler {
           orderId: order._id
         });
 
+        // 4. Emit Real-Time Socket.IO Escalation event to Super Admin room
+        const { emitOrderEscalation } = require('../sockets/socket');
+        emitOrderEscalation(order, {
+          dealerName,
+          customerName,
+          pincode: order.pincode,
+          message: `Order #${order.orderNumber} has exceeded the 15-minute dealer response deadline.`
+        });
+
         logger.info(`[Escalation Dispatched] Order #${order.orderNumber} escalated to Super Admin (15-min timeout).`);
       }
 

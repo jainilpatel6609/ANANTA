@@ -197,11 +197,122 @@ const deleteDriver = async (req, res) => {
   }
 };
 
+// @desc    Driver Login (Mobile Number + PIN / OTP)
+// @route   POST /api/drivers/login
+// @access  Public
+const driverLogin = async (req, res) => {
+  try {
+    const { mobile, pin } = req.body;
+    if (!mobile || !String(mobile).trim()) {
+      return errorResponse(res, 'Driver 10-digit mobile number is required.', 400);
+    }
+
+    const cleanMobile = String(mobile).replace(/\D/g, '').slice(-10);
+    const driver = await Driver.findOne({ mobile: cleanMobile, isActive: true }).populate('dealerId', 'name companyName mobile');
+
+    if (!driver) {
+      return errorResponse(res, 'Driver not found in active fleet. Please contact your dealer.', 404);
+    }
+
+    const jwt = require('jsonwebtoken');
+    const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config/env');
+
+    const token = jwt.sign(
+      {
+        id: driver._id,
+        _id: driver._id,
+        role: 'DRIVER',
+        name: driver.name,
+        mobile: driver.mobile,
+        vehicleNumber: driver.vehicleNumber,
+        dealerId: driver.dealerId?._id || driver.dealerId
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN || '7d' }
+    );
+
+    return successResponse(res, `Welcome, Driver ${driver.name}!`, {
+      token,
+      user: {
+        id: driver._id,
+        _id: driver._id,
+        name: driver.name,
+        mobile: driver.mobile,
+        vehicleNumber: driver.vehicleNumber,
+        vehicleType: driver.vehicleType,
+        role: 'DRIVER',
+        dealer: driver.dealerId
+      }
+    });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+// @desc    Driver gets their assigned active and past deliveries
+// @route   GET /api/drivers/my-deliveries
+// @access  Private (Driver)
+const getMyDeliveries = async (req, res) => {
+  try {
+    const driverMobile = req.user.mobile;
+    const driverId = req.user._id || req.user.id;
+
+    const orders = await Order.find({
+      $or: [{ driverId }, { driverMobile }],
+      orderStatus: { $in: ['ACCEPTED', 'OUT_FOR_DELIVERY', 'DELIVERED'] }
+    })
+      .populate('userId', 'name mobile addressLine1 addressLine2 area city state pincode')
+      .populate('dealerId', 'name companyName mobile officeAddress')
+      .sort({ createdAt: -1 });
+
+    return successResponse(res, 'Driver deliveries retrieved.', { deliveries: orders });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+// @desc    Driver updates delivery live location coordinates
+// @route   POST /api/drivers/deliveries/:id/location
+// @access  Private (Driver)
+const updateDriverLocation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { latitude, longitude, heading, speed } = req.body;
+
+    if (!latitude || !longitude) {
+      return errorResponse(res, 'Latitude and longitude coordinates are required.', 400);
+    }
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return errorResponse(res, 'Order not found.', 404);
+    }
+
+    // Broadcast real-time location to customer
+    const { emitLocationUpdate } = require('../sockets/socket');
+    emitLocationUpdate(order._id, order.userId, {
+      latitude: Number(latitude),
+      longitude: Number(longitude),
+      heading: heading || 0,
+      speed: speed || 0,
+      driverName: req.user.name,
+      vehicleNumber: req.user.vehicleNumber
+    });
+
+    return successResponse(res, 'Live location updated successfully.');
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
 module.exports = {
   getDealerDrivers,
   createDriver,
   updateDriver,
   toggleDriverStatus,
-  deleteDriver
+  deleteDriver,
+  driverLogin,
+  getMyDeliveries,
+  updateDriverLocation
 };
 

@@ -4,15 +4,30 @@ const driverController = require('../controllers/driverController');
 const { authenticateToken } = require('../middleware/auth');
 const { authorizeRoles } = require('../middleware/rbac');
 
-// All driver routes require authenticated DEALER or ADMIN
-router.use(authenticateToken);
-router.use(authorizeRoles('DEALER', 'ADMIN'));
+// Public Driver Login
+router.post('/login', driverController.driverLogin);
 
-router.get('/', driverController.getDealerDrivers);
-router.post('/', driverController.createDriver);
-router.put('/:id', driverController.updateDriver);
-router.patch('/:id/toggle', driverController.toggleDriverStatus);
-router.delete('/:id', driverController.deleteDriver);
+// Driver Self Routes (DRIVER role)
+router.get(
+  '/my-deliveries',
+  authenticateToken,
+  authorizeRoles('DRIVER'),
+  driverController.getMyDeliveries
+);
+
+router.post(
+  '/deliveries/:id/location',
+  authenticateToken,
+  authorizeRoles('DRIVER'),
+  driverController.updateDriverLocation
+);
+
+// Dealer & Admin Driver Fleet Management Routes
+router.get('/', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), driverController.getDealerDrivers);
+router.post('/', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), driverController.createDriver);
+router.put('/:id', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), driverController.updateDriver);
+router.patch('/:id/toggle', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), driverController.toggleDriverStatus);
+router.delete('/:id', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), driverController.deleteDriver);
 
 module.exports = router;
 
