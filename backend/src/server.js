@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -75,12 +76,27 @@ app.get('/', (req, res) => {
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({
-    success: true,
-    status: 'ONLINE',
+  const isDbConnected = mongoose.connection.readyState === 1;
+  res.status(isDbConnected ? 200 : 503).json({
+    success: isDbConnected,
+    status: isDbConnected ? 'ONLINE' : 'DEGRADED',
+    database: isDbConnected ? 'CONNECTED' : 'DISCONNECTED / CONNECTING',
     service: 'ANANTA TRADERS Full-Stack API',
     timestamp: new Date().toISOString()
   });
+});
+
+// Database Readiness Gate for API routes
+app.use('/api', (req, res, next) => {
+  if (req.path === '/health') return next();
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      success: false,
+      message: 'Database is connecting. Please check MONGODB_URI in Render dashboard and ensure MongoDB Atlas IP Access List allows 0.0.0.0/0.',
+      data: null
+    });
+  }
+  next();
 });
 
 // API Routes
