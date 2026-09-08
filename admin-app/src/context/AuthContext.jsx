@@ -43,17 +43,30 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = async (mobile, password, expectedRole, locationData = {}) => {
+  const login = async (mobileOrObj, password, expectedRole, locationData = {}) => {
     try {
-      const res = await authService.login(mobile, password, expectedRole, locationData);
-      const { token: newToken, user: authUser } = res.data;
+      let finalMobile = mobileOrObj;
+      let finalPassword = password;
+      let finalRole = expectedRole;
+      let finalLoc = locationData;
+
+      if (typeof mobileOrObj === 'object' && mobileOrObj !== null) {
+        finalMobile = mobileOrObj.mobile;
+        finalPassword = mobileOrObj.password;
+        finalRole = mobileOrObj.role || mobileOrObj.expectedRole;
+        finalLoc = mobileOrObj.locationData || {};
+      }
+
+      const res = await authService.login(finalMobile, finalPassword, finalRole, finalLoc);
+      const authData = res.data || res;
+      const { token: newToken, user: authUser } = authData;
 
       localStorage.setItem('ananta_token', newToken);
       localStorage.setItem('ananta_user', JSON.stringify(authUser));
 
       setToken(newToken);
       setUser(authUser);
-      toast.success(`Welcome back, ${authUser.name}!`);
+      toast.success(`Welcome back, ${authUser?.name || ''}!`);
       return authUser;
     } catch (error) {
       toast.error(error.message || 'Login failed');

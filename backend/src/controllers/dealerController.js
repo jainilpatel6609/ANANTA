@@ -94,13 +94,15 @@ const createDealer = async (req, res) => {
       password
     } = req.body;
 
-    if (!name || !name.trim()) {
+    const cleanName = String(name || '').trim();
+    const cleanMobile = String(mobile || '').trim();
+
+    if (!cleanName) {
       return errorResponse(res, 'Dealer representative name is required.', 400);
     }
-    if (!mobile || !mobile.trim()) {
+    if (!cleanMobile) {
       return errorResponse(res, 'Dealer primary mobile number is required.', 400);
     }
-    const cleanMobile = mobile.toString().trim();
     if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
       return errorResponse(res, 'Please provide a valid 10-digit Indian mobile number (e.g. 9876543210).', 400);
     }

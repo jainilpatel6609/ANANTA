@@ -28,34 +28,39 @@ const register = async (req, res) => {
   try {
     const { name, mobile, whatsappNumber, email, gstNumber, officeAddress, userType, companyName, password } = req.body;
 
-    if (!name || !name.trim()) {
+    const cleanName = String(name || '').trim();
+    const cleanMobile = String(mobile || '').trim();
+    const cleanWhatsapp = String(whatsappNumber || '').trim() || cleanMobile;
+    const cleanPassword = String(password || '').trim();
+
+    if (!cleanName) {
       return errorResponse(res, 'Full name is required.', 400);
     }
-    if (!mobile || !/^[6-9]\d{9}$/.test(mobile.toString().trim())) {
+    if (!cleanMobile || !/^[6-9]\d{9}$/.test(cleanMobile)) {
       return errorResponse(res, 'Please provide a valid 10-digit Indian mobile number.', 400);
     }
-    if (!password || password.trim().length < 6) {
+    if (!cleanPassword || cleanPassword.length < 6) {
       return errorResponse(res, 'Password must be at least 6 characters long.', 400);
     }
 
     // Check if mobile is already registered
-    const existingUser = await User.findOne({ mobile: mobile.trim() });
+    const existingUser = await User.findOne({ mobile: cleanMobile });
     if (existingUser) {
       return errorResponse(res, 'A user with this mobile number already exists.', 400);
     }
 
-    const passwordHash = await User.hashPassword(password.trim());
+    const passwordHash = await User.hashPassword(cleanPassword);
 
     // Explicitly force role to USER to prevent client role escalation
     const user = await User.create({
-      name: name.trim(),
-      mobile: mobile.trim(),
-      whatsappNumber: whatsappNumber ? whatsappNumber.trim() : mobile.trim(),
-      email: email ? email.trim().toLowerCase() : '',
-      gstNumber: gstNumber ? gstNumber.trim().toUpperCase() : '',
-      officeAddress: officeAddress ? officeAddress.trim() : '',
+      name: cleanName,
+      mobile: cleanMobile,
+      whatsappNumber: cleanWhatsapp,
+      email: email ? String(email).trim().toLowerCase() : '',
+      gstNumber: gstNumber ? String(gstNumber).trim().toUpperCase() : '',
+      officeAddress: officeAddress ? String(officeAddress).trim() : '',
       userType: userType || 'Contractor',
-      companyName: companyName ? companyName.trim() : '',
+      companyName: companyName ? String(companyName).trim() : '',
       passwordHash,
       role: 'USER',
       isActive: true,

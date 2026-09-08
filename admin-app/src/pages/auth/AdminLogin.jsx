@@ -31,20 +31,16 @@ export default function AdminLogin() {
 
     try {
       setLoading(true);
-      const res = await login({
-        mobile: cleanMobile,
-        password: formData.password,
-        role: 'ADMIN'
-      });
+      const authUser = await login(cleanMobile, formData.password, 'ADMIN');
 
-      const userRole = String(res?.user?.role || '').toUpperCase();
+      const userRole = String(authUser?.role || '').toUpperCase();
       if (userRole !== 'ADMIN' && userRole !== 'SUPER_ADMIN') {
         setError('Access denied. This portal is strictly restricted to Super Administrators.');
         toast.error('Unauthorized: Super Admin access required.');
         return;
       }
 
-      toast.success(`Welcome back, Administrator ${res.user.name || ''}!`);
+      toast.success(`Welcome back, Administrator ${authUser?.name || ''}!`);
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Login failed. Please verify admin credentials.');

@@ -3,19 +3,23 @@ const { errorResponse } = require('../utils/responseHelper');
 const validateRegistration = (req, res, next) => {
   const { name, mobile, whatsappNumber, password, userType } = req.body;
 
-  if (!name || !name.trim()) {
+  const cleanName = String(name || '').trim();
+  if (!cleanName) {
     return errorResponse(res, 'Full name is required', 400);
   }
 
-  if (!mobile || !/^[6-9]\d{9}$/.test(mobile.trim())) {
+  const cleanMobile = String(mobile || '').trim();
+  if (!cleanMobile || !/^[6-9]\d{9}$/.test(cleanMobile)) {
     return errorResponse(res, 'Valid 10-digit Indian mobile number is required', 400);
   }
 
-  if (!whatsappNumber || !/^[6-9]\d{9}$/.test(whatsappNumber.trim())) {
+  const cleanWhatsapp = String(whatsappNumber || '').trim();
+  if (!cleanWhatsapp || !/^[6-9]\d{9}$/.test(cleanWhatsapp)) {
     return errorResponse(res, 'Valid 10-digit WhatsApp number is required', 400);
   }
 
-  if (!password || password.length < 6) {
+  const cleanPass = String(password || '');
+  if (!cleanPass || cleanPass.length < 6) {
     return errorResponse(res, 'Password must be at least 6 characters long', 400);
   }
 
@@ -28,8 +32,9 @@ const validateRegistration = (req, res, next) => {
 
 const validateLogin = (req, res, next) => {
   const { mobile, password } = req.body;
+  const cleanMobile = String(mobile || '').trim();
 
-  if (!mobile || !mobile.trim()) {
+  if (!cleanMobile) {
     return errorResponse(res, 'Mobile number is required', 400);
   }
 

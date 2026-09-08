@@ -94,7 +94,8 @@ export default function Login() {
   // 2. Login Submit Handler
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (!mobile || !password) {
+    const cleanMobile = String(mobile || '').trim();
+    if (!cleanMobile || !password) {
       toast.error('Please enter registered mobile number and password.');
       return;
     }
@@ -102,10 +103,10 @@ export default function Login() {
     setLoading(true);
     try {
       if (selectedRole === 'DRIVER') {
-        await driverLogin(mobile.trim(), password);
+        await driverLogin(cleanMobile, password);
         navigate('/driver/dashboard');
       } else {
-        await login(mobile.trim(), password, selectedRole);
+        await login(cleanMobile, password, selectedRole);
         navigate('/auth-success', { state: { from: location.state?.from } });
       }
     } catch (err) {
