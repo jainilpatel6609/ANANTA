@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
+require('dotenv').config();
 const { PORT, CLIENT_URL, NODE_ENV } = require('./config/env');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
