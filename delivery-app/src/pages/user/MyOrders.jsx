@@ -5,7 +5,7 @@ import StatusBadge from '../../components/StatusBadge';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
 import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport } from '../../utils/formatters';
-import { Package, Search, Filter, ArrowRight, Truck, Calendar } from 'lucide-react';
+import { Package, Search, Filter, ArrowRight, Truck, Calendar, FileText } from 'lucide-react';
 
 export default function MyOrders() {
   const [orders, setOrders] = useState([]);
@@ -153,13 +153,23 @@ export default function MyOrders() {
                   </span>
                 </div>
 
-                <Link
-                  to={`/user/orders/${order._id}`}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-100 transition-colors border border-slate-700"
-                >
-                  View Details & OTP
-                  <ArrowRight className="w-3.5 h-3.5 text-brand-400" />
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    to={`/user/orders/${order._id}/invoice`}
+                    className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-xs font-bold text-amber-400 border border-amber-500/30 transition-colors"
+                    title="Download / View Tax Invoice"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Invoice</span>
+                  </Link>
+                  <Link
+                    to={`/user/orders/${order._id}`}
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-100 transition-colors border border-slate-700"
+                  >
+                    View Details & OTP
+                    <ArrowRight className="w-3.5 h-3.5 text-brand-400" />
+                  </Link>
+                </div>
               </div>
             </div>
           ))}

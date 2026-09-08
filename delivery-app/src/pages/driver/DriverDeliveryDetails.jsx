@@ -32,11 +32,12 @@ export default function DriverDeliveryDetails() {
     try {
       setLoading(true);
       const res = await orderService.getOrderById(id);
-      if (res.data?.order) {
-        setOrder(res.data.order);
+      const orderData = res.data?.order || res.data || res.order;
+      if (orderData) {
+        setOrder(orderData);
       }
     } catch (err) {
-      toast.error('Could not load delivery details.');
+      toast.error(err.response?.data?.message || err.message || 'Could not load delivery details.');
     } finally {
       setLoading(false);
     }

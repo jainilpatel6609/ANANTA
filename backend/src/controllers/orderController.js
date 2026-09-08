@@ -298,6 +298,8 @@ const createOrder = async (req, res) => {
       deliveryInstructions: deliveryInstructions || '',
       paymentStatus: 'PENDING',
       razorpayOrderId: rzpOrder.id,
+      invoiceNumber: `AN/SL/26-27/${orderNumber.replace(/^[^\d]*/, '')}`,
+      invoiceDate: new Date(),
       orderStatus: 'PENDING_PAYMENT'
     });
 
@@ -366,12 +368,18 @@ const getOrderById = async (req, res) => {
     }
 
     // Role-based security check
-    const isOwner = order.userId && order.userId._id.toString() === req.user._id.toString();
-    const isAssignedDealer = order.dealerId && order.dealerId._id.toString() === req.user._id.toString();
+    const userIdStr = req.user._id ? req.user._id.toString() : req.user.id?.toString();
+    const isOwner = order.userId && order.userId._id?.toString() === userIdStr;
+    const isAssignedDealer = order.dealerId && order.dealerId._id?.toString() === userIdStr;
     const isAvailableToDealer = req.user.role === 'DEALER' && order.orderStatus === 'PLACED' && !order.dealerId;
-    const isAdmin = req.user.role === 'ADMIN';
+    const isDriver = req.user.role === 'DRIVER' && (
+      (order.driverId && order.driverId.toString() === userIdStr) ||
+      (order.driverMobile && req.user.mobile && order.driverMobile.replace(/\D/g, '').slice(-10) === req.user.mobile.replace(/\D/g, '').slice(-10)) ||
+      (req.user.dealerId && order.dealerId && order.dealerId._id?.toString() === (req.user.dealerId._id || req.user.dealerId).toString())
+    );
+    const isAdmin = req.user.role === 'ADMIN' || req.user.role === 'SUPER_ADMIN';
 
-    if (!isOwner && !isAssignedDealer && !isAvailableToDealer && !isAdmin) {
+    if (!isOwner && !isAssignedDealer && !isAvailableToDealer && !isDriver && !isAdmin) {
       return errorResponse(res, 'Unauthorized to view this order details.', 403);
     }
 

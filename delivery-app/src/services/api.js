@@ -1,13 +1,19 @@
 import axios from 'axios';
 
+export const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  return '/api';
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: getApiBaseUrl(),
   timeout: 30000
 });
 
-// Request interceptor to attach JWT
+// Request interceptor to attach JWT and ensure dynamic host resolution
 api.interceptors.request.use(
   (config) => {
+    config.baseURL = getApiBaseUrl();
     const token = localStorage.getItem('ananta_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

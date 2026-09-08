@@ -183,6 +183,7 @@ const dispatchOrder = async (req, res) => {
     order.riverRoyaltyUrl = riverRoyaltyUrl;
     order.waybridgePhotoUrl = waybridgePhotoUrl;
     order.deliveryOtpHash = otpHash;
+    order.deliveryOtpDisplay = rawOtp;
     order.deliveryOtpExpiresAt = expiresAt;
     order.otpAttempts = 0;
     order.orderStatus = 'OUT_FOR_DELIVERY';
@@ -266,9 +267,13 @@ const verifyDeliveryOtp = async (req, res) => {
     }
 
     const isAssignedDealer = order.dealerId && order.dealerId.toString() === req.user._id.toString();
+    const isDriver = req.user.role === 'DRIVER' && (
+      (order.driverId && order.driverId.toString() === req.user._id.toString()) ||
+      order.driverMobile === req.user.mobile
+    );
     const isAdmin = req.user.role === 'ADMIN';
 
-    if (!isAssignedDealer && !isAdmin) {
+    if (!isAssignedDealer && !isDriver && !isAdmin) {
       return errorResponse(res, 'Unauthorized to verify delivery for this order.', 403);
     }
 
@@ -356,6 +361,7 @@ const getDeliveryOtp = async (req, res) => {
 
     return successResponse(res, 'Delivery OTP status.', {
       hasOtp: Boolean(order.deliveryOtpHash),
+      otp: order.deliveryOtpDisplay,
       expiresAt: order.deliveryOtpExpiresAt,
       orderStatus: order.orderStatus,
       attempts: order.otpAttempts

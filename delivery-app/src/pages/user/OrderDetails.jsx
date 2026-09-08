@@ -16,7 +16,9 @@ import {
   Clock,
   KeyRound,
   ExternalLink,
-  ArrowLeft
+  ArrowLeft,
+  FileText,
+  Printer
 } from 'lucide-react';
 
 export default function OrderDetails() {
@@ -77,9 +79,18 @@ export default function OrderDetails() {
           </div>
         </div>
 
-        <div className="text-right font-mono">
-          <span className="text-xs text-slate-400 uppercase tracking-wider block font-sans">Grand Total</span>
-          <span className="text-2xl font-black text-brand-400">{formatINR(order.totalAmount)}</span>
+        <div className="flex items-center gap-3">
+          <Link
+            to={`/user/orders/${order._id}/invoice`}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+          >
+            <FileText className="w-4 h-4" />
+            <span>Official Tax Invoice</span>
+          </Link>
+          <div className="text-right font-mono">
+            <span className="text-xs text-slate-400 uppercase tracking-wider block font-sans">Grand Total</span>
+            <span className="text-2xl font-black text-brand-400">{formatINR(order.totalAmount)}</span>
+          </div>
         </div>
       </div>
 
@@ -134,6 +145,27 @@ export default function OrderDetails() {
                 <span>
                   Dealer {order.dealerId?.companyName || 'partner'} is currently preparing the tipper and assigning the driver.
                 </span>
+              </div>
+            )}
+
+            {/* Customer Delivery OTP Display */}
+            {order.orderStatus === 'OUT_FOR_DELIVERY' && order.deliveryOtpDisplay && (
+              <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase tracking-wider">
+                    <KeyRound className="w-4 h-4" />
+                    <span>Your 6-Digit Delivery OTP</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400">Share with driver upon material drop-off</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-2xl font-black text-white tracking-widest bg-slate-950 px-4 py-1.5 rounded-lg border border-amber-500/40">
+                    {order.deliveryOtpDisplay}
+                  </span>
+                  <p className="text-[11px] text-slate-300 leading-snug">
+                    Provide this code to <strong>{order.driverName || 'the driver'}</strong> once the material is unloaded & inspected at your site.
+                  </p>
+                </div>
               </div>
             )}
           </div>
@@ -350,6 +382,14 @@ export default function OrderDetails() {
             <div className="pt-2 text-[10px] text-slate-500 font-mono">
               Payment ID: {order.paymentId || 'N/A'}
             </div>
+
+            <Link
+              to={`/user/orders/${order._id}/invoice`}
+              className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 hover:text-amber-300 font-bold text-xs border border-slate-700 shadow-sm transition-all mt-2 cursor-pointer"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Print / Download Tax Invoice (PDF)</span>
+            </Link>
           </div>
         </div>
       </div>

@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
+    "db": "\"C:\\Program Files\\MongoDB\\Server\\4.4\\bin\\mongod.exe\" --dbpath \"D:\\ANANTA\\data\\db\" --port 27017",
     "seed": "node src/seed/seed.js",
     "test": "node tests/integration.test.js && node tests/pincode_nearest_dealer.test.js && node tests/admin_profile.test.js && node tests/dealer_management.test.js && node tests/forgot_password.test.js && node tests/super_admin_auth_security.test.js && node tests/real_sms_otp_verification.test.js && node tests/dealer_alarm_escalation.test.js && node tests/fcm_push_notification.test.js && node tests/dynamic_order_flow.test.js && node tests/dumper_tractor_separation.test.js && node tests/tractor_customer_flow.test.js && node tests/aggregate_dumper_tractor_flow.test.js"
   },

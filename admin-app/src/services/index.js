@@ -1,4 +1,4 @@
-import api from './api';
+import api, { getApiBaseUrl } from './api';
 
 export const authService = {
   login: (mobile, password, expectedRole, locationData = {}) =>
@@ -87,7 +87,7 @@ export const adminService = {
   getDashboardStats: () => api.get('/admin/dashboard'),
   getReports: (month, year) => api.get('/admin/reports', { params: { month, year } }),
   exportUrl: (format, params) => {
-    const url = new URL(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/admin/reports/export`);
+    const url = new URL(`${getApiBaseUrl()}/admin/reports/export`);
     url.searchParams.append('format', format);
     if (params?.status) url.searchParams.append('status', params.status);
     if (params?.startDate) url.searchParams.append('startDate', params.startDate);

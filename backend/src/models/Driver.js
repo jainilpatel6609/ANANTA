@@ -47,6 +47,34 @@ const driverSchema = new mongoose.Schema(
       uppercase: true,
       default: ''
     },
+    licenseFrontUrl: {
+      type: String,
+      default: ''
+    },
+    licenseBackUrl: {
+      type: String,
+      default: ''
+    },
+    aadharCardUrl: {
+      type: String,
+      default: ''
+    },
+    panCardUrl: {
+      type: String,
+      default: ''
+    },
+    photoUrl: {
+      type: String,
+      default: ''
+    },
+    passwordHash: {
+      type: String,
+      default: ''
+    },
+    isMobileVerified: {
+      type: Boolean,
+      default: true
+    },
     status: {
       type: String,
       enum: ['AVAILABLE', 'ON_DELIVERY', 'INACTIVE'],
@@ -71,6 +99,20 @@ const driverSchema = new mongoose.Schema(
     timestamps: true
   }
 );
+
+const bcrypt = require('bcryptjs');
+
+// Password comparison method
+driverSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!this.passwordHash) return true; // fallback if password not set
+  return bcrypt.compare(candidatePassword, this.passwordHash);
+};
+
+// Static helper to hash password
+driverSchema.statics.hashPassword = async function (password) {
+  const salt = await bcrypt.genSalt(10);
+  return bcrypt.hash(password, salt);
+};
 
 // Compound index to ensure clean lookups per dealer
 driverSchema.index({ dealerId: 1, isActive: 1, status: 1 });

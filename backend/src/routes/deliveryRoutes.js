@@ -25,8 +25,8 @@ router.post(
   deliveryController.dispatchOrder
 );
 
-// Dealer / Admin verify delivery OTP
-router.post('/:id/verify-otp', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), deliveryController.verifyDeliveryOtp);
+// Dealer / Admin / Driver verify delivery OTP
+router.post('/:id/verify-otp', authenticateToken, authorizeRoles('DEALER', 'ADMIN', 'DRIVER'), deliveryController.verifyDeliveryOtp);
 
 // User / Admin view OTP status
 router.get('/:id/otp', authenticateToken, authorizeRoles('USER', 'ADMIN'), deliveryController.getDeliveryOtp);

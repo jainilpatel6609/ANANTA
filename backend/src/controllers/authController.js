@@ -541,6 +541,9 @@ const updateLiveLocation = async (req, res) => {
 // @access  Private
 const getProfile = async (req, res) => {
   try {
+    if (req.user.role === 'DRIVER') {
+      return successResponse(res, 'Profile retrieved successfully.', { user: req.user });
+    }
     const user = await User.findById(req.user._id);
     return successResponse(res, 'Profile retrieved successfully.', { user });
   } catch (error) {

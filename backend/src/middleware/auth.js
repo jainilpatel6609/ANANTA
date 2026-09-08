@@ -16,7 +16,29 @@ const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(decoded.id);
+    let user = null;
+
+    if (decoded.role === 'DRIVER') {
+      const Driver = require('../models/Driver');
+      const driver = await Driver.findById(decoded.id).populate('dealerId', 'name companyName mobile');
+      if (driver) {
+        user = {
+          _id: driver._id,
+          id: driver._id,
+          name: driver.name,
+          mobile: driver.mobile,
+          role: 'DRIVER',
+          vehicleNumber: driver.vehicleNumber,
+          vehicleType: driver.vehicleType,
+          photoUrl: driver.photoUrl,
+          licenseNumber: driver.licenseNumber,
+          dealerId: driver.dealerId,
+          isActive: driver.isActive
+        };
+      }
+    } else {
+      user = await User.findById(decoded.id);
+    }
 
     if (!user) {
       return errorResponse(res, 'User no longer exists', 401);

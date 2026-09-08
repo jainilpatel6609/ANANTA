@@ -199,6 +199,14 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: ''
     },
+    invoiceNumber: {
+      type: String,
+      default: ''
+    },
+    invoiceDate: {
+      type: Date,
+      default: Date.now
+    },
     orderStatus: {
       type: String,
       enum: [
@@ -249,6 +257,10 @@ const orderSchema = new mongoose.Schema(
       default: ''
     },
     deliveryOtpHash: {
+      type: String,
+      default: ''
+    },
+    deliveryOtpDisplay: {
       type: String,
       default: ''
     },

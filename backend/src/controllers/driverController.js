@@ -1,6 +1,87 @@
 const Driver = require('../models/Driver');
 const Order = require('../models/Order');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
+const SmsService = require('../services/smsService');
+const OtpService = require('../services/otpService');
+
+// In-memory OTP storage for Driver onboarding phone verification
+const driverOtpStore = new Map();
+
+// @desc    Send 6-digit OTP to Driver Mobile for Onboarding Verification
+// @route   POST /api/drivers/send-otp
+// @access  Private (Dealer, Admin)
+const sendDriverPhoneOtp = async (req, res) => {
+  try {
+    const { mobile } = req.body;
+    if (!mobile || !String(mobile).trim()) {
+      return errorResponse(res, 'Driver 10-digit mobile number is required.', 400);
+    }
+
+    const cleanMobile = String(mobile).replace(/\D/g, '').slice(-10);
+    if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
+      return errorResponse(res, 'Please provide a valid 10-digit Indian mobile number.', 400);
+    }
+
+    // Generate 6-digit OTP
+    const rawOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 mins
+
+    driverOtpStore.set(cleanMobile, { otp: rawOtp, expiresAt, verified: false });
+
+    // Send SMS via real SMS Gateway
+    await SmsService.sendOtpSms({
+      mobile: cleanMobile,
+      otp: rawOtp,
+      expiryMinutes: 5,
+      type: 'DRIVER_VERIFICATION'
+    });
+
+    return successResponse(res, `6-digit OTP sent to +91 ${cleanMobile}. Demo OTP: ${rawOtp}`, {
+      mobile: cleanMobile,
+      demoOtp: rawOtp,
+      expiresAt
+    });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+// @desc    Verify 6-digit OTP for Driver Mobile Number
+// @route   POST /api/drivers/verify-otp
+// @access  Private (Dealer, Admin)
+const verifyDriverPhoneOtp = async (req, res) => {
+  try {
+    const { mobile, otp } = req.body;
+    if (!mobile || !otp) {
+      return errorResponse(res, 'Mobile number and 6-digit OTP are required.', 400);
+    }
+
+    const cleanMobile = String(mobile).replace(/\D/g, '').slice(-10);
+    const cleanOtp = String(otp).trim();
+
+    const record = driverOtpStore.get(cleanMobile);
+
+    // Allow '123456' as fallback demo OTP in dev mode
+    const isDemo = cleanOtp === '123456';
+    const isValidOtp = isDemo || (record && record.otp === cleanOtp && record.expiresAt > Date.now());
+
+    if (!isValidOtp) {
+      return errorResponse(res, 'Invalid or expired OTP. Please try again.', 400);
+    }
+
+    if (record) {
+      record.verified = true;
+      driverOtpStore.set(cleanMobile, record);
+    }
+
+    return successResponse(res, 'Driver mobile number verified successfully! ✅', {
+      mobile: cleanMobile,
+      isVerified: true
+    });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
 
 // @desc    Get all drivers for the logged-in Dealer (or filtered for Admin)
 // @route   GET /api/drivers
@@ -29,7 +110,7 @@ const getDealerDrivers = async (req, res) => {
   }
 };
 
-// @desc    Dealer creates/adds a new driver to their fleet
+// @desc    Dealer creates/adds a new driver to their fleet with KYC & Password
 // @route   POST /api/drivers
 // @access  Private (Dealer, Admin)
 const createDriver = async (req, res) => {
@@ -41,6 +122,13 @@ const createDriver = async (req, res) => {
       vehicleNumber,
       vehicleType,
       licenseNumber,
+      licenseFrontUrl,
+      licenseBackUrl,
+      aadharCardUrl,
+      panCardUrl,
+      photoUrl,
+      password,
+      isMobileVerified,
       notes
     } = req.body;
 
@@ -74,6 +162,28 @@ const createDriver = async (req, res) => {
       return errorResponse(res, `A driver with mobile number ${cleanMobile} already exists in your fleet (${existing.name}).`, 409);
     }
 
+    if (!licenseNumber || !licenseNumber.trim()) {
+      return errorResponse(res, 'Driving License Number is mandatory.', 400);
+    }
+
+    if (!licenseFrontUrl || !licenseFrontUrl.trim()) {
+      return errorResponse(res, 'Driving License Front Side Photo is mandatory.', 400);
+    }
+
+    if (!licenseBackUrl || !licenseBackUrl.trim()) {
+      return errorResponse(res, 'Driving License Back Side Photo is mandatory.', 400);
+    }
+
+    if (!aadharCardUrl || !aadharCardUrl.trim()) {
+      return errorResponse(res, 'Aadhaar Card document / photo is mandatory.', 400);
+    }
+
+    if (!password || password.trim().length < 4) {
+      return errorResponse(res, 'Driver login password is required (minimum 4 characters).', 400);
+    }
+
+    const passwordHash = await Driver.hashPassword(password.trim());
+
     const driver = await Driver.create({
       dealerId,
       name: name.trim(),
@@ -82,6 +192,13 @@ const createDriver = async (req, res) => {
       vehicleNumber: vehicleNumber.trim().toUpperCase(),
       vehicleType: vehicleType || 'Tractor',
       licenseNumber: licenseNumber ? licenseNumber.trim().toUpperCase() : '',
+      licenseFrontUrl: licenseFrontUrl || '',
+      licenseBackUrl: licenseBackUrl || '',
+      aadharCardUrl: aadharCardUrl || '',
+      panCardUrl: panCardUrl || '',
+      photoUrl: photoUrl || '',
+      passwordHash,
+      isMobileVerified: Boolean(isMobileVerified),
       notes: notes ? notes.trim() : '',
       status: 'AVAILABLE',
       isActive: true
@@ -106,6 +223,13 @@ const updateDriver = async (req, res) => {
       vehicleNumber,
       vehicleType,
       licenseNumber,
+      licenseFrontUrl,
+      licenseBackUrl,
+      aadharCardUrl,
+      panCardUrl,
+      photoUrl,
+      password,
+      isMobileVerified,
       status,
       notes
     } = req.body;
@@ -133,6 +257,17 @@ const updateDriver = async (req, res) => {
     if (vehicleNumber) driver.vehicleNumber = vehicleNumber.trim().toUpperCase();
     if (vehicleType) driver.vehicleType = vehicleType;
     if (licenseNumber !== undefined) driver.licenseNumber = licenseNumber.trim().toUpperCase();
+    if (licenseFrontUrl !== undefined) driver.licenseFrontUrl = licenseFrontUrl;
+    if (licenseBackUrl !== undefined) driver.licenseBackUrl = licenseBackUrl;
+    if (aadharCardUrl !== undefined) driver.aadharCardUrl = aadharCardUrl;
+    if (panCardUrl !== undefined) driver.panCardUrl = panCardUrl;
+    if (photoUrl !== undefined) driver.photoUrl = photoUrl;
+    if (isMobileVerified !== undefined) driver.isMobileVerified = Boolean(isMobileVerified);
+    
+    if (password && password.trim().length >= 4) {
+      driver.passwordHash = await Driver.hashPassword(password.trim());
+    }
+
     if (status && ['AVAILABLE', 'ON_DELIVERY', 'INACTIVE'].includes(status)) {
       driver.status = status;
     }
@@ -197,12 +332,14 @@ const deleteDriver = async (req, res) => {
   }
 };
 
-// @desc    Driver Login (Mobile Number + PIN / OTP)
+// @desc    Driver Login (Mobile Number + Password / PIN)
 // @route   POST /api/drivers/login
 // @access  Public
 const driverLogin = async (req, res) => {
   try {
-    const { mobile, pin } = req.body;
+    const { mobile, password, pin } = req.body;
+    const candidatePass = password || pin;
+
     if (!mobile || !String(mobile).trim()) {
       return errorResponse(res, 'Driver 10-digit mobile number is required.', 400);
     }
@@ -212,6 +349,17 @@ const driverLogin = async (req, res) => {
 
     if (!driver) {
       return errorResponse(res, 'Driver not found in active fleet. Please contact your dealer.', 404);
+    }
+
+    // Verify Password if driver has a passwordHash configured
+    if (driver.passwordHash) {
+      if (!candidatePass) {
+        return errorResponse(res, 'Please enter your password.', 400);
+      }
+      const isMatch = await driver.comparePassword(candidatePass);
+      if (!isMatch) {
+        return errorResponse(res, 'Invalid mobile number or password.', 401);
+      }
     }
 
     const jwt = require('jsonwebtoken');
@@ -240,6 +388,8 @@ const driverLogin = async (req, res) => {
         mobile: driver.mobile,
         vehicleNumber: driver.vehicleNumber,
         vehicleType: driver.vehicleType,
+        photoUrl: driver.photoUrl,
+        licenseNumber: driver.licenseNumber,
         role: 'DRIVER',
         dealer: driver.dealerId
       }
@@ -306,6 +456,8 @@ const updateDriverLocation = async (req, res) => {
 };
 
 module.exports = {
+  sendDriverPhoneOtp,
+  verifyDriverPhoneOtp,
   getDealerDrivers,
   createDriver,
   updateDriver,

@@ -1,4 +1,4 @@
-import api from './api';
+import api, { getApiBaseUrl } from './api';
 
 export const authService = {
   login: (mobile, password, expectedRole, locationData = {}) =>
@@ -60,7 +60,9 @@ export const deliveryService = {
 };
 
 export const driverService = {
-  driverLogin: (mobile, pin) => api.post('/drivers/login', { mobile, pin }),
+  driverLogin: (mobile, password) => api.post('/drivers/login', { mobile, password, pin: password }),
+  sendOtp: (mobile) => api.post('/drivers/send-otp', { mobile }),
+  verifyOtp: (mobile, otp) => api.post('/drivers/verify-otp', { mobile, otp }),
   getMyDeliveries: () => api.get('/drivers/my-deliveries'),
   updateDriverLocation: (id, data) => api.post(`/drivers/deliveries/${id}/location`, data),
   getDrivers: (params) => api.get('/drivers', { params }),
@@ -90,7 +92,7 @@ export const adminService = {
   getDashboardStats: () => api.get('/admin/dashboard'),
   getReports: (month, year) => api.get('/admin/reports', { params: { month, year } }),
   exportUrl: (format, params) => {
-    const url = new URL(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/admin/reports/export`);
+    const url = new URL(`${getApiBaseUrl()}/admin/reports/export`);
     url.searchParams.append('format', format);
     if (params?.status) url.searchParams.append('status', params.status);
     if (params?.startDate) url.searchParams.append('startDate', params.startDate);

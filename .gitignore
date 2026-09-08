@@ -13,3 +13,6 @@ yarn-error.log*
 
 # Environment config / secrets
 **/env.js
+
+# Local MongoDB data directory
+data/

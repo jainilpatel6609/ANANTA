@@ -4,10 +4,12 @@
   "description": "ANANTA TRADERS — Full-Stack Dynamic Material Ordering & Dealer Delivery Management System",
   "scripts": {
     "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
+    "dev:delivery": "cd delivery-app && npm run dev",
+    "dev:admin": "cd admin-app && npm run dev",
     "seed": "cd backend && npm run seed",
     "test": "cd backend && npm test",
-    "build": "cd frontend && npm run build"
+    "build:delivery": "cd delivery-app && npm run build",
+    "build:admin": "cd admin-app && npm run build"
   },
   "keywords": [
     "sand",

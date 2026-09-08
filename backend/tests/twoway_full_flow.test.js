@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const { MONGODB_URI, JWT_SECRET, SUPER_ADMIN_SECRET_KEY } = require('../src/config/env');
+const connectDB = require('../src/config/db');
 const User = require('../src/models/User');
 const Driver = require('../src/models/Driver');
 const Order = require('../src/models/Order');
@@ -26,7 +27,7 @@ async function runTwoWayValidation() {
   console.log('  ANANTA TRADERS — 2-FRONTEND & 1-BACKEND FULL TEST');
   console.log('====================================================\n');
 
-  await mongoose.connect(MONGODB_URI);
+  await connectDB();
 
   // TEST 1: Super Admin login / role verification
   console.log('[TEST 1: Super Admin Login & Security]');

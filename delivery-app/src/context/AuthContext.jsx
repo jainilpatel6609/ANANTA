@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authService } from '../services';
+import { authService, driverService } from '../services';
 import { requestAndRegisterDevicePush, unregisterDevicePush, getPushPermissionState } from '../utils/fcm';
 import toast from 'react-hot-toast';
 
@@ -118,17 +118,18 @@ export const AuthProvider = ({ children }) => {
   const driverLogin = async (mobile, pin) => {
     try {
       const res = await driverService.driverLogin(mobile, pin);
-      const { token: newToken, user: authUser } = res.data;
+      const authData = res.data || res;
+      const { token: newToken, user: authUser } = authData;
 
       localStorage.setItem('ananta_token', newToken);
       localStorage.setItem('ananta_user', JSON.stringify(authUser));
 
       setToken(newToken);
       setUser(authUser);
-      toast.success(`Welcome back, Driver ${authUser.name}!`);
+      toast.success(`Welcome back, Driver ${authUser?.name || ''}!`);
       return authUser;
     } catch (error) {
-      toast.error(error.response?.data?.message || error.message || 'Driver login failed');
+      toast.error(error.message || 'Driver login failed');
       throw error;
     }
   };
