@@ -49,7 +49,9 @@ export default function VehicleManagement() {
     category: 'Sand',
     state: 'Gujarat',
     description: '',
-    displayOrder: 0
+    displayOrder: 0,
+    singlePatiyaPrice: '2350',
+    doublePatiyaPrice: '4500'
   });
 
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
@@ -164,7 +166,9 @@ export default function VehicleManagement() {
       category: selectedVehicle === 'DUMPER' ? 'Aggregate' : 'Sand',
       state: 'Gujarat',
       description: '',
-      displayOrder: count + 1
+      displayOrder: count + 1,
+      singlePatiyaPrice: '2350',
+      doublePatiyaPrice: '4500'
     });
     setIsLocationModalOpen(true);
   };
@@ -176,7 +180,9 @@ export default function VehicleManagement() {
       category: loc.category || 'Sand',
       state: loc.state || 'Gujarat',
       description: loc.description || '',
-      displayOrder: loc.displayOrder || 0
+      displayOrder: loc.displayOrder || 0,
+      singlePatiyaPrice: loc.singlePatiyaPrice !== undefined ? String(loc.singlePatiyaPrice) : '2350',
+      doublePatiyaPrice: loc.doublePatiyaPrice !== undefined ? String(loc.doublePatiyaPrice) : '4500'
     });
     setIsLocationModalOpen(true);
   };
@@ -190,7 +196,13 @@ export default function VehicleManagement() {
 
     setSaving(true);
     try {
-      const payload = { ...locationForm, vehicleType: selectedVehicle };
+      const payload = {
+        ...locationForm,
+        vehicleType: selectedVehicle,
+        singlePatiyaPrice: Number(locationForm.singlePatiyaPrice) || 2350,
+        doublePatiyaPrice: Number(locationForm.doublePatiyaPrice) || 4500,
+        displayOrder: Number(locationForm.displayOrder) || 0
+      };
       if (editingLocation) {
         await locationService.updateLocation(editingLocation._id, payload);
         toast.success(`Updated ${selectedVehicle} location "${locationForm.name}".`);
@@ -789,6 +801,19 @@ export default function VehicleManagement() {
                           <span className="text-xs text-slate-400 block">{loc.state || 'Gujarat'}</span>
                         </div>
 
+                        {selectedVehicle === 'TRACTOR' && (
+                          <div className="grid grid-cols-2 gap-2 pt-1">
+                            <div className="p-2 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
+                              <span className="text-[10px] uppercase font-bold text-slate-400 block">Single Patiya</span>
+                              <span className="text-xs font-mono font-bold text-amber-400">₹{loc.singlePatiyaPrice || 2350}</span>
+                            </div>
+                            <div className="p-2 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
+                              <span className="text-[10px] uppercase font-bold text-slate-400 block">Double Patiya</span>
+                              <span className="text-xs font-mono font-bold text-emerald-400">₹{loc.doublePatiyaPrice || 4500}</span>
+                            </div>
+                          </div>
+                        )}
+
                         <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
                           {loc.description || `Verified ${selectedVehicle} quarry/depot point`}
                         </p>
@@ -1075,17 +1100,55 @@ export default function VehicleManagement() {
             />
           </div>
 
-          <div>
-            <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
-              Display Order
-            </label>
-            <input
-              type="number"
-              value={locationForm.displayOrder}
-              onChange={(e) => setLocationForm({ ...locationForm, displayOrder: e.target.value })}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-amber-400 focus:outline-none focus:border-amber-500"
-            />
-          </div>
+          {selectedVehicle === 'TRACTOR' ? (
+            <div className="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-slate-950/80 border border-slate-800">
+              <div>
+                <label className="text-xs font-bold text-amber-400 uppercase tracking-wider block mb-1.5">
+                  Single Patiya Price (₹) *
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-bold text-xs">₹</span>
+                  <input
+                    type="number"
+                    required
+                    placeholder="2350"
+                    value={locationForm.singlePatiyaPrice}
+                    onChange={(e) => setLocationForm({ ...locationForm, singlePatiyaPrice: e.target.value })}
+                    className="w-full pl-8 pr-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono font-bold text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-1.5">
+                  Double Patiya Price (₹) *
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-bold text-xs">₹</span>
+                  <input
+                    type="number"
+                    required
+                    placeholder="4500"
+                    value={locationForm.doublePatiyaPrice}
+                    onChange={(e) => setLocationForm({ ...locationForm, doublePatiyaPrice: e.target.value })}
+                    className="w-full pl-8 pr-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono font-bold text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
+                Display Order
+              </label>
+              <input
+                type="number"
+                value={locationForm.displayOrder}
+                onChange={(e) => setLocationForm({ ...locationForm, displayOrder: e.target.value })}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-amber-400 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+          )}
 
           <div>
             <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">

@@ -67,10 +67,12 @@ const getAdminLocations = async (req, res) => {
 
 // @desc    Create new location for specific vehicleType and category
 // @route   POST /api/locations/admin
+// @desc    Create new location for specific vehicleType and category
+// @route   POST /api/locations/admin
 // @access  Private (Admin)
 const createLocation = async (req, res) => {
   try {
-    const { name, vehicleType, category, state, description, displayOrder } = req.body;
+    const { name, vehicleType, category, state, description, displayOrder, singlePatiyaPrice, doublePatiyaPrice } = req.body;
     if (!name || !name.trim()) {
       return errorResponse(res, 'Location name is required.', 400);
     }
@@ -103,6 +105,8 @@ const createLocation = async (req, res) => {
       state: state ? state.trim() : 'Gujarat',
       description: description ? description.trim() : '',
       displayOrder: Number(displayOrder) || 0,
+      singlePatiyaPrice: singlePatiyaPrice !== undefined && singlePatiyaPrice !== null && singlePatiyaPrice !== '' ? Number(singlePatiyaPrice) : 2350,
+      doublePatiyaPrice: doublePatiyaPrice !== undefined && doublePatiyaPrice !== null && doublePatiyaPrice !== '' ? Number(doublePatiyaPrice) : 4500,
       isActive: true
     });
 
@@ -117,7 +121,7 @@ const createLocation = async (req, res) => {
 // @access  Private (Admin)
 const updateLocation = async (req, res) => {
   try {
-    const { name, vehicleType, category, state, description, displayOrder, isActive } = req.body;
+    const { name, vehicleType, category, state, description, displayOrder, singlePatiyaPrice, doublePatiyaPrice, isActive } = req.body;
     const location = await Location.findById(req.params.id);
 
     if (!location) {
@@ -154,6 +158,12 @@ const updateLocation = async (req, res) => {
     if (state !== undefined) location.state = state.trim();
     if (description !== undefined) location.description = description.trim();
     if (displayOrder !== undefined) location.displayOrder = Number(displayOrder) || 0;
+    if (singlePatiyaPrice !== undefined && singlePatiyaPrice !== null && singlePatiyaPrice !== '') {
+      location.singlePatiyaPrice = Number(singlePatiyaPrice) || 0;
+    }
+    if (doublePatiyaPrice !== undefined && doublePatiyaPrice !== null && doublePatiyaPrice !== '') {
+      location.doublePatiyaPrice = Number(doublePatiyaPrice) || 0;
+    }
     if (isActive !== undefined) location.isActive = Boolean(isActive);
 
     await location.save();

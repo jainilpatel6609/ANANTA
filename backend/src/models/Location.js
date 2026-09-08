@@ -33,6 +33,14 @@ const locationSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
+    singlePatiyaPrice: {
+      type: Number,
+      default: 2350
+    },
+    doublePatiyaPrice: {
+      type: Number,
+      default: 4500
+    },
     isActive: {
       type: Boolean,
       default: true,

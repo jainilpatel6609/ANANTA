@@ -211,13 +211,22 @@ export default function CreateOrder() {
     approxTotalTonnage = (selectedCapacity.approximateTon || 25) * dumperQuantity;
     subtotal = Math.round(unitPrice * approxTotalTonnage);
   } else if (selectedVehicleType === 'TRACTOR' && selectedCapacity) {
-    let flatRate = selectedCapacity.flatPrice || (selectedOptionName === 'Double Patiya' ? 4500 : 2350);
+    const isDoublePatiya = selectedOptionName === 'Double Patiya' || selectedCapacity?.optionName === 'Double Patiya' || selectedCapacity?.name === 'Double Patiya';
+    let locationPrice = null;
+    if (selectedLocation) {
+      if (isDoublePatiya && selectedLocation.doublePatiyaPrice !== undefined && selectedLocation.doublePatiyaPrice !== null) {
+        locationPrice = Number(selectedLocation.doublePatiyaPrice);
+      } else if (!isDoublePatiya && selectedLocation.singlePatiyaPrice !== undefined && selectedLocation.singlePatiyaPrice !== null) {
+        locationPrice = Number(selectedLocation.singlePatiyaPrice);
+      }
+    }
+    let flatRate = locationPrice || selectedCapacity.flatPrice || (isDoublePatiya ? 4500 : 2350);
     if (isAggregate && selectedMaterial?.tractorGrainPricing?.length && selectedAggregateType) {
       const match = selectedMaterial.tractorGrainPricing.find(
         (g) => g.name && g.name.toLowerCase().trim() === selectedAggregateType.toLowerCase().trim()
       );
       if (match) {
-        flatRate = selectedOptionName === 'Double Patiya' ? (match.priceDoublePatiya || 5400) : (match.priceSinglePatiya || 2800);
+        flatRate = isDoublePatiya ? (match.priceDoublePatiya || 5400) : (match.priceSinglePatiya || 2800);
       }
     }
     unitPrice = flatRate;
@@ -989,6 +998,21 @@ export default function CreateOrder() {
                         <span className="text-xs text-slate-400 block mt-0.5">{loc.state || 'Gujarat'}</span>
                       </div>
 
+                      {(loc.singlePatiyaPrice || loc.doublePatiyaPrice) && (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          {loc.singlePatiyaPrice && (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                              Single: ₹{loc.singlePatiyaPrice}
+                            </span>
+                          )}
+                          {loc.doublePatiyaPrice && (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                              Double: ₹{loc.doublePatiyaPrice}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
                       <p className="text-[11px] text-slate-400 border-t border-slate-800 pt-2">
                         {loc.description || 'Verified quarry & river source'}
                       </p>
@@ -1190,13 +1214,22 @@ export default function CreateOrder() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {activeVehicleConfigs.map((cfg) => {
                   const isSelected = cfg._id === selectedCapacityId || cfg.optionName === selectedOptionName;
-                  let itemUnitPrice = cfg.flatPrice || (cfg.optionName === 'Double Patiya' ? 4500 : 2350);
+                  const isDouble = cfg.optionName === 'Double Patiya';
+                  let locationPrice = null;
+                  if (selectedLocation) {
+                    if (isDouble && selectedLocation.doublePatiyaPrice !== undefined && selectedLocation.doublePatiyaPrice !== null) {
+                      locationPrice = Number(selectedLocation.doublePatiyaPrice);
+                    } else if (!isDouble && selectedLocation.singlePatiyaPrice !== undefined && selectedLocation.singlePatiyaPrice !== null) {
+                      locationPrice = Number(selectedLocation.singlePatiyaPrice);
+                    }
+                  }
+                  let itemUnitPrice = locationPrice || cfg.flatPrice || (isDouble ? 4500 : 2350);
                   if (isAggregate && selectedMaterial?.tractorGrainPricing?.length && selectedAggregateType) {
                     const match = selectedMaterial.tractorGrainPricing.find(
                       (g) => g.name && g.name.toLowerCase().trim() === selectedAggregateType.toLowerCase().trim()
                     );
                     if (match) {
-                      itemUnitPrice = cfg.optionName === 'Double Patiya' ? (match.priceDoublePatiya || 5400) : (match.priceSinglePatiya || 2800);
+                      itemUnitPrice = isDouble ? (match.priceDoublePatiya || 5400) : (match.priceSinglePatiya || 2800);
                     }
                   }
 
