@@ -91,13 +91,15 @@ const connectDB = async () => {
     await ensureMongoRunning();
 
     const conn = await mongoose.connect(MONGODB_URI, {
-      autoIndex: true
+      autoIndex: true,
+      serverSelectionTimeoutMS: 5000
     });
     console.log(`[ANANTA TRADERS] MongoDB Connected: ${conn.connection.host}/${conn.connection.name}`);
     return conn;
   } catch (error) {
     console.error(`[ANANTA TRADERS] Database Connection Error: ${error.message}`);
-    process.exit(1);
+    console.warn('[ANANTA TRADERS] Retrying MongoDB connection in 5 seconds... Make sure MONGODB_URI is set on Render dashboard.');
+    setTimeout(connectDB, 5000);
   }
 };
 

@@ -55,6 +55,24 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Static file storage for uploads (Royalty & Weighbridge documents)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// Root status endpoint
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    service: 'ANANTA TRADERS Full-Stack API & Real-Time Socket Server',
+    status: 'ONLINE',
+    environment: NODE_ENV,
+    endpoints: {
+      health: '/api/health',
+      auth: '/api/auth',
+      products: '/api/products',
+      orders: '/api/orders',
+      deliveries: '/api/deliveries'
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({
@@ -91,11 +109,11 @@ initSocket(server);
 
 // Start Server
 if (process.env.NODE_ENV !== 'test') {
-  server.listen(PORT, () => {
+  server.listen(PORT, '0.0.0.0', () => {
     console.log(`=======================================================`);
     console.log(`  ANANTA TRADERS API SERVER & REAL-TIME SOCKET.IO`);
     console.log(`  Quality Materials. Reliable Delivery.`);
-    console.log(`  Running on: http://localhost:${PORT}`);
+    console.log(`  Running on: http://0.0.0.0:${PORT}`);
     console.log(`  Environment: ${NODE_ENV}`);
     console.log(`=======================================================`);
     
