@@ -39,7 +39,17 @@ const findMongodExe = () => {
   return 'mongod';
 };
 
+const isLocalMongoUri = (uri) => {
+  if (!uri) return true;
+  return uri.includes('127.0.0.1') || uri.includes('localhost');
+};
+
 const ensureMongoRunning = async () => {
+  // Do not attempt local daemon spawn on Render / Production or remote cloud URIs
+  if (process.env.NODE_ENV === 'production' || process.env.RENDER || !isLocalMongoUri(MONGODB_URI)) {
+    return false;
+  }
+
   const isRunning = await checkMongoRunning(27017);
   if (isRunning) return true;
 
@@ -56,6 +66,11 @@ const ensureMongoRunning = async () => {
       detached: true,
       stdio: 'ignore'
     });
+
+    child.on('error', (err) => {
+      console.warn(`[ANANTA TRADERS] Local mongod spawn note: ${err.message}`);
+    });
+
     child.unref();
 
     for (let i = 0; i < 15; i++) {
