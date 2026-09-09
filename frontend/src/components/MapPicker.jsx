@@ -71,94 +71,37 @@ export default function MapPicker({
 
         const initialZoom = coordinates?.lat && coordinates?.lng ? SELECTED_LOCATION_ZOOM : DEFAULT_ZOOM;
 
-        // 1. Initialize Google Map Instance
+        // 1. Initialize Google Map Instance (Standard Google Maps UI)
         const map = new googleMaps.Map(mapContainerRef.current, {
           center: initialCenter,
           zoom: initialZoom,
           mapTypeId: 'roadmap',
           zoomControl: true,
-          mapTypeControl: false,
+          zoomControlOptions: {
+            position: googleMaps.ControlPosition.RIGHT_BOTTOM
+          },
+          mapTypeControl: true,
+          mapTypeControlOptions: {
+            style: googleMaps.MapTypeControlStyle.HORIZONTAL_BAR,
+            position: googleMaps.ControlPosition.TOP_LEFT
+          },
           scaleControl: true,
-          streetViewControl: false,
-          rotateControl: false,
-          fullscreenControl: false,
-          gestureHandling: 'greedy',
-          styles: [
-            { elementType: 'geometry', stylers: [{ color: '#1e293b' }] },
-            { elementType: 'labels.text.stroke', stylers: [{ color: '#0f172a' }] },
-            { elementType: 'labels.text.fill', stylers: [{ color: '#94a3b8' }] },
-            {
-              featureType: 'administrative.locality',
-              elementType: 'labels.text.fill',
-              stylers: [{ color: '#fbbf24' }]
-            },
-            {
-              featureType: 'poi',
-              elementType: 'labels.text.fill',
-              stylers: [{ color: '#64748b' }]
-            },
-            {
-              featureType: 'poi.park',
-              elementType: 'geometry',
-              stylers: [{ color: '#0f291e' }]
-            },
-            {
-              featureType: 'road',
-              elementType: 'geometry',
-              stylers: [{ color: '#334155' }]
-            },
-            {
-              featureType: 'road',
-              elementType: 'geometry.stroke',
-              stylers: [{ color: '#1e293b' }]
-            },
-            {
-              featureType: 'road.highway',
-              elementType: 'geometry',
-              stylers: [{ color: '#f59e0b' }]
-            },
-            {
-              featureType: 'road.highway',
-              elementType: 'geometry.stroke',
-              stylers: [{ color: '#b45309' }]
-            },
-            {
-              featureType: 'transit',
-              elementType: 'geometry',
-              stylers: [{ color: '#1e293b' }]
-            },
-            {
-              featureType: 'water',
-              elementType: 'geometry',
-              stylers: [{ color: '#09152e' }]
-            },
-            {
-              featureType: 'water',
-              elementType: 'labels.text.fill',
-              stylers: [{ color: '#38bdf8' }]
-            }
-          ]
+          streetViewControl: true,
+          rotateControl: true,
+          fullscreenControl: true,
+          gestureHandling: 'greedy'
         });
 
         mapInstanceRef.current = map;
         geocoderInstanceRef.current = new googleMaps.Geocoder();
 
-        // 2. Initialize Single Draggable Golden Delivery Marker
+        // 2. Initialize Draggable Delivery Marker
         const marker = new googleMaps.Marker({
           position: initialCenter,
           map,
           draggable: true,
-          title: 'Delivery Spot',
-          animation: googleMaps.Animation.DROP,
-          icon: {
-            path: 'M21 0C9.402 0 0 9.402 0 21C0 35.156 18.396 51.986 20.178 53.58C20.648 54.004 21.352 54.004 21.822 53.58C23.604 51.986 42 35.156 42 21C42 9.402 32.598 0 21 0Z',
-            fillColor: '#f59e0b',
-            fillOpacity: 1,
-            strokeColor: '#78350f',
-            strokeWeight: 2,
-            scale: 0.85,
-            anchor: new googleMaps.Point(21, 54)
-          }
+          title: 'Unloading / Delivery Spot',
+          animation: googleMaps.Animation.DROP
         });
 
         markerInstanceRef.current = marker;
@@ -270,10 +213,16 @@ export default function MapPicker({
     }
   }, [coordinates?.lat, coordinates?.lng, mapLoaded]);
 
-  // Debounced search query for fallback autocomplete suggestions
+  // Debounced search query for fallback autocomplete suggestions (only if Google Maps Places is not available)
   const handleSearchInputChange = (e) => {
     const val = e.target.value;
     setSearchValue(val);
+
+    // If Google Maps Places Autocomplete is active, Google will automatically display its full native .pac-container dropdown predictions
+    if (mapLoaded && autocompleteInstanceRef.current) {
+      setShowSuggestions(false);
+      return;
+    }
 
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
 
