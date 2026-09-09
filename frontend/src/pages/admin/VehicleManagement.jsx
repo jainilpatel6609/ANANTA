@@ -49,6 +49,7 @@ export default function VehicleManagement() {
     category: 'Sand',
     state: 'Gujarat',
     description: '',
+    displayOrder: 0
     displayOrder: 0,
     singlePatiyaPrice: '2350',
     doublePatiyaPrice: '4500'
@@ -166,6 +167,7 @@ export default function VehicleManagement() {
       category: selectedVehicle === 'DUMPER' ? 'Aggregate' : 'Sand',
       state: 'Gujarat',
       description: '',
+      displayOrder: count + 1
       displayOrder: count + 1,
       singlePatiyaPrice: '2350',
       doublePatiyaPrice: '4500'
@@ -180,6 +182,7 @@ export default function VehicleManagement() {
       category: loc.category || 'Sand',
       state: loc.state || 'Gujarat',
       description: loc.description || '',
+      displayOrder: loc.displayOrder || 0
       displayOrder: loc.displayOrder || 0,
       singlePatiyaPrice: loc.singlePatiyaPrice !== undefined ? String(loc.singlePatiyaPrice) : '2350',
       doublePatiyaPrice: loc.doublePatiyaPrice !== undefined ? String(loc.doublePatiyaPrice) : '4500'
@@ -196,6 +199,7 @@ export default function VehicleManagement() {
 
     setSaving(true);
     try {
+      const payload = { ...locationForm, vehicleType: selectedVehicle };
       const payload = {
         ...locationForm,
         vehicleType: selectedVehicle,
@@ -1100,6 +1104,17 @@ export default function VehicleManagement() {
             />
           </div>
 
+          <div>
+            <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
+              Display Order
+            </label>
+            <input
+              type="number"
+              value={locationForm.displayOrder}
+              onChange={(e) => setLocationForm({ ...locationForm, displayOrder: e.target.value })}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-amber-400 focus:outline-none focus:border-amber-500"
+            />
+          </div>
           {selectedVehicle === 'TRACTOR' ? (
             <div className="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-slate-950/80 border border-slate-800">
               <div>

@@ -211,6 +211,7 @@ export default function CreateOrder() {
     approxTotalTonnage = (selectedCapacity.approximateTon || 25) * dumperQuantity;
     subtotal = Math.round(unitPrice * approxTotalTonnage);
   } else if (selectedVehicleType === 'TRACTOR' && selectedCapacity) {
+    let flatRate = selectedCapacity.flatPrice || (selectedOptionName === 'Double Patiya' ? 4500 : 2350);
     const isDoublePatiya = selectedOptionName === 'Double Patiya' || selectedCapacity?.optionName === 'Double Patiya' || selectedCapacity?.name === 'Double Patiya';
     let locationPrice = null;
     if (selectedLocation) {
@@ -226,6 +227,7 @@ export default function CreateOrder() {
         (g) => g.name && g.name.toLowerCase().trim() === selectedAggregateType.toLowerCase().trim()
       );
       if (match) {
+        flatRate = selectedOptionName === 'Double Patiya' ? (match.priceDoublePatiya || 5400) : (match.priceSinglePatiya || 2800);
         flatRate = isDoublePatiya ? (match.priceDoublePatiya || 5400) : (match.priceSinglePatiya || 2800);
       }
     }
@@ -1214,6 +1216,7 @@ export default function CreateOrder() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {activeVehicleConfigs.map((cfg) => {
                   const isSelected = cfg._id === selectedCapacityId || cfg.optionName === selectedOptionName;
+                  let itemUnitPrice = cfg.flatPrice || (cfg.optionName === 'Double Patiya' ? 4500 : 2350);
                   const isDouble = cfg.optionName === 'Double Patiya';
                   let locationPrice = null;
                   if (selectedLocation) {
@@ -1229,6 +1232,7 @@ export default function CreateOrder() {
                       (g) => g.name && g.name.toLowerCase().trim() === selectedAggregateType.toLowerCase().trim()
                     );
                     if (match) {
+                      itemUnitPrice = cfg.optionName === 'Double Patiya' ? (match.priceDoublePatiya || 5400) : (match.priceSinglePatiya || 2800);
                       itemUnitPrice = isDouble ? (match.priceDoublePatiya || 5400) : (match.priceSinglePatiya || 2800);
                     }
                   }

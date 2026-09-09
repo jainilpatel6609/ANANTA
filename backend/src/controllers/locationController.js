@@ -72,6 +72,7 @@ const getAdminLocations = async (req, res) => {
 // @access  Private (Admin)
 const createLocation = async (req, res) => {
   try {
+    const { name, vehicleType, category, state, description, displayOrder } = req.body;
     const { name, vehicleType, category, state, description, displayOrder, singlePatiyaPrice, doublePatiyaPrice } = req.body;
     if (!name || !name.trim()) {
       return errorResponse(res, 'Location name is required.', 400);
@@ -121,6 +122,7 @@ const createLocation = async (req, res) => {
 // @access  Private (Admin)
 const updateLocation = async (req, res) => {
   try {
+    const { name, vehicleType, category, state, description, displayOrder, isActive } = req.body;
     const { name, vehicleType, category, state, description, displayOrder, singlePatiyaPrice, doublePatiyaPrice, isActive } = req.body;
     const location = await Location.findById(req.params.id);
 

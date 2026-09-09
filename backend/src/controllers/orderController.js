@@ -84,10 +84,13 @@ const createOrder = async (req, res) => {
     let finalLocationName = (sandLocation || '').trim();
     let locationDoc = null;
     if (locationId) {
+      const loc = await Location.findOne({ _id: locationId, vehicleType });
+      if (!loc || !loc.isActive) {
       locationDoc = await Location.findOne({ _id: locationId, vehicleType });
       if (!locationDoc || !locationDoc.isActive) {
         return errorResponse(res, `The selected location is not active for ${vehicleType} delivery.`, 400);
       }
+      finalLocationName = loc.name;
       finalLocationName = locationDoc.name;
     } else if (finalLocationName) {
       locationDoc = await Location.findOne({
@@ -138,6 +141,7 @@ const createOrder = async (req, res) => {
       unitPrice = pricePerTon;
       subtotal = Math.round(pricePerTon * approxTon * qty);
     } else {
+      // Tractor pricing (grain-size specific when available, fallback to vehicle config / product base)
       // Tractor pricing: 1. Location-specific price (e.g. Patan vs Sabarmati), 2. Grain-size specific, 3. VehicleConfig / Base product
       let locationPrice = null;
       if (locationDoc) {
@@ -148,6 +152,7 @@ const createOrder = async (req, res) => {
         }
       }
       const grainSpecificPrice = getGrainSpecificTractorPrice(product, tractorType, aggregateType);
+      const flatTractorPrice = grainSpecificPrice || vehicleConfig?.flatPrice || getPricePerTractor(product, tractorType) || (tractorType === 'Double Patiya' ? 4500 : 2350);
       const flatTractorPrice = locationPrice || grainSpecificPrice || vehicleConfig?.flatPrice || getPricePerTractor(product, tractorType) || (tractorType === 'Double Patiya' ? 4500 : 2350);
       unitPrice = flatTractorPrice;
       subtotal = Math.round(flatTractorPrice * qty);
