@@ -33,9 +33,8 @@ const PINCODE_DATA = {
   '380060': { city: 'Ahmedabad (Vaishnodevi/SG Highway)', district: 'Ahmedabad', state: 'Gujarat', lat: 23.11650, lng: 72.55620 },
   '382110': { city: 'Sanand GIDC', district: 'Ahmedabad', state: 'Gujarat', lat: 22.98680, lng: 72.37870 },
   '382220': { city: 'Bavla', district: 'Ahmedabad', state: 'Gujarat', lat: 22.83580, lng: 72.36440 },
-  '382240': { city: 'Dholka', district: 'Ahmedabad', state: 'Gujarat', lat: 22.72140, lng: 72.44170 },
-  '382443': { city: 'Vatva GIDC', district: 'Ahmedabad', state: 'Gujarat', lat: 22.95750, lng: 72.63750 },
-  '382481': { city: 'Naroda Industrial Estate', district: 'Ahmedabad', state: 'Gujarat', lat: 23.06780, lng: 72.65920 },
+  '382330': { city: 'Naroda Industrial Estate', district: 'Ahmedabad', state: 'Gujarat', lat: 23.06780, lng: 72.65920 },
+  '382481': { city: 'Ahmedabad (Gota/Jagatpur/Vishwas City)', district: 'Ahmedabad', state: 'Gujarat', lat: 23.10480, lng: 72.54391 },
 
   // Gandhinagar District
   '382010': { city: 'Gandhinagar (Sector 1-10)', district: 'Gandhinagar', state: 'Gujarat', lat: 23.21563, lng: 72.63694 },

@@ -38,6 +38,8 @@ export default function MapPicker({
   const mapInstanceRef = useRef(null);
   const markerInstanceRef = useRef(null);
   const autocompleteInstanceRef = useRef(null);
+  const autocompleteServiceRef = useRef(null);
+  const placesServiceRef = useRef(null);
   const geocoderInstanceRef = useRef(null);
 
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -94,6 +96,18 @@ export default function MapPicker({
 
         mapInstanceRef.current = map;
         geocoderInstanceRef.current = new googleMaps.Geocoder();
+
+        // Initialize Google Places Services
+        try {
+          if (googleMaps.places?.AutocompleteService) {
+            autocompleteServiceRef.current = new googleMaps.places.AutocompleteService();
+          }
+          if (googleMaps.places?.PlacesService) {
+            placesServiceRef.current = new googleMaps.places.PlacesService(map);
+          }
+        } catch (e) {
+          console.warn('Google Places services init notice:', e);
+        }
 
         // 2. Initialize Draggable Delivery Marker
         const marker = new googleMaps.Marker({
@@ -213,20 +227,14 @@ export default function MapPicker({
     }
   }, [coordinates?.lat, coordinates?.lng, mapLoaded]);
 
-  // Debounced search query for fallback autocomplete suggestions (only if Google Maps Places is not available)
+  // Direct Google Places Prediction Search with automatic fallback
   const handleSearchInputChange = (e) => {
     const val = e.target.value;
     setSearchValue(val);
 
-    // If Google Maps Places Autocomplete is active, Google will automatically display its full native .pac-container dropdown predictions
-    if (mapLoaded && autocompleteInstanceRef.current) {
-      setShowSuggestions(false);
-      return;
-    }
-
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
 
-    if (!val || val.trim().length < 3) {
+    if (!val || val.trim().length < 2) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
@@ -234,28 +242,121 @@ export default function MapPicker({
 
     searchTimerRef.current = setTimeout(async () => {
       setIsSearchingSuggestions(true);
-      try {
-        const res = await pincodeService.geocode(val.trim());
-        const list = res.data?.suggestions || [];
-        setSuggestions(list);
-        setShowSuggestions(list.length > 0);
-      } catch (err) {
-        console.warn('Autocomplete fetch error:', err);
-      } finally {
-        setIsSearchingSuggestions(false);
+
+      // 1. First priority: Direct Google Places Autocomplete Service (Real-time Google Database)
+      if (autocompleteServiceRef.current && window.google?.maps?.places) {
+        try {
+          autocompleteServiceRef.current.getPlacePredictions(
+            {
+              input: val.trim(),
+              componentRestrictions: { country: 'in' }
+            },
+            (predictions, status) => {
+              setIsSearchingSuggestions(false);
+              if (
+                status === window.google.maps.places.PlacesServiceStatus.OK &&
+                Array.isArray(predictions) &&
+                predictions.length > 0
+              ) {
+                const googleList = predictions.map((p) => ({
+                  title: p.structured_formatting?.main_text || p.description.split(',')[0],
+                  subtitle: p.structured_formatting?.secondary_text || p.description,
+                  formattedAddress: p.description,
+                  placeId: p.place_id,
+                  isGooglePlace: true
+                }));
+                setSuggestions(googleList);
+                setShowSuggestions(true);
+                return;
+              }
+              // Fallback to backend geocode if Google returned no predictions
+              fallbackBackendSearch(val.trim());
+            }
+          );
+          return;
+        } catch (err) {
+          console.warn('Google Places AutocompleteService error:', err);
+        }
       }
-    }, 300);
+
+      // 2. Fallback backend search
+      fallbackBackendSearch(val.trim());
+    }, 250);
   };
 
-  // Handle Selection from custom suggestions dropdown
+  const fallbackBackendSearch = async (query) => {
+    setIsSearchingSuggestions(true);
+    try {
+      const res = await pincodeService.geocode(query);
+      const list = res.data?.suggestions || [];
+      setSuggestions(list);
+      setShowSuggestions(list.length > 0);
+    } catch (err) {
+      console.warn('Fallback search error:', err);
+    } finally {
+      setIsSearchingSuggestions(false);
+    }
+  };
+
+  // Handle Selection from suggestions dropdown (Google Place or Fallback)
   const handleSelectCustomSuggestion = (item) => {
+    if (item.isGooglePlace && item.placeId && placesServiceRef.current) {
+      setIsSearchingSuggestions(true);
+      placesServiceRef.current.getDetails(
+        {
+          placeId: item.placeId,
+          fields: ['address_components', 'geometry', 'formatted_address', 'name']
+        },
+        (place, status) => {
+          setIsSearchingSuggestions(false);
+          if (
+            status === window.google.maps.places.PlacesServiceStatus.OK &&
+            place?.geometry?.location
+          ) {
+            const lat = place.geometry.location.lat();
+            const lng = place.geometry.location.lng();
+
+            if (mapInstanceRef.current && markerInstanceRef.current) {
+              const newLatLng = { lat, lng };
+              mapInstanceRef.current.panTo(newLatLng);
+              mapInstanceRef.current.setZoom(18);
+              markerInstanceRef.current.setPosition(newLatLng);
+            }
+
+            const parsed = parseGoogleAddressComponents(
+              place.address_components,
+              place.formatted_address || place.name,
+              lat,
+              lng
+            );
+
+            setSearchValue(place.formatted_address || place.name || item.formattedAddress);
+            setShowSuggestions(false);
+            setSuggestions([]);
+
+            setInternalStatus({
+              type: 'success',
+              text: `✓ Location selected: ${parsed.formattedAddress} (Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)})`
+            });
+
+            if (onSuggestionSelect) {
+              onSuggestionSelect(parsed);
+            } else if (onLocationChange) {
+              onLocationChange(lat, lng, 'places_autocomplete', parsed);
+            }
+          }
+        }
+      );
+      return;
+    }
+
     const lat = parseFloat(item.latitude);
     const lng = parseFloat(item.longitude);
 
     if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
       if (mapInstanceRef.current && markerInstanceRef.current) {
         const newLatLng = { lat, lng };
-        mapInstanceRef.current.setCenter(newLatLng);
+        mapInstanceRef.current.panTo(newLatLng);
         mapInstanceRef.current.setZoom(SELECTED_LOCATION_ZOOM);
         markerInstanceRef.current.setPosition(newLatLng);
       }
@@ -544,11 +645,16 @@ export default function MapPicker({
                 onClick={() => handleSelectCustomSuggestion(item)}
                 className="w-full text-left px-4 py-2.5 hover:bg-slate-800/80 border-b border-slate-800/50 last:border-0 transition-colors flex items-start gap-2.5 cursor-pointer"
               >
-                <Building2 className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <MapPin className={`w-4 h-4 shrink-0 mt-0.5 ${item.isGooglePlace ? 'text-red-400' : 'text-amber-400'}`} />
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-bold text-white truncate">{item.title}</div>
-                  <div className="text-[11px] text-slate-400 truncate">{item.formattedAddress || item.subtitle}</div>
+                  <div className="text-[11px] text-slate-400 truncate">{item.subtitle || item.formattedAddress}</div>
                 </div>
+                {item.isGooglePlace && (
+                  <span className="text-[9px] font-bold bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 shrink-0">
+                    Google Maps
+                  </span>
+                )}
                 {item.pincode && (
                   <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md shrink-0">
                     {item.pincode}
