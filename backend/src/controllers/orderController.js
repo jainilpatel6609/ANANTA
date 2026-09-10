@@ -84,13 +84,10 @@ const createOrder = async (req, res) => {
     let finalLocationName = (sandLocation || '').trim();
     let locationDoc = null;
     if (locationId) {
-      const loc = await Location.findOne({ _id: locationId, vehicleType });
-      if (!loc || !loc.isActive) {
       locationDoc = await Location.findOne({ _id: locationId, vehicleType });
       if (!locationDoc || !locationDoc.isActive) {
         return errorResponse(res, `The selected location is not active for ${vehicleType} delivery.`, 400);
       }
-      finalLocationName = loc.name;
       finalLocationName = locationDoc.name;
     } else if (finalLocationName) {
       locationDoc = await Location.findOne({
