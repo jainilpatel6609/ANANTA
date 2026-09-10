@@ -140,8 +140,6 @@ const createOrder = async (req, res) => {
       const pricePerTon = vehicleConfig?.basePricePerTon || product.pricePerTon || 800;
       unitPrice = pricePerTon;
       subtotal = Math.round(pricePerTon * approxTon * qty);
-    } else {
-      // Tractor pricing (grain-size specific when available, fallback to vehicle config / product base)
       // Tractor pricing: 1. Location-specific price (e.g. Patan vs Sabarmati), 2. Grain-size specific, 3. VehicleConfig / Base product
       let locationPrice = null;
       if (locationDoc) {
@@ -152,7 +150,6 @@ const createOrder = async (req, res) => {
         }
       }
       const grainSpecificPrice = getGrainSpecificTractorPrice(product, tractorType, aggregateType);
-      const flatTractorPrice = grainSpecificPrice || vehicleConfig?.flatPrice || getPricePerTractor(product, tractorType) || (tractorType === 'Double Patiya' ? 4500 : 2350);
       const flatTractorPrice = locationPrice || grainSpecificPrice || vehicleConfig?.flatPrice || getPricePerTractor(product, tractorType) || (tractorType === 'Double Patiya' ? 4500 : 2350);
       unitPrice = flatTractorPrice;
       subtotal = Math.round(flatTractorPrice * qty);
