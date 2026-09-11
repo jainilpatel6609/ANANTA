@@ -42,6 +42,13 @@ export default function MapPicker({
   const placesServiceRef = useRef(null);
   const geocoderInstanceRef = useRef(null);
 
+  // High-accuracy GPS tracking refs & state
+  const watchIdRef = useRef(null);
+  const gpsTimeoutTimerRef = useRef(null);
+  const bestPositionRef = useRef(null);
+  const readingsCountRef = useRef(0);
+  const [isLocatingInternal, setIsLocatingInternal] = useState(false);
+
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState(null);
   const [searchValue, setSearchValue] = useState('');
@@ -50,6 +57,20 @@ export default function MapPicker({
   const [isSearchingSuggestions, setIsSearchingSuggestions] = useState(false);
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
   const [internalStatus, setInternalStatus] = useState(null);
+
+  // Cleanup GPS watch and timers on unmount
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+      if (gpsTimeoutTimerRef.current) {
+        clearTimeout(gpsTimeoutTimerRef.current);
+        gpsTimeoutTimerRef.current = null;
+      }
+    };
+  }, []);
 
   // Suppress Google Maps authentication failure alert
   useEffect(() => {
@@ -464,7 +485,70 @@ export default function MapPicker({
     [onLocationChange]
   );
 
-  // Manual "Locate Me" handler using browser Geolocation API
+  // Helper to safely stop GPS watch and timers
+  const stopGPSWatch = useCallback(() => {
+    if (watchIdRef.current !== null && navigator.geolocation) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    if (gpsTimeoutTimerRef.current) {
+      clearTimeout(gpsTimeoutTimerRef.current);
+      gpsTimeoutTimerRef.current = null;
+    }
+    setIsLocatingInternal(false);
+  }, []);
+
+  // Finalize location selection using the best GPS reading
+  const applyBestGPSPosition = useCallback(
+    (pos) => {
+      stopGPSWatch();
+      if (!pos || !pos.coords) return;
+
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const accuracy = pos.coords.accuracy;
+      const roundedAcc = Math.round(accuracy);
+
+      // Center map on high-accuracy GPS coordinates with high zoom (18)
+      if (mapInstanceRef.current && markerInstanceRef.current) {
+        const newLatLng = { lat, lng };
+        mapInstanceRef.current.setCenter(newLatLng);
+        mapInstanceRef.current.setZoom(18);
+        markerInstanceRef.current.setPosition(newLatLng);
+      }
+
+      // Format user-facing accuracy status message
+      let statusText = '';
+      let statusType = 'success';
+
+      if (accuracy <= 10) {
+        statusText = `📍 Current location detected. Excellent GPS accuracy: ±${roundedAcc} meters`;
+      } else if (accuracy <= 25) {
+        statusText = `📍 Current location detected. Good GPS accuracy: ±${roundedAcc} meters`;
+      } else if (accuracy <= 50) {
+        statusText = `📍 Current location detected. Acceptable GPS accuracy: ±${roundedAcc} meters`;
+      } else {
+        statusText = `📍 GPS accuracy is ±${roundedAcc} meters. Please wait or adjust the delivery marker.`;
+        statusType = 'warning';
+      }
+
+      setInternalStatus({
+        type: statusType,
+        text: statusText
+      });
+
+      // Call existing reverse geocoding with 'gps' source
+      executeReverseGeocode(lat, lng, 'gps');
+
+      // Call existing callback with accuracy
+      if (onGPSDetect) {
+        onGPSDetect(lat, lng, accuracy);
+      }
+    },
+    [executeReverseGeocode, onGPSDetect, stopGPSWatch]
+  );
+
+  // High Accuracy GPS detection using navigator.geolocation.watchPosition()
   const handleCurrentGPS = () => {
     if (!navigator.geolocation) {
       setInternalStatus({
@@ -474,36 +558,104 @@ export default function MapPicker({
       return;
     }
 
-    setInternalStatus({ type: 'info', text: 'Detecting high-precision GPS coordinates...' });
+    // Clear any previous active watch before starting a new one
+    stopGPSWatch();
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        const accuracy = pos.coords.accuracy;
+    bestPositionRef.current = null;
+    readingsCountRef.current = 0;
+    setIsLocatingInternal(true);
+    setInternalStatus({
+      type: 'info',
+      text: '📍 Finding your exact location... Please wait.'
+    });
 
-        if (mapInstanceRef.current && markerInstanceRef.current) {
-          const newLatLng = { lat, lng };
-          mapInstanceRef.current.setCenter(newLatLng);
-          mapInstanceRef.current.setZoom(SELECTED_LOCATION_ZOOM);
-          markerInstanceRef.current.setPosition(newLatLng);
+    const MAX_GPS_READINGS = 5;
+    const TARGET_EXCELLENT_ACCURACY = 10; // 10 meters or better
+
+    // 20-second safety timeout
+    gpsTimeoutTimerRef.current = setTimeout(() => {
+      if (bestPositionRef.current) {
+        applyBestGPSPosition(bestPositionRef.current);
+      } else {
+        stopGPSWatch();
+        setInternalStatus({
+          type: 'warning',
+          text: 'GPS detection timed out. Please try again or search your address manually.'
+        });
+      }
+    }, 20000);
+
+    try {
+      const watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          readingsCountRef.current += 1;
+          const currentAccuracy = pos.coords.accuracy;
+          const roundedAcc = Math.round(currentAccuracy);
+
+          // Always retain the reading with lowest/best accuracy value (in meters)
+          if (
+            !bestPositionRef.current ||
+            currentAccuracy < bestPositionRef.current.coords.accuracy
+          ) {
+            bestPositionRef.current = pos;
+          }
+
+          // Real-time status message while collecting readings
+          setInternalStatus({
+            type: 'info',
+            text: `📡 Improving GPS accuracy... ±${roundedAcc} meters`
+          });
+
+          // Early finish if accuracy is <= 10m
+          if (currentAccuracy <= TARGET_EXCELLENT_ACCURACY) {
+            applyBestGPSPosition(bestPositionRef.current);
+            return;
+          }
+
+          // Finish when maximum reading sample count is reached
+          if (readingsCountRef.current >= MAX_GPS_READINGS) {
+            applyBestGPSPosition(bestPositionRef.current);
+            return;
+          }
+        },
+        (err) => {
+          // If a valid position was already received before the error/timeout, use it
+          if (bestPositionRef.current) {
+            applyBestGPSPosition(bestPositionRef.current);
+            return;
+          }
+
+          stopGPSWatch();
+
+          let errMsg = 'Unable to detect your current location. Please search your address manually.';
+          if (err.code === 1) {
+            errMsg = 'Location permission denied. Please allow location access in your browser/device settings.';
+          } else if (err.code === 2) {
+            errMsg = 'GPS location is currently unavailable. Please enable Location/GPS and try again.';
+          } else if (err.code === 3) {
+            errMsg = 'GPS detection timed out. Please try again or search your address manually.';
+          }
+
+          setInternalStatus({
+            type: 'warning',
+            text: errMsg
+          });
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 0
         }
+      );
 
-        executeReverseGeocode(lat, lng, 'gps');
-
-        if (onGPSDetect) {
-          onGPSDetect(lat, lng, accuracy);
-        }
-      },
-      (err) => {
-        const msg =
-          err.code === 1
-            ? 'Location permission denied. Please allow location access or search your location manually.'
-            : 'Unable to detect your current location. Please search your address above.';
-        setInternalStatus({ type: 'warning', text: msg });
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    );
+      watchIdRef.current = watchId;
+    } catch (e) {
+      stopGPSWatch();
+      setInternalStatus({
+        type: 'error',
+        text: 'Error initiating GPS detection. Please try again.'
+      });
+    }
   };
 
   // Manual "Sync Address to Map" handler using Google Geocoder with backend fallback
@@ -571,6 +723,7 @@ export default function MapPicker({
     }
   };
 
+  const locatingActive = isLocating || isLocatingInternal;
   const activeStatus = statusMessage || internalStatus;
 
   return (
@@ -586,7 +739,7 @@ export default function MapPicker({
         <button
           type="button"
           onClick={handleSyncAddress}
-          disabled={isSearching || isLocating || isReverseGeocoding}
+          disabled={isSearching || locatingActive || isReverseGeocoding}
           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition-all shadow-md shadow-amber-500/10 disabled:opacity-50 active:scale-95 cursor-pointer"
           title="Sync manual address to map location"
         >
@@ -704,16 +857,16 @@ export default function MapPicker({
         <button
           type="button"
           onClick={handleCurrentGPS}
-          disabled={isLocating || isReverseGeocoding}
+          disabled={locatingActive || isReverseGeocoding}
           className="absolute bottom-4 right-4 z-[400] px-4 py-2.5 rounded-2xl bg-slate-900/95 hover:bg-slate-800/95 backdrop-blur-xl border border-slate-700 text-xs font-black text-emerald-400 flex items-center gap-2 shadow-2xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 group cursor-pointer"
           title="Use My Current Location via GPS"
         >
-          {isLocating ? (
+          {locatingActive ? (
             <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
           ) : (
             <Crosshair className="w-4 h-4 text-emerald-400 group-hover:rotate-45 transition-transform" />
           )}
-          <span>{isLocating ? 'Detecting GPS...' : 'Use My Current Location'}</span>
+          <span>{locatingActive ? 'Detecting GPS...' : 'Use My Current Location'}</span>
         </button>
 
         {/* Real-Time Location Pill at Bottom Left */}

@@ -397,7 +397,21 @@ export default function CreateOrder() {
   ]);
 
   // FLOW 1: CURRENT GPS LOCATION -> ADDRESS (Reverse Geocoding via Backend)
-  const handleDetectGPS = () => {
+  const handleDetectGPS = (detectedLat, detectedLng, detectedAccuracy) => {
+    // If called via MapPicker's onGPSDetect callback with resolved coordinates
+    if (typeof detectedLat === 'number' && typeof detectedLng === 'number') {
+      setCoordinates({ lat: detectedLat, lng: detectedLng });
+      setIsLocatingGPS(false);
+      const accNum = typeof detectedAccuracy === 'number' ? Math.round(detectedAccuracy) : null;
+      const accuracyText = accNum !== null ? ` (Accuracy: ±${accNum}m)` : '';
+      setMapStatus({
+        type: 'success',
+        text: `✓ GPS location detected${accuracyText} — Lat: ${detectedLat.toFixed(5)}, Lng: ${detectedLng.toFixed(5)}.`
+      });
+      toast.success(`Current location detected${accNum !== null ? ` (Accuracy: ±${accNum}m)` : ''}!`);
+      return;
+    }
+
     if (!navigator.geolocation) {
       toast.error('GPS geolocation is not supported by your device / browser.');
       return;
@@ -462,7 +476,7 @@ export default function CreateOrder() {
         });
         toast.error(errorMsg);
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
   };
 
