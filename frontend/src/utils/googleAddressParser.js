@@ -30,7 +30,14 @@ export function getAddressComponent(components, type, useShort = false) {
   return match ? (useShort ? match.short_name : match.long_name).trim() : '';
 }
 
-export function parseGoogleAddressComponents(components = [], formattedAddress = '', lat = null, lng = null) {
+export function parseGoogleAddressComponents(
+  components = [],
+  formattedAddress = '',
+  lat = null,
+  lng = null,
+  placeId = '',
+  placeName = ''
+) {
   if (!Array.isArray(components)) components = [];
 
   // Extract raw Google types
@@ -117,6 +124,15 @@ export function parseGoogleAddressComponents(components = [], formattedAddress =
   const latitude = lat !== null && lat !== undefined ? Number(lat) : null;
   const longitude = lng !== null && lng !== undefined ? Number(lng) : null;
 
+  // Resolved human-readable Place Name
+  const resolvedPlaceName = (
+    placeName ||
+    premise ||
+    (formattedAddress ? formattedAddress.split(',')[0].trim() : '') ||
+    addressLine1 ||
+    ''
+  ).trim();
+
   return {
     addressLine1,
     area,
@@ -126,7 +142,9 @@ export function parseGoogleAddressComponents(components = [], formattedAddress =
     country: country || 'India',
     formattedAddress: formattedAddress || [addressLine1, area, city, state, pincode].filter(Boolean).join(', '),
     latitude,
-    longitude
+    longitude,
+    placeId: placeId || '',
+    placeName: resolvedPlaceName
   };
 }
 

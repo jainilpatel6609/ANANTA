@@ -127,7 +127,32 @@ const orderSchema = new mongoose.Schema(
       city: { type: String, default: '' },
       state: { type: String, default: '' },
       pincode: { type: String, default: '' },
-      landmark: { type: String, default: '' }
+      landmark: { type: String, default: '' },
+      placeId: { type: String, default: '' },
+      placeName: { type: String, default: '' },
+      gpsAccuracy: { type: Number, default: null },
+      gpsLatitude: { type: Number, default: null },
+      gpsLongitude: { type: Number, default: null }
+    },
+    placeId: {
+      type: String,
+      default: ''
+    },
+    placeName: {
+      type: String,
+      default: ''
+    },
+    gpsAccuracy: {
+      type: Number,
+      default: null
+    },
+    gpsLatitude: {
+      type: Number,
+      default: null
+    },
+    gpsLongitude: {
+      type: Number,
+      default: null
     },
     deliveryArea: {
       type: String,

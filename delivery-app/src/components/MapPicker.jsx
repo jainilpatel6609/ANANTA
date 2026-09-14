@@ -19,6 +19,9 @@ import { pincodeService } from '../services';
 const INDIA_DEFAULT_CENTER = { lat: 22.9734, lng: 78.6569 };
 const DEFAULT_ZOOM = 5;
 const SELECTED_LOCATION_ZOOM = 17;
+// Hard cap for Google Places suggestion lookups — the OpenStreetMap backend
+// fallback always runs after this, even if the Google legacy API never answers.
+const GOOGLE_SUGGESTION_TIMEOUT_MS = 1500;
 
 export default function MapPicker({
   coordinates = { lat: 23.0225, lng: 72.5714 },
@@ -118,18 +121,6 @@ export default function MapPicker({
         mapInstanceRef.current = map;
         geocoderInstanceRef.current = new googleMaps.Geocoder();
 
-        // Initialize Google Places Services
-        try {
-          if (googleMaps.places?.AutocompleteService) {
-            autocompleteServiceRef.current = new googleMaps.places.AutocompleteService();
-          }
-          if (googleMaps.places?.PlacesService) {
-            placesServiceRef.current = new googleMaps.places.PlacesService(map);
-          }
-        } catch (e) {
-          console.warn('Google Places services init notice:', e);
-        }
-
         // 2. Initialize Draggable Delivery Marker
         const marker = new googleMaps.Marker({
           position: initialCenter,
@@ -158,54 +149,6 @@ export default function MapPicker({
           marker.setPosition({ lat, lng });
           executeReverseGeocode(lat, lng, 'map_click');
         });
-
-        // 3. Initialize Google Places Autocomplete on search input
-        if (searchInputRef.current) {
-          try {
-            const autocomplete = new googleMaps.places.Autocomplete(searchInputRef.current, {
-              componentRestrictions: { country: 'in' },
-              fields: ['address_components', 'geometry', 'formatted_address', 'name']
-            });
-
-            autocomplete.bindTo('bounds', map);
-            autocompleteInstanceRef.current = autocomplete;
-
-            autocomplete.addListener('place_changed', () => {
-              const place = autocomplete.getPlace();
-              if (place?.geometry?.location) {
-                const lat = place.geometry.location.lat();
-                const lng = place.geometry.location.lng();
-
-                map.setCenter({ lat, lng });
-                map.setZoom(SELECTED_LOCATION_ZOOM);
-                marker.setPosition({ lat, lng });
-
-                const parsed = parseGoogleAddressComponents(
-                  place.address_components,
-                  place.formatted_address || place.name,
-                  lat,
-                  lng
-                );
-
-                setSearchValue(place.formatted_address || place.name || '');
-                setShowSuggestions(false);
-
-                setInternalStatus({
-                  type: 'success',
-                  text: `✓ Location selected: ${parsed.formattedAddress} (Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)})`
-                });
-
-                if (onSuggestionSelect) {
-                  onSuggestionSelect(parsed);
-                } else if (onLocationChange) {
-                  onLocationChange(lat, lng, 'places_autocomplete', parsed);
-                }
-              }
-            });
-          } catch (e) {
-            console.warn('Places Autocomplete initialization notice:', e);
-          }
-        }
 
         setMapLoaded(true);
       })
@@ -248,6 +191,115 @@ export default function MapPicker({
     }
   }, [coordinates?.lat, coordinates?.lng, mapLoaded]);
 
+  // --------------------------------------------------------------------------
+  // Google Places suggestion helpers.
+  // Priority: New Places API (AutocompleteSuggestion.fetchAutocompleteSuggestions)
+  //           → Legacy (AutocompleteService.getPlacePredictions)
+  //           → Backend search (Photon / Nominatim / PIN code database).
+  // --------------------------------------------------------------------------
+
+  const runGoogleSuggestions = async (query) => {
+    const gm = window.google?.maps;
+    if (!gm?.places) return null;
+
+    // 1. First priority: New Places API (AutocompleteSuggestion)
+    if (typeof gm.places.AutocompleteSuggestion?.fetchAutocompleteSuggestions === 'function') {
+      try {
+        const response = await gm.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+          input: query,
+          includedRegionCodes: ['in']
+        });
+        if (Array.isArray(response?.suggestions) && response.suggestions.length > 0) {
+          const list = response.suggestions
+            .slice(0, 6)
+            .map((item) => {
+              const pred = item.placePrediction;
+              if (!pred) return null;
+              const mainText = pred.mainText?.toString() || pred.text?.toString() || 'Location';
+              const secondaryText = pred.secondaryText?.toString() || '';
+              const fullText = pred.text?.toString() || [mainText, secondaryText].filter(Boolean).join(', ');
+              return {
+                title: mainText,
+                subtitle: secondaryText || 'Google Places',
+                formattedAddress: fullText,
+                placeId: pred.placeId,
+                isGooglePlace: true,
+                _placePrediction: pred
+              };
+            })
+            .filter(Boolean);
+
+          if (list.length > 0) return list;
+        }
+      } catch (err) {
+        console.warn('[Google Places New] Autocomplete error:', err);
+      }
+    }
+
+    // 2. Pure Places API (New) mode: Do not call deprecated legacy AutocompleteService
+    return null;
+  };
+
+  // Normalizes a Google Places API object into the map-picker format.
+  // Accepts new-API `google.maps.places.Place` and legacy `PlaceDetails`.
+  const normalizeGooglePlaceForPicker = (place) => {
+    if (!place) return null;
+    try {
+      let lat = null;
+      let lng = null;
+      let components = [];
+      let formattedAddress = '';
+
+      // New Places API: place.location is a LatLng
+      if (place.location) {
+        lat = typeof place.location.lat === 'function' ? place.location.lat() : place.location.lat;
+        lng = typeof place.location.lng === 'function' ? place.location.lng() : place.location.lng;
+      }
+
+      // Legacy shape fallback
+      if ((lat == null || lng == null) && place.geometry?.location) {
+        const loc = place.geometry.location;
+        lat = typeof loc.lat === 'function' ? loc.lat() : loc.lat;
+        lng = typeof loc.lng === 'function' ? loc.lng() : loc.lng;
+      }
+
+      formattedAddress =
+        place.formattedAddress ||
+        place.formatted_address ||
+        (typeof place.displayName === 'function' ? place.displayName() : place.displayName) ||
+        place.name ||
+        '';
+
+      // Convert new-API address components or legacy address_components
+      const rawComponents = place.addressComponents || place.address_components;
+      if (Array.isArray(rawComponents)) {
+        components = rawComponents
+          .map((c) => {
+            const longName = c.longText || c.long_name || c.displayName || c.shortText || c.short_name || '';
+            const shortName = c.shortText || c.short_name || longName;
+            const types = Array.isArray(c.types) ? c.types : [];
+            return {
+              long_name: String(longName),
+              short_name: String(shortName),
+              types
+            };
+          })
+          .filter((c) => c.long_name);
+      }
+
+      if (lat == null || lng == null) return null;
+
+      return {
+        ...parseGoogleAddressComponents(components, formattedAddress, lat, lng),
+        latitude: lat,
+        longitude: lng
+      };
+    } catch (err) {
+      console.warn('Google place normalize error:', err);
+      return null;
+    }
+  };
+
   // Direct Google Places Prediction Search with automatic fallback
   const handleSearchInputChange = (e) => {
     const val = e.target.value;
@@ -255,7 +307,7 @@ export default function MapPicker({
 
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
 
-    if (!val || val.trim().length < 2) {
+    if (!val || val.trim().length < 3) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
@@ -264,45 +316,18 @@ export default function MapPicker({
     searchTimerRef.current = setTimeout(async () => {
       setIsSearchingSuggestions(true);
 
-      // 1. First priority: Direct Google Places Autocomplete Service (Real-time Google Database)
-      if (autocompleteServiceRef.current && window.google?.maps?.places) {
-        try {
-          autocompleteServiceRef.current.getPlacePredictions(
-            {
-              input: val.trim(),
-              componentRestrictions: { country: 'in' }
-            },
-            (predictions, status) => {
-              setIsSearchingSuggestions(false);
-              if (
-                status === window.google.maps.places.PlacesServiceStatus.OK &&
-                Array.isArray(predictions) &&
-                predictions.length > 0
-              ) {
-                const googleList = predictions.map((p) => ({
-                  title: p.structured_formatting?.main_text || p.description.split(',')[0],
-                  subtitle: p.structured_formatting?.secondary_text || p.description,
-                  formattedAddress: p.description,
-                  placeId: p.place_id,
-                  isGooglePlace: true
-                }));
-                setSuggestions(googleList);
-                setShowSuggestions(true);
-                return;
-              }
-              // Fallback to backend geocode if Google returned no predictions
-              fallbackBackendSearch(val.trim());
-            }
-          );
-          return;
-        } catch (err) {
-          console.warn('Google Places AutocompleteService error:', err);
-        }
+      // 1. First priority: Google Places (New API) with hard timeout
+      const googleList = await runGoogleSuggestions(val.trim());
+      if (googleList && googleList.length > 0) {
+        setSuggestions(googleList);
+        setShowSuggestions(true);
+        setIsSearchingSuggestions(false);
+        return;
       }
 
-      // 2. Fallback backend search
+      // 2. Fallback backend search (Photon / Nominatim / PIN code database)
       fallbackBackendSearch(val.trim());
-    }, 250);
+    }, 450);
   };
 
   const fallbackBackendSearch = async (query) => {
@@ -319,58 +344,108 @@ export default function MapPicker({
     }
   };
 
+  // Resolves full place details for a Google suggestion.
+  const resolveGooglePlaceDetailsAsync = async (item) => {
+    const gm = window.google?.maps;
+
+    // 1. New Places API: toPlace() + fetchFields()
+    if (item._placePrediction && typeof item._placePrediction.toPlace === 'function') {
+      try {
+        const place = item._placePrediction.toPlace();
+        await place.fetchFields({
+          fields: ['location', 'displayName', 'formattedAddress', 'addressComponents']
+        });
+        const normalized = normalizeGooglePlaceForPicker(place);
+        if (normalized) return normalized;
+      } catch (err) {
+        console.warn('[Google Places New] toPlace fetchFields error:', err);
+      }
+    }
+
+    // 2. New Places API: new gm.places.Place({ id: placeId }).fetchFields()
+    if (item.placeId && typeof gm?.places?.Place === 'function') {
+      try {
+        const place = new gm.places.Place({ id: item.placeId });
+        await place.fetchFields({
+          fields: ['location', 'displayName', 'formattedAddress', 'addressComponents']
+        });
+        const normalized = normalizeGooglePlaceForPicker(place);
+        if (normalized) return normalized;
+      } catch (err) {
+        console.warn('[Google Places New] Place by id fetchFields error:', err);
+      }
+    }
+
+    // 3. Fallback: Google Geocoder using placeId
+    if (item.placeId && geocoderInstanceRef.current) {
+      try {
+        const geoResult = await new Promise((resolve) => {
+          geocoderInstanceRef.current.geocode({ placeId: item.placeId }, (results, status) => {
+            if (status === 'OK' && Array.isArray(results) && results[0]) {
+              const r = results[0];
+              const lat = r.geometry.location.lat();
+              const lng = r.geometry.location.lng();
+              resolve({
+                ...parseGoogleAddressComponents(r.address_components, r.formatted_address, lat, lng),
+                latitude: lat,
+                longitude: lng
+              });
+            } else {
+              resolve(null);
+            }
+          });
+        });
+        if (geoResult) return geoResult;
+      } catch (err) {
+        console.warn('Google Geocoder by placeId error:', err);
+      }
+    }
+
+    // 4. Pure Places API (New) mode: No legacy getDetails call
+    return null;
+  };
+
   // Handle Selection from suggestions dropdown (Google Place or Fallback)
   const handleSelectCustomSuggestion = (item) => {
-    if (item.isGooglePlace && item.placeId && placesServiceRef.current) {
+    if (item.isGooglePlace && (item.placeId || item._placePrediction || item._prediction)) {
       setIsSearchingSuggestions(true);
-      placesServiceRef.current.getDetails(
-        {
-          placeId: item.placeId,
-          fields: ['address_components', 'geometry', 'formatted_address', 'name']
-        },
-        (place, status) => {
-          setIsSearchingSuggestions(false);
-          if (
-            status === window.google.maps.places.PlacesServiceStatus.OK &&
-            place?.geometry?.location
-          ) {
-            const lat = place.geometry.location.lat();
-            const lng = place.geometry.location.lng();
-
-            if (mapInstanceRef.current && markerInstanceRef.current) {
-              const newLatLng = { lat, lng };
-              mapInstanceRef.current.panTo(newLatLng);
-              mapInstanceRef.current.setZoom(18);
-              markerInstanceRef.current.setPosition(newLatLng);
-            }
-
-            const parsed = parseGoogleAddressComponents(
-              place.address_components,
-              place.formatted_address || place.name,
-              lat,
-              lng
-            );
-
-            setSearchValue(place.formatted_address || place.name || item.formattedAddress);
-            setShowSuggestions(false);
-            setSuggestions([]);
-
-            setInternalStatus({
-              type: 'success',
-              text: `✓ Location selected: ${parsed.formattedAddress} (Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)})`
-            });
-
-            if (onSuggestionSelect) {
-              onSuggestionSelect(parsed);
-            } else if (onLocationChange) {
-              onLocationChange(lat, lng, 'places_autocomplete', parsed);
-            }
-          }
+      resolveGooglePlaceDetailsAsync(item).then((resolvedPlace) => {
+        setIsSearchingSuggestions(false);
+        if (!resolvedPlace) {
+          console.warn('Google place details unavailable:', item.placeId);
+          setShowSuggestions(false);
+          return;
         }
-      );
+
+        const lat = resolvedPlace.latitude;
+        const lng = resolvedPlace.longitude;
+
+        if (mapInstanceRef.current && markerInstanceRef.current) {
+          const newLatLng = { lat, lng };
+          mapInstanceRef.current.panTo(newLatLng);
+          mapInstanceRef.current.setZoom(18);
+          markerInstanceRef.current.setPosition(newLatLng);
+        }
+
+        setSearchValue(resolvedPlace.formattedAddress);
+        setShowSuggestions(false);
+        setSuggestions([]);
+
+        setInternalStatus({
+          type: 'success',
+          text: `✓ Location selected: ${resolvedPlace.formattedAddress} (Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)})`
+        });
+
+        if (onSuggestionSelect) {
+          onSuggestionSelect(resolvedPlace);
+        } else if (onLocationChange) {
+          onLocationChange(lat, lng, 'places_autocomplete', resolvedPlace);
+        }
+      });
       return;
     }
 
+    // Non-Google (backend) suggestion — direct lat/lng
     const lat = parseFloat(item.latitude);
     const lng = parseFloat(item.longitude);
 

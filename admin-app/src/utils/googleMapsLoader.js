@@ -55,7 +55,7 @@ export function loadGoogleMaps(customApiKey) {
     script.type = 'text/javascript';
     script.async = true;
     script.defer = true;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry&language=en&region=IN&loading=async&callback=${callbackName}`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry,marker&language=en&region=IN&loading=async&callback=${callbackName}`;
 
     script.onerror = (error) => {
       delete window[callbackName];

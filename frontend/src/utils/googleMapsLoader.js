@@ -24,7 +24,7 @@ export function loadGoogleMaps(customApiKey) {
     customApiKey ||
     import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
     (typeof window !== 'undefined' ? window.__GOOGLE_MAPS_API_KEY__ : '') ||
-    '';
+    'AIzaSyDeO8XG9etDIsWtD7WCpvra3bMoO3UwD28';
 
   googleMapsPromise = new Promise((resolve, reject) => {
     // Check if script tag already exists in document

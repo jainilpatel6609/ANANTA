@@ -44,6 +44,13 @@ const createOrder = async (req, res) => {
       pincode: rawPincode,
       latitude,
       longitude,
+      deliveryLatitude: rawDeliveryLatitude,
+      deliveryLongitude: rawDeliveryLongitude,
+      gpsLatitude: rawGpsLatitude,
+      gpsLongitude: rawGpsLongitude,
+      placeId: rawPlaceId,
+      placeName: rawPlaceName,
+      gpsAccuracy: rawGpsAccuracy,
       deliveryInstructions
     } = req.body;
 
@@ -187,6 +194,26 @@ const createOrder = async (req, res) => {
     const pinGeo = await PincodeService.lookup(pincode);
 
     // Build structured shipping details
+    const finalGpsAccuracy =
+      typeof shippingDetails?.gpsAccuracy === 'number'
+        ? shippingDetails.gpsAccuracy
+        : typeof rawGpsAccuracy === 'number'
+        ? rawGpsAccuracy
+        : null;
+    const finalGpsLat =
+      typeof shippingDetails?.gpsLatitude === 'number'
+        ? shippingDetails.gpsLatitude
+        : typeof rawGpsLatitude === 'number'
+        ? rawGpsLatitude
+        : null;
+
+    const finalGpsLng =
+      typeof shippingDetails?.gpsLongitude === 'number'
+        ? shippingDetails.gpsLongitude
+        : typeof rawGpsLongitude === 'number'
+        ? rawGpsLongitude
+        : null;
+
     const structuredDetails = {
       fullName: (shippingDetails?.fullName || req.user.name || '').trim(),
       mobile: (shippingDetails?.mobile || req.user.mobile || '').trim(),
@@ -196,7 +223,12 @@ const createOrder = async (req, res) => {
       city: (shippingDetails?.city || pinGeo?.city || '').trim(),
       state: (shippingDetails?.state || pinGeo?.state || 'Gujarat').trim(),
       pincode,
-      landmark: (shippingDetails?.landmark || '').trim()
+      landmark: (shippingDetails?.landmark || '').trim(),
+      placeId: (shippingDetails?.placeId || rawPlaceId || '').trim(),
+      placeName: (shippingDetails?.placeName || rawPlaceName || '').trim(),
+      gpsAccuracy: finalGpsAccuracy,
+      gpsLatitude: finalGpsLat,
+      gpsLongitude: finalGpsLng
     };
 
     // Format full delivery address string
@@ -301,6 +333,11 @@ const createOrder = async (req, res) => {
       pincode,
       deliveryPincode: pincode,
       shippingDetails: structuredDetails,
+      placeId: structuredDetails.placeId,
+      placeName: structuredDetails.placeName,
+      gpsAccuracy: structuredDetails.gpsAccuracy,
+      gpsLatitude: structuredDetails.gpsLatitude,
+      gpsLongitude: structuredDetails.gpsLongitude,
       deliveryArea: structuredDetails.area,
       deliveryCity: structuredDetails.city,
       deliveryState: structuredDetails.state,

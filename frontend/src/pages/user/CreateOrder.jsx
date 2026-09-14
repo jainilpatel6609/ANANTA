@@ -84,6 +84,10 @@ export default function CreateOrder() {
 
   const [shippingAddress, setShippingAddress] = useState(user?.officeAddress || '');
   const [coordinates, setCoordinates] = useState({ lat: user?.latitude || 23.0225, lng: user?.longitude || 72.5714 });
+  const [gpsCoordinates, setGpsCoordinates] = useState(null);
+  const [placeId, setPlaceId] = useState('');
+  const [placeName, setPlaceName] = useState('');
+  const [gpsAccuracy, setGpsAccuracy] = useState(null);
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
 
   // Two-Way Location & Map Synchronization States
@@ -236,7 +240,7 @@ export default function CreateOrder() {
 
   // FLOW 2: MANUAL ADDRESS -> MAP LOCATION (Forward Geocoding)
   const handleFindOnMap = async (isExplicit = false) => {
-    const { addressLine1, area, landmark, city, pincode } = shippingDetails;
+    const { addressLine1, area, landmark, city, state, pincode } = shippingDetails;
 
     // Check if at least some location context is provided
     if (!pincode && !city && !addressLine1 && !area) {
@@ -397,18 +401,34 @@ export default function CreateOrder() {
   ]);
 
   // FLOW 1: CURRENT GPS LOCATION -> ADDRESS (Reverse Geocoding via Backend)
+  // FLOW 1: CURRENT GPS LOCATION -> ADDRESS (Reverse Geocoding via Backend)
   const handleDetectGPS = (detectedLat, detectedLng, detectedAccuracy) => {
     // If called via MapPicker's onGPSDetect callback with resolved coordinates
     if (typeof detectedLat === 'number' && typeof detectedLng === 'number') {
       setCoordinates({ lat: detectedLat, lng: detectedLng });
+      setGpsCoordinates({ lat: detectedLat, lng: detectedLng });
       setIsLocatingGPS(false);
-      const accNum = typeof detectedAccuracy === 'number' ? Math.round(detectedAccuracy) : null;
-      const accuracyText = accNum !== null ? ` (Accuracy: ±${accNum}m)` : '';
+      const accNum = typeof detectedAccuracy === 'number' ? detectedAccuracy : null;
+      setGpsAccuracy(accNum);
+      const roundedAcc = accNum !== null ? Math.round(accNum) : null;
+      const accuracyText = roundedAcc !== null ? ` (Accuracy: ±${roundedAcc}m)` : '';
+
+      let statusType = 'success';
+      let statusText = '';
+      if (accNum !== null && accNum <= 20) {
+        statusText = `✓ GPS location detected. High accuracy (±${roundedAcc}m) — Lat: ${detectedLat.toFixed(5)}, Lng: ${detectedLng.toFixed(5)}.`;
+      } else if (accNum !== null && accNum <= 50) {
+        statusText = `✓ GPS location detected. Moderate accuracy (±${roundedAcc}m) — Lat: ${detectedLat.toFixed(5)}, Lng: ${detectedLng.toFixed(5)}.`;
+      } else {
+        statusText = `✓ GPS location detected${accuracyText} — Lat: ${detectedLat.toFixed(5)}, Lng: ${detectedLng.toFixed(5)}. Drag the Red Pin if needed.`;
+        if (accNum !== null && accNum > 50) statusType = 'warning';
+      }
+
       setMapStatus({
-        type: 'success',
-        text: `✓ GPS location detected${accuracyText} — Lat: ${detectedLat.toFixed(5)}, Lng: ${detectedLng.toFixed(5)}.`
+        type: statusType,
+        text: statusText
       });
-      toast.success(`Current location detected${accNum !== null ? ` (Accuracy: ±${accNum}m)` : ''}!`);
+      toast.success(`Current location detected${roundedAcc !== null ? ` (Accuracy: ±${roundedAcc}m)` : ''}!`);
       return;
     }
 
@@ -427,6 +447,8 @@ export default function CreateOrder() {
         const accuracy = pos.coords.accuracy;
 
         setCoordinates({ lat, lng });
+        setGpsCoordinates({ lat, lng });
+        setGpsAccuracy(typeof accuracy === 'number' ? accuracy : null);
 
         // Reverse geocode via Backend to auto-fill address fields accurately
         try {
@@ -483,6 +505,16 @@ export default function CreateOrder() {
   // Map Click / Marker Drag Handler (Manual Location Setting via Google Maps)
   const handleMapLocationChange = async (lat, lng, source, parsedLocation = null) => {
     setCoordinates({ lat, lng });
+
+    if (source !== 'gps') {
+      setGpsAccuracy(null);
+    }
+    if (parsedLocation?.placeId) {
+      setPlaceId(parsedLocation.placeId);
+    }
+    if (parsedLocation?.placeName) {
+      setPlaceName(parsedLocation.placeName);
+    }
 
     if (parsedLocation && parsedLocation.city) {
       isInternalLocationUpdateRef.current = true;
@@ -554,6 +586,9 @@ export default function CreateOrder() {
 
     if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
       setCoordinates({ lat, lng });
+      setGpsAccuracy(null);
+      if (item.placeId) setPlaceId(item.placeId);
+      if (item.placeName || item.title) setPlaceName(item.placeName || item.title);
       isInternalLocationUpdateRef.current = true;
 
       setShippingDetails((prev) => ({
@@ -683,11 +718,25 @@ export default function CreateOrder() {
         shippingAddress: fullAddress,
         shippingDetails: {
           ...shippingDetails,
-          landmark: shippingDetails.landmark || ''
+          landmark: shippingDetails.landmark || '',
+          placeId: placeId || undefined,
+          placeName: placeName || undefined,
+          gpsAccuracy: typeof gpsAccuracy === 'number' ? gpsAccuracy : undefined,
+          gpsLatitude: gpsCoordinates?.lat || undefined,
+          gpsLongitude: gpsCoordinates?.lng || undefined,
+          deliveryLatitude: coordinates.lat,
+          deliveryLongitude: coordinates.lng
         },
         pincode: shippingDetails.pincode,
         latitude: coordinates.lat,
         longitude: coordinates.lng,
+        deliveryLatitude: coordinates.lat,
+        deliveryLongitude: coordinates.lng,
+        gpsLatitude: gpsCoordinates?.lat || undefined,
+        gpsLongitude: gpsCoordinates?.lng || undefined,
+        placeId: placeId || undefined,
+        placeName: placeName || undefined,
+        gpsAccuracy: typeof gpsAccuracy === 'number' ? gpsAccuracy : undefined,
         deliveryInstructions
       };
 
