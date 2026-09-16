@@ -3,67 +3,129 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+  }
+
   body {
-    @apply bg-slate-950 text-slate-100 antialiased selection:bg-brand-500 selection:text-slate-950;
+    @apply bg-slate-50 text-slate-900 antialiased selection:bg-amber-500/20 selection:text-amber-900;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-tap-highlight-color: transparent;
+    user-select: text;
+  }
+
+  /* Smooth momentum scrolling for mobile */
+  * {
+    -webkit-overflow-scrolling: touch;
   }
 }
 
-/* Custom industrial scrollbars */
+/* Android / iOS Safe Area Utility Classes */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.pt-safe {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}
+
+.bottom-nav-safe {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+/* Custom refined light scrollbars */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #090d16;
+  background: #f1f5f9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #273549;
-  border-radius: 4px;
+  background: #cbd5e1;
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #d97706;
+  background: #94a3b8;
 }
 
-/* Google Places Autocomplete Dark Theme Styling */
+/* Modern subtle card surfaces */
+.glass-surface {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.glass-surface-warm {
+  background: rgba(255, 251, 235, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+/* Skeleton shimmer animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Google Places Autocomplete Light Theme Styling */
 .pac-container {
-  background-color: #0f172a !important;
-  border: 1px solid #334155 !important;
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
   border-radius: 1rem !important;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6) !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
   font-family: inherit !important;
   margin-top: 6px !important;
   z-index: 99999 !important;
+  padding: 6px 0 !important;
 }
 
 .pac-item {
-  border-top: 1px solid #1e293b !important;
-  color: #cbd5e1 !important;
+  border-top: 1px solid #f1f5f9 !important;
+  color: #475569 !important;
   cursor: pointer !important;
-  font-size: 12px !important;
-  padding: 10px 14px !important;
+  font-size: 13px !important;
+  padding: 11px 16px !important;
   line-height: 1.4 !important;
+  transition: all 0.15s ease !important;
 }
 
 .pac-item:hover, .pac-item-selected {
-  background-color: rgba(245, 158, 11, 0.15) !important;
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
 }
 
 .pac-item-query {
-  color: #ffffff !important;
-  font-size: 12px !important;
-  font-weight: 700 !important;
+  color: #0f172a !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
 }
 
 .pac-matched {
-  color: #fbbf24 !important;
+  color: #d97706 !important;
+  font-weight: 700 !important;
 }
 
 .pac-icon {
-  filter: invert(1) hue-rotate(180deg) !important;
+  margin-top: 2px !important;
 }
 
 /* Dismiss Google Development / Missing Key Popup */
@@ -79,9 +141,6 @@
   display: none !important;
 }
 
-/* Hide Google Terms and Map Data small noise if unauthenticated */
 .gm-style-cc {
   opacity: 0.8 !important;
 }
-
-

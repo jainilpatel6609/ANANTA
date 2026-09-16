@@ -70,7 +70,25 @@ const getAdminLocations = async (req, res) => {
 // @access  Private (Admin)
 const createLocation = async (req, res) => {
   try {
-    const { name, vehicleType, category, state, description, displayOrder, singlePatiyaPrice, doublePatiyaPrice } = req.body;
+    const {
+      name,
+      vehicleType,
+      category,
+      state,
+      description,
+      displayOrder,
+      singlePatiyaPrice,
+      doublePatiyaPrice,
+      dumperWheelConfigs,
+      wheel10PricePerTon,
+      wheel10ApproxTon,
+      wheel12PricePerTon,
+      wheel12ApproxTon,
+      wheel16PricePerTon,
+      wheel16ApproxTon,
+      wheel18PricePerTon,
+      wheel18ApproxTon
+    } = req.body;
     if (!name || !name.trim()) {
       return errorResponse(res, 'Location name is required.', 400);
     }
@@ -96,6 +114,24 @@ const createLocation = async (req, res) => {
       );
     }
 
+    // Prepare default or customized wheel tiers for Dumper
+    const defaultWheelConfigs = [
+      { wheelCount: 10, approximateTon: 25, pricePerTon: 800, isActive: true },
+      { wheelCount: 12, approximateTon: 35, pricePerTon: 800, isActive: true },
+      { wheelCount: 16, approximateTon: 45, pricePerTon: 800, isActive: true },
+      { wheelCount: 18, approximateTon: 50, pricePerTon: 800, isActive: true }
+    ];
+
+    const finalDumperWheelConfigs = Array.isArray(dumperWheelConfigs) && dumperWheelConfigs.length > 0
+      ? dumperWheelConfigs.map((cfg) => ({
+          wheelCount: Number(cfg.wheelCount) || 10,
+          approximateTon: Number(cfg.approximateTon) || 25,
+          pricePerTon: Number(cfg.pricePerTon) || 800,
+          flatPrice: cfg.flatPrice !== undefined && cfg.flatPrice !== null && cfg.flatPrice !== '' ? Number(cfg.flatPrice) : null,
+          isActive: cfg.isActive !== false
+        }))
+      : (normalizedVehicleType === 'DUMPER' ? defaultWheelConfigs : []);
+
     const location = await Location.create({
       name: name.trim(),
       vehicleType: normalizedVehicleType,
@@ -105,6 +141,15 @@ const createLocation = async (req, res) => {
       displayOrder: Number(displayOrder) || 0,
       singlePatiyaPrice: singlePatiyaPrice !== undefined && singlePatiyaPrice !== null && singlePatiyaPrice !== '' ? Number(singlePatiyaPrice) : 2350,
       doublePatiyaPrice: doublePatiyaPrice !== undefined && doublePatiyaPrice !== null && doublePatiyaPrice !== '' ? Number(doublePatiyaPrice) : 4500,
+      dumperWheelConfigs: finalDumperWheelConfigs,
+      wheel10PricePerTon: wheel10PricePerTon !== undefined ? Number(wheel10PricePerTon) : 800,
+      wheel10ApproxTon: wheel10ApproxTon !== undefined ? Number(wheel10ApproxTon) : 25,
+      wheel12PricePerTon: wheel12PricePerTon !== undefined ? Number(wheel12PricePerTon) : 800,
+      wheel12ApproxTon: wheel12ApproxTon !== undefined ? Number(wheel12ApproxTon) : 35,
+      wheel16PricePerTon: wheel16PricePerTon !== undefined ? Number(wheel16PricePerTon) : 800,
+      wheel16ApproxTon: wheel16ApproxTon !== undefined ? Number(wheel16ApproxTon) : 45,
+      wheel18PricePerTon: wheel18PricePerTon !== undefined ? Number(wheel18PricePerTon) : 800,
+      wheel18ApproxTon: wheel18ApproxTon !== undefined ? Number(wheel18ApproxTon) : 50,
       isActive: true
     });
 
@@ -119,7 +164,26 @@ const createLocation = async (req, res) => {
 // @access  Private (Admin)
 const updateLocation = async (req, res) => {
   try {
-    const { name, vehicleType, category, state, description, displayOrder, singlePatiyaPrice, doublePatiyaPrice, isActive } = req.body;
+    const {
+      name,
+      vehicleType,
+      category,
+      state,
+      description,
+      displayOrder,
+      singlePatiyaPrice,
+      doublePatiyaPrice,
+      dumperWheelConfigs,
+      wheel10PricePerTon,
+      wheel10ApproxTon,
+      wheel12PricePerTon,
+      wheel12ApproxTon,
+      wheel16PricePerTon,
+      wheel16ApproxTon,
+      wheel18PricePerTon,
+      wheel18ApproxTon,
+      isActive
+    } = req.body;
     const location = await Location.findById(req.params.id);
 
     if (!location) {
@@ -162,6 +226,23 @@ const updateLocation = async (req, res) => {
     if (doublePatiyaPrice !== undefined && doublePatiyaPrice !== null && doublePatiyaPrice !== '') {
       location.doublePatiyaPrice = Number(doublePatiyaPrice) || 0;
     }
+    if (dumperWheelConfigs !== undefined && Array.isArray(dumperWheelConfigs)) {
+      location.dumperWheelConfigs = dumperWheelConfigs.map((cfg) => ({
+        wheelCount: Number(cfg.wheelCount) || 10,
+        approximateTon: Number(cfg.approximateTon) || 25,
+        pricePerTon: Number(cfg.pricePerTon) || 800,
+        flatPrice: cfg.flatPrice !== undefined && cfg.flatPrice !== null && cfg.flatPrice !== '' ? Number(cfg.flatPrice) : null,
+        isActive: cfg.isActive !== false
+      }));
+    }
+    if (wheel10PricePerTon !== undefined) location.wheel10PricePerTon = Number(wheel10PricePerTon);
+    if (wheel10ApproxTon !== undefined) location.wheel10ApproxTon = Number(wheel10ApproxTon);
+    if (wheel12PricePerTon !== undefined) location.wheel12PricePerTon = Number(wheel12PricePerTon);
+    if (wheel12ApproxTon !== undefined) location.wheel12ApproxTon = Number(wheel12ApproxTon);
+    if (wheel16PricePerTon !== undefined) location.wheel16PricePerTon = Number(wheel16PricePerTon);
+    if (wheel16ApproxTon !== undefined) location.wheel16ApproxTon = Number(wheel16ApproxTon);
+    if (wheel18PricePerTon !== undefined) location.wheel18PricePerTon = Number(wheel18PricePerTon);
+    if (wheel18ApproxTon !== undefined) location.wheel18ApproxTon = Number(wheel18ApproxTon);
     if (isActive !== undefined) location.isActive = Boolean(isActive);
 
     await location.save();

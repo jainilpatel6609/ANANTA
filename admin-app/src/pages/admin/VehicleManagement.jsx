@@ -44,6 +44,7 @@ export default function VehicleManagement() {
   // Modals & Forms
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState(null);
+  const [bulkRate, setBulkRate] = useState('800');
   const [locationForm, setLocationForm] = useState({
     name: '',
     category: 'Sand',
@@ -51,7 +52,13 @@ export default function VehicleManagement() {
     description: '',
     displayOrder: 0,
     singlePatiyaPrice: '2350',
-    doublePatiyaPrice: '4500'
+    doublePatiyaPrice: '4500',
+    dumperWheelConfigs: [
+      { wheelCount: 10, approximateTon: 25, pricePerTon: 800 },
+      { wheelCount: 12, approximateTon: 35, pricePerTon: 800 },
+      { wheelCount: 16, approximateTon: 45, pricePerTon: 800 },
+      { wheelCount: 18, approximateTon: 50, pricePerTon: 800 }
+    ]
   });
 
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
@@ -158,6 +165,53 @@ export default function VehicleManagement() {
   };
 
   // Location Handlers (Strictly Scoped by selectedVehicle)
+  const handleWheelConfigChange = (index, field, value) => {
+    setLocationForm((prev) => {
+      const nextConfigs = [...(prev.dumperWheelConfigs || [])];
+      nextConfigs[index] = {
+        ...nextConfigs[index],
+        [field]: field === 'wheelCount' || field === 'approximateTon' || field === 'pricePerTon'
+          ? (value === '' ? '' : Number(value))
+          : value
+      };
+      return { ...prev, dumperWheelConfigs: nextConfigs };
+    });
+  };
+
+  const handleAddWheelTier = () => {
+    setLocationForm((prev) => {
+      const configs = prev.dumperWheelConfigs || [];
+      const nextWheel = configs.length > 0 ? (Number(configs[configs.length - 1].wheelCount) || 18) + 2 : 10;
+      const nextTon = configs.length > 0 ? (Number(configs[configs.length - 1].approximateTon) || 50) + 5 : 25;
+      return {
+        ...prev,
+        dumperWheelConfigs: [
+          ...configs,
+          { wheelCount: nextWheel, approximateTon: nextTon, pricePerTon: Number(bulkRate) || 800 }
+        ]
+      };
+    });
+  };
+
+  const handleRemoveWheelTier = (index) => {
+    setLocationForm((prev) => ({
+      ...prev,
+      dumperWheelConfigs: (prev.dumperWheelConfigs || []).filter((_, idx) => idx !== index)
+    }));
+  };
+
+  const handleApplyBulkRate = (rateVal) => {
+    const num = Number(rateVal) || 800;
+    setLocationForm((prev) => ({
+      ...prev,
+      dumperWheelConfigs: (prev.dumperWheelConfigs || []).map((w) => ({
+        ...w,
+        pricePerTon: num
+      }))
+    }));
+    toast.success(`Set rate to ₹${num}/Ton across all wheel types.`);
+  };
+
   const openAddLocationModal = () => {
     setEditingLocation(null);
     const count = selectedVehicle === 'DUMPER' ? dumperLocations.length : tractorLocations.length;
@@ -168,22 +222,48 @@ export default function VehicleManagement() {
       description: '',
       displayOrder: count + 1,
       singlePatiyaPrice: '2350',
-      doublePatiyaPrice: '4500'
+      doublePatiyaPrice: '4500',
+      dumperWheelConfigs: [
+        { wheelCount: 10, approximateTon: 25, pricePerTon: 800 },
+        { wheelCount: 12, approximateTon: 35, pricePerTon: 800 },
+        { wheelCount: 16, approximateTon: 45, pricePerTon: 800 },
+        { wheelCount: 18, approximateTon: 50, pricePerTon: 800 }
+      ]
     });
+    setBulkRate('800');
     setIsLocationModalOpen(true);
   };
 
   const openEditLocationModal = (loc) => {
     setEditingLocation(loc);
+    let wheels = [];
+    if (loc.dumperWheelConfigs && loc.dumperWheelConfigs.length > 0) {
+      wheels = loc.dumperWheelConfigs.map((w) => ({
+        wheelCount: w.wheelCount || 10,
+        approximateTon: w.approximateTon !== undefined ? w.approximateTon : 25,
+        pricePerTon: w.pricePerTon !== undefined ? w.pricePerTon : 800,
+        flatPrice: w.flatPrice !== undefined && w.flatPrice !== null ? String(w.flatPrice) : ''
+      }));
+    } else {
+      wheels = [
+        { wheelCount: 10, approximateTon: loc.wheel10ApproxTon || 25, pricePerTon: loc.wheel10PricePerTon || 800 },
+        { wheelCount: 12, approximateTon: loc.wheel12ApproxTon || 35, pricePerTon: loc.wheel12PricePerTon || 800 },
+        { wheelCount: 16, approximateTon: loc.wheel16ApproxTon || 45, pricePerTon: loc.wheel16PricePerTon || 800 },
+        { wheelCount: 18, approximateTon: loc.wheel18ApproxTon || 50, pricePerTon: loc.wheel18PricePerTon || 800 }
+      ];
+    }
+
     setLocationForm({
       name: loc.name,
-      category: loc.category || 'Sand',
+      category: loc.category || (selectedVehicle === 'DUMPER' ? 'Aggregate' : 'Sand'),
       state: loc.state || 'Gujarat',
       description: loc.description || '',
       displayOrder: loc.displayOrder || 0,
       singlePatiyaPrice: loc.singlePatiyaPrice !== undefined ? String(loc.singlePatiyaPrice) : '2350',
-      doublePatiyaPrice: loc.doublePatiyaPrice !== undefined ? String(loc.doublePatiyaPrice) : '4500'
+      doublePatiyaPrice: loc.doublePatiyaPrice !== undefined ? String(loc.doublePatiyaPrice) : '4500',
+      dumperWheelConfigs: wheels
     });
+    setBulkRate(String(wheels[0]?.pricePerTon || 800));
     setIsLocationModalOpen(true);
   };
 
@@ -196,13 +276,44 @@ export default function VehicleManagement() {
 
     setSaving(true);
     try {
+      const sanitizedWheels = (locationForm.dumperWheelConfigs || []).map((w) => ({
+        wheelCount: Number(w.wheelCount) || 10,
+        approximateTon: Number(w.approximateTon) || 25,
+        pricePerTon: Number(w.pricePerTon) || 800,
+        flatPrice: w.flatPrice ? Number(w.flatPrice) : null,
+        isActive: true
+      }));
+
       const payload = {
         ...locationForm,
         vehicleType: selectedVehicle,
         singlePatiyaPrice: Number(locationForm.singlePatiyaPrice) || 2350,
         doublePatiyaPrice: Number(locationForm.doublePatiyaPrice) || 4500,
-        displayOrder: Number(locationForm.displayOrder) || 0
+        displayOrder: Number(locationForm.displayOrder) || 0,
+        dumperWheelConfigs: sanitizedWheels
       };
+
+      const w10 = sanitizedWheels.find((w) => Number(w.wheelCount) === 10);
+      if (w10) {
+        payload.wheel10ApproxTon = w10.approximateTon;
+        payload.wheel10PricePerTon = w10.pricePerTon;
+      }
+      const w12 = sanitizedWheels.find((w) => Number(w.wheelCount) === 12);
+      if (w12) {
+        payload.wheel12ApproxTon = w12.approximateTon;
+        payload.wheel12PricePerTon = w12.pricePerTon;
+      }
+      const w16 = sanitizedWheels.find((w) => Number(w.wheelCount) === 16);
+      if (w16) {
+        payload.wheel16ApproxTon = w16.approximateTon;
+        payload.wheel16PricePerTon = w16.pricePerTon;
+      }
+      const w18 = sanitizedWheels.find((w) => Number(w.wheelCount) === 18);
+      if (w18) {
+        payload.wheel18ApproxTon = w18.approximateTon;
+        payload.wheel18PricePerTon = w18.pricePerTon;
+      }
+
       if (editingLocation) {
         await locationService.updateLocation(editingLocation._id, payload);
         toast.success(`Updated ${selectedVehicle} location "${locationForm.name}".`);
@@ -814,6 +925,45 @@ export default function VehicleManagement() {
                           </div>
                         )}
 
+                        {selectedVehicle === 'DUMPER' && (
+                          <div className="pt-2 space-y-1.5">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                              <span>Configured Wheel Rates</span>
+                              <span className="text-amber-400">Per Ton</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {(loc.dumperWheelConfigs && loc.dumperWheelConfigs.length > 0
+                                ? loc.dumperWheelConfigs
+                                : [
+                                    { wheelCount: 10, approximateTon: loc.wheel10ApproxTon || 25, pricePerTon: loc.wheel10PricePerTon || 800 },
+                                    { wheelCount: 12, approximateTon: loc.wheel12ApproxTon || 35, pricePerTon: loc.wheel12PricePerTon || 800 },
+                                    { wheelCount: 16, approximateTon: loc.wheel16ApproxTon || 45, pricePerTon: loc.wheel16PricePerTon || 800 },
+                                    { wheelCount: 18, approximateTon: loc.wheel18ApproxTon || 50, pricePerTon: loc.wheel18PricePerTon || 800 }
+                                  ]
+                              ).map((w, wIdx) => {
+                                const approxT = w.approximateTon || 25;
+                                const rate = w.pricePerTon || 800;
+                                const total = approxT * rate;
+                                return (
+                                  <div
+                                    key={wIdx}
+                                    className="p-2 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between hover:border-slate-700 transition-colors"
+                                  >
+                                    <div className="flex items-center justify-between text-[11px]">
+                                      <span className="font-black text-amber-300">{w.wheelCount}W</span>
+                                      <span className="text-slate-400 font-mono text-[10px]">~{approxT}T</span>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-1 text-[10px]">
+                                      <span className="font-mono text-emerald-400 font-bold">₹{rate}/T</span>
+                                      <span className="text-slate-500 font-mono text-[9px]">₹{(total / 1000).toFixed(0)}k</span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
                         <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
                           {loc.description || `Verified ${selectedVehicle} quarry/depot point`}
                         </p>
@@ -1050,69 +1200,219 @@ export default function VehicleManagement() {
       <Modal
         isOpen={isLocationModalOpen}
         onClose={() => setIsLocationModalOpen(false)}
-        title={editingLocation ? `Edit ${selectedVehicle} Location` : `Add New ${selectedVehicle} Location`}
-        maxWidth="max-w-md"
+        title={editingLocation ? `Edit ${selectedVehicle} Location & Wheel Pricing` : `Add New ${selectedVehicle} Location`}
+        maxWidth="max-w-3xl"
       >
-        <form onSubmit={handleSaveLocation} className="space-y-4">
-          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold">
-            Target Vehicle Category: {selectedVehicle} (Isolated)
+        <form onSubmit={handleSaveLocation} className="space-y-5">
+          {/* Header Info */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs">
+            <span className="font-bold text-amber-400 flex items-center gap-1.5">
+              <Truck className="w-4 h-4" />
+              Vehicle Fleet: <span className="underline">{selectedVehicle}</span> (Database Scoped)
+            </span>
+            <span className="text-slate-400 text-[11px]">
+              {selectedVehicle === 'DUMPER'
+                ? 'Multi-wheel tonnage & per-ton rates configure independently per quarry/depot'
+                : 'Single & Double Patiya tractor rates apply to this depot'}
+            </span>
           </div>
 
-          <div>
-            <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
-              Material Category *
-            </label>
-            <select
-              value={locationForm.category}
-              onChange={(e) => setLocationForm({ ...locationForm, category: e.target.value })}
-              className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500"
-            >
-              <option value="Aggregate">Aggregate Quarry (e.g. Vadagam, Sayala)</option>
-              <option value="Sand">Sand Riverbed (e.g. Patan, Sabarmati)</option>
-              <option value="Grit">Grit Origin</option>
-              <option value="ALL">All Categories</option>
-            </select>
+          {/* Core Location Details */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
+                Location Name *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder={selectedVehicle === 'DUMPER' ? 'e.g. Vadagam, Sayala, Patan, Sabarmati' : 'e.g. Patan, Sabarmati'}
+                value={locationForm.name}
+                onChange={(e) => setLocationForm({ ...locationForm, name: e.target.value })}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
+                Material Category *
+              </label>
+              <select
+                value={locationForm.category}
+                onChange={(e) => setLocationForm({ ...locationForm, category: e.target.value })}
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500"
+              >
+                <option value="Aggregate">Aggregate Quarry (e.g. Vadagam, Sayala)</option>
+                <option value="Sand">Sand Riverbed (e.g. Patan, Sabarmati, Sidhpur)</option>
+                <option value="Grit">Grit Origin</option>
+                <option value="ALL">All Categories</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
+                State / Region
+              </label>
+              <input
+                type="text"
+                value={locationForm.state}
+                onChange={(e) => setLocationForm({ ...locationForm, state: e.target.value })}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
+                Display Order
+              </label>
+              <input
+                type="number"
+                value={locationForm.displayOrder}
+                onChange={(e) => setLocationForm({ ...locationForm, displayOrder: e.target.value })}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-amber-400 focus:outline-none focus:border-amber-500"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
-              Location Name *
-            </label>
-            <input
-              type="text"
-              required
-              placeholder={selectedVehicle === 'DUMPER' ? 'e.g. Vadagam, Sayala, Patan' : 'e.g. Patan, Sabarmati'}
-              value={locationForm.name}
-              onChange={(e) => setLocationForm({ ...locationForm, name: e.target.value })}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500"
-            />
-          </div>
+          {/* DUMPER SPECIFIC: WHEEL TIERS, WEIGHTS & RATES CONFIGURATION */}
+          {selectedVehicle === 'DUMPER' && (
+            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+                <div>
+                  <h4 className="text-sm font-black text-white font-display flex items-center gap-2">
+                    <Coins className="w-4 h-4 text-amber-400" />
+                    Dumper Wheels, Approx Weight & Rate Configuration
+                  </h4>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Configure wheel count, approx weight in tons, and rate per ton for this location.
+                  </p>
+                </div>
 
-          <div>
-            <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
-              State
-            </label>
-            <input
-              type="text"
-              value={locationForm.state}
-              onChange={(e) => setLocationForm({ ...locationForm, state: e.target.value })}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500"
-            />
-          </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center bg-slate-900 border border-slate-700 rounded-xl px-2 py-1">
+                    <span className="text-[11px] text-slate-400 font-bold mr-1.5">₹/T:</span>
+                    <input
+                      type="number"
+                      value={bulkRate}
+                      onChange={(e) => setBulkRate(e.target.value)}
+                      className="w-14 bg-transparent text-xs font-mono font-bold text-amber-400 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleApplyBulkRate(bulkRate)}
+                      className="px-2 py-1 rounded-lg bg-amber-500/20 text-amber-300 text-[10px] font-bold hover:bg-amber-500/30 ml-1"
+                    >
+                      Apply All
+                    </button>
+                  </div>
 
-          <div>
-            <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
-              Display Order
-            </label>
-            <input
-              type="number"
-              value={locationForm.displayOrder}
-              onChange={(e) => setLocationForm({ ...locationForm, displayOrder: e.target.value })}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-amber-400 focus:outline-none focus:border-amber-500"
-            />
-          </div>
-          {selectedVehicle === 'TRACTOR' ? (
-            <div className="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-slate-950/80 border border-slate-800">
+                  <button
+                    type="button"
+                    onClick={handleAddWheelTier}
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1 shrink-0"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-amber-400" />
+                    Add Wheel
+                  </button>
+                </div>
+              </div>
+
+              {/* Wheel Configuration Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {(locationForm.dumperWheelConfigs || []).map((wheel, wIdx) => {
+                  const tons = Number(wheel.approximateTon) || 0;
+                  const rate = Number(wheel.pricePerTon) || 0;
+                  const estimatedTrip = Math.round(tons * rate);
+
+                  return (
+                    <div
+                      key={wIdx}
+                      className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 space-y-3 shadow-sm transition-all"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-black text-xs font-mono border border-amber-500/30">
+                            {wheel.wheelCount}W
+                          </span>
+                          <div>
+                            <span className="text-xs font-black text-white block font-display">
+                              {wheel.wheelCount} Wheels Dumper
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-bold uppercase">Multi-Axle Truck</span>
+                          </div>
+                        </div>
+
+                        {locationForm.dumperWheelConfigs.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveWheelTier(wIdx)}
+                            className="p-1 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                            title="Remove tier"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                            Approx Weight (Tons) *
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              required
+                              step="any"
+                              value={wheel.approximateTon}
+                              onChange={(e) => handleWheelConfigChange(wIdx, 'approximateTon', e.target.value)}
+                              className="w-full pr-8 pl-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono font-bold text-white focus:outline-none focus:border-amber-500"
+                              placeholder="25"
+                            />
+                            <span className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-[10px] text-slate-500 font-bold">
+                              Tons
+                            </span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                            Price Per Ton (₹) *
+                          </label>
+                          <div className="relative">
+                            <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-500 font-bold text-xs">
+                              ₹
+                            </span>
+                            <input
+                              type="number"
+                              required
+                              value={wheel.pricePerTon}
+                              onChange={(e) => handleWheelConfigChange(wIdx, 'pricePerTon', e.target.value)}
+                              className="w-full pl-6 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono font-bold text-amber-400 focus:outline-none focus:border-amber-500"
+                              placeholder="800"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-2 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between text-[11px]">
+                        <span className="text-slate-400">
+                          Est. Trip Cost (~{tons}T × ₹{rate}/T):
+                        </span>
+                        <span className="font-mono font-black text-emerald-400">
+                          ₹{estimatedTrip.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* TRACTOR SPECIFIC: SINGLE / DOUBLE PATIYA PRICE */}
+          {selectedVehicle === 'TRACTOR' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800">
               <div>
                 <label className="text-xs font-bold text-amber-400 uppercase tracking-wider block mb-1.5">
                   Single Patiya Price (₹) *
@@ -1147,26 +1447,15 @@ export default function VehicleManagement() {
                 </div>
               </div>
             </div>
-          ) : (
-            <div>
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
-                Display Order
-              </label>
-              <input
-                type="number"
-                value={locationForm.displayOrder}
-                onChange={(e) => setLocationForm({ ...locationForm, displayOrder: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-amber-400 focus:outline-none focus:border-amber-500"
-              />
-            </div>
           )}
 
+          {/* Source Notes */}
           <div>
             <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
-              Source Description
+              Source / Plant Notes
             </label>
             <textarea
-              rows="3"
+              rows="2"
               placeholder="Crushing plant details, basalt rock grade, riverbed specifications..."
               value={locationForm.description}
               onChange={(e) => setLocationForm({ ...locationForm, description: e.target.value })}

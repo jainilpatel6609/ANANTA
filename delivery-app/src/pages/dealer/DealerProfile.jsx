@@ -10,7 +10,11 @@ import {
   ShieldCheck,
   CheckCircle2,
   XCircle,
-  Loader2
+  Loader2,
+  Lock,
+  User,
+  Mail,
+  Truck
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -116,76 +120,113 @@ export default function DealerProfile() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-display">Dealer Logistics Profile</h1>
-        <p className="text-xs text-slate-400">
-          Manage partner dealership credentials, registered PIN code depot, and dispatch lines.
-        </p>
+    <div className="max-w-3xl mx-auto space-y-6 pb-12">
+      {/* Dealer Header Avatar Card */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-5 shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center font-black text-3xl shadow-xl shadow-amber-500/20 shrink-0">
+          <Truck className="w-10 h-10 stroke-[2.5]" />
+        </div>
+
+        <div className="space-y-1 text-center sm:text-left flex-1">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[11px] font-bold border border-emerald-500/20">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Verified Logistics Partner</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-white font-display">
+            {user?.companyName || user?.name || 'Dealership Hub'}
+          </h1>
+          <p className="text-xs text-slate-400 font-mono">
+            Rep: <strong className="text-white">{user?.name}</strong> • Mobile: <strong className="text-slate-200">{user?.mobile}</strong>
+          </p>
+          <p className="text-xs text-amber-400 font-mono">
+            {user?.pincode ? `Registered Depot: PIN ${user.pincode} (${user.city || 'Gujarat'})` : 'PIN Location Required'}
+          </p>
+        </div>
       </div>
 
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-xl">
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
-                Dealer Representative Name *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500"
-              />
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Representative & Firm */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold text-amber-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-800 pb-2">
+              <Building2 className="w-4 h-4" />
+              <span>Dealership Credentials</span>
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
+                  Dealer Representative Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500 min-h-[44px]"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
+                  Dealership / Firm Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.companyName}
+                  onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500 min-h-[44px]"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
-                Dealership / Transport Firm Name *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.companyName}
-                onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500"
-              />
-            </div>
-          </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                  Primary Mobile (Dealer Login)
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <Phone className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    disabled
+                    value={user?.mobile || ''}
+                    className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-950/60 border border-slate-800 text-sm text-slate-400 cursor-not-allowed font-mono min-h-[44px]"
+                  />
+                </div>
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
-                Primary Mobile (Dealer Login)
-              </label>
-              <input
-                type="text"
-                disabled
-                value={user?.mobile || ''}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-sm text-slate-400 cursor-not-allowed font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
-                WhatsApp Dispatch Alerts Phone
-              </label>
-              <input
-                type="tel"
-                value={formData.whatsappNumber}
-                onChange={(e) => setFormData({ ...formData, whatsappNumber: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500 font-mono"
-              />
+              <div>
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
+                  WhatsApp Dispatch Alerts Phone
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <MessageSquare className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <input
+                    type="tel"
+                    value={formData.whatsappNumber}
+                    onChange={(e) => setFormData({ ...formData, whatsappNumber: e.target.value })}
+                    className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500 font-mono min-h-[44px]"
+                    placeholder="10-digit WhatsApp for incoming alerts"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Depot Address & PIN Code Section */}
-          <div className="pt-3 border-t border-slate-800 space-y-4">
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-brand-400" />
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Depot / Yard Physical Address</h3>
-            </div>
+          <div className="space-y-4 pt-4 border-t border-slate-800/80">
+            <h3 className="text-xs font-bold text-amber-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-800 pb-2">
+              <MapPin className="w-4 h-4" />
+              <span>Depot / Yard Physical Location & Routing</span>
+            </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -198,7 +239,7 @@ export default function DealerProfile() {
                   placeholder="e.g. Station Road Logistics Depot"
                   value={formData.addressLine1}
                   onChange={(e) => setFormData({ ...formData, addressLine1: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500"
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500 min-h-[44px]"
                 />
               </div>
 
@@ -211,7 +252,7 @@ export default function DealerProfile() {
                   placeholder="e.g. Near Railway Freight Yard"
                   value={formData.addressLine2}
                   onChange={(e) => setFormData({ ...formData, addressLine2: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500"
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500 min-h-[44px]"
                 />
               </div>
             </div>
@@ -227,7 +268,7 @@ export default function DealerProfile() {
                   placeholder="e.g. Highway Zone"
                   value={formData.area}
                   onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500"
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500 min-h-[44px]"
                 />
               </div>
 
@@ -248,7 +289,7 @@ export default function DealerProfile() {
                   placeholder="6-digit PIN"
                   value={formData.pincode}
                   onChange={(e) => handlePincodeChange(e.target.value)}
-                  className={`w-full px-4 py-2.5 rounded-xl bg-slate-950 border text-sm text-white focus:outline-none font-mono font-bold tracking-widest ${
+                  className={`w-full px-4 py-3 rounded-2xl bg-slate-950 border text-sm text-white focus:outline-none font-mono font-bold tracking-widest min-h-[44px] ${
                     pincodeValidation.valid === true
                       ? 'border-emerald-500/80 bg-emerald-950/20 text-emerald-300'
                       : pincodeValidation.valid === false
@@ -286,7 +327,7 @@ export default function DealerProfile() {
                   placeholder="e.g. Mehsana"
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500"
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500 min-h-[44px]"
                 />
               </div>
 
@@ -300,32 +341,40 @@ export default function DealerProfile() {
                   placeholder="e.g. Gujarat"
                   value={formData.state}
                   onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500"
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500 min-h-[44px]"
                 />
               </div>
             </div>
           </div>
 
-          <div className="pt-2 border-t border-slate-800">
-            <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
-              Update Password (Leave blank to keep current)
-            </label>
-            <input
-              type="password"
-              placeholder="Minimum 6 characters"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500"
-            />
+          {/* Security */}
+          <div className="space-y-4 pt-4 border-t border-slate-800/80">
+            <h3 className="text-xs font-bold text-amber-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-800 pb-2">
+              <Lock className="w-4 h-4" />
+              <span>Account Security</span>
+            </h3>
+
+            <div>
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
+                Update Password (Leave blank to keep current)
+              </label>
+              <input
+                type="password"
+                placeholder="Minimum 6 characters"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500 min-h-[44px]"
+              />
+            </div>
           </div>
 
           <button
             type="submit"
             disabled={saving}
-            className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 font-bold text-sm transition-all shadow-lg shadow-brand-500/20 disabled:opacity-50"
+            className="w-full inline-flex items-center justify-center gap-2 py-4 rounded-2xl bg-brand-500 hover:bg-brand-400 active:scale-98 text-slate-950 font-black text-sm transition-all shadow-xl shadow-brand-500/20 disabled:opacity-50 min-h-[48px] cursor-pointer"
           >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save Dealer Profile & PIN Location
+            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+            Save Dealer Profile & Depot Routing
           </button>
         </form>
       </div>

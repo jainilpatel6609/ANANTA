@@ -41,6 +41,23 @@ const locationSchema = new mongoose.Schema(
       type: Number,
       default: 4500
     },
+    dumperWheelConfigs: [
+      {
+        wheelCount: { type: Number, default: 10 },
+        approximateTon: { type: Number, default: 25 },
+        pricePerTon: { type: Number, default: 800 },
+        flatPrice: { type: Number, default: null },
+        isActive: { type: Boolean, default: true }
+      }
+    ],
+    wheel10PricePerTon: { type: Number, default: 800 },
+    wheel10ApproxTon: { type: Number, default: 25 },
+    wheel12PricePerTon: { type: Number, default: 800 },
+    wheel12ApproxTon: { type: Number, default: 35 },
+    wheel16PricePerTon: { type: Number, default: 800 },
+    wheel16ApproxTon: { type: Number, default: 45 },
+    wheel18PricePerTon: { type: Number, default: 800 },
+    wheel18ApproxTon: { type: Number, default: 50 },
     isActive: {
       type: Boolean,
       default: true,

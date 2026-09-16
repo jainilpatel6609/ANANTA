@@ -5,7 +5,7 @@ import StatusBadge from '../../components/StatusBadge';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
 import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport } from '../../utils/formatters';
-import { Package, Search, Filter, ArrowRight, Truck, Calendar, FileText } from 'lucide-react';
+import { Package, Search, ArrowRight, Truck, Calendar, FileText, MapPin, PlusCircle } from 'lucide-react';
 
 export default function MyOrders() {
   const [orders, setOrders] = useState([]);
@@ -30,14 +30,14 @@ export default function MyOrders() {
   }, []);
 
   if (loading) {
-    return <LoadingSpinner message="Fetching order history..." />;
+    return <LoadingSpinner message="Fetching material order history..." />;
   }
 
   const filteredOrders = orders.filter((o) => {
     const matchSearch =
-      o.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
-      o.productNameSnapshot.toLowerCase().includes(search.toLowerCase()) ||
-      o.shippingAddress.toLowerCase().includes(search.toLowerCase());
+      o.orderNumber?.toLowerCase().includes(search.toLowerCase()) ||
+      o.productNameSnapshot?.toLowerCase().includes(search.toLowerCase()) ||
+      o.shippingAddress?.toLowerCase().includes(search.toLowerCase());
 
     const matchStatus =
       statusFilter === 'ALL' ||
@@ -49,53 +49,66 @@ export default function MyOrders() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 select-none max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-display">My Material Orders</h1>
-          <p className="text-xs text-slate-400">Track dispatch progress, driver contacts, and delivery OTPs</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 font-display tracking-tight">
+            My Material Orders
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            Track delivery progress, driver contacts, and gate pass OTPs
+          </p>
         </div>
 
         <Link
           to="/user/create-order"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 font-bold text-xs transition-all shadow-md shadow-brand-500/20 self-start"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs transition-all shadow-md shadow-amber-500/25 active:scale-95 self-start"
         >
-          <Package className="w-4 h-4" />
-          Create New Order
+          <PlusCircle className="w-4 h-4 stroke-[2.5]" />
+          <span>New Order</span>
         </Link>
       </div>
 
-      {/* Filters Bar */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      {/* Filters & Search Bar */}
+      <div className="bg-white border border-slate-200/80 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
         <div className="relative w-full sm:w-80">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
             <Search className="w-4 h-4" />
           </div>
           <input
             type="text"
-            placeholder="Search by Order ID, material, address..."
+            placeholder="Search Order ID, material, address..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-brand-500"
+            className="w-full pl-10 pr-4 py-2 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:bg-white font-medium transition-all"
           />
         </div>
 
-        {/* Status Filter Buttons */}
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+        {/* Status Filter Chips */}
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 scrollbar-none">
           {[
             { id: 'ALL', label: `All (${orders.length})` },
-            { id: 'ACTIVE', label: `In Transit (${orders.filter((o) => ['PLACED', 'ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length})` },
-            { id: 'DELIVERED', label: `Delivered (${orders.filter((o) => o.orderStatus === 'DELIVERED').length})` },
-            { id: 'PENDING', label: `Pending (${orders.filter((o) => o.orderStatus === 'PENDING_PAYMENT').length})` }
+            {
+              id: 'ACTIVE',
+              label: `In Transit (${orders.filter((o) => ['PLACED', 'ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length})`
+            },
+            {
+              id: 'DELIVERED',
+              label: `Delivered (${orders.filter((o) => o.orderStatus === 'DELIVERED').length})`
+            },
+            {
+              id: 'PENDING',
+              label: `Pending (${orders.filter((o) => o.orderStatus === 'PENDING_PAYMENT').length})`
+            }
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setStatusFilter(tab.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all active:scale-95 cursor-pointer ${
                 statusFilter === tab.id
-                  ? 'bg-brand-500 text-slate-950 font-bold'
-                  : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
+                  ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200/60'
               }`}
             >
               {tab.label}
@@ -104,7 +117,7 @@ export default function MyOrders() {
         </div>
       </div>
 
-      {/* Orders List */}
+      {/* Orders List Cards */}
       {filteredOrders.length === 0 ? (
         <EmptyState
           title="No orders found"
@@ -113,42 +126,51 @@ export default function MyOrders() {
           onAction={() => window.location.assign('/user/create-order')}
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-3.5">
           {filteredOrders.map((order) => (
             <div
               key={order._id}
-              className="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 sm:p-6 transition-all shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6"
+              className="bg-white border border-slate-200/80 hover:border-slate-300 rounded-3xl p-5 transition-all shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-5 group"
             >
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="font-mono font-bold text-white text-base">#{order.orderNumber}</span>
-                  <StatusBadge status={order.orderStatus} />
-                  <span className="text-xs text-slate-400 flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5" />
+              <div className="space-y-2.5 min-w-0">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <span className="font-mono font-black text-slate-900 text-sm">
+                    #{order.orderNumber}
+                  </span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-black uppercase tracking-wider">
+                    GATE PASS
+                  </span>
+                  <StatusBadge status={order.orderStatus} size="sm" />
+                  <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
                     {formatDate(order.createdAt)}
                   </span>
                 </div>
 
                 <div>
-                  <h3 className="font-bold text-slate-100 text-sm">{order.productNameSnapshot}</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    {formatOrderQuantity(order)} • {formatOrderTransport(order)}{' '}
+                  <h3 className="font-black text-slate-900 text-base font-display">
+                    {order.productNameSnapshot}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                    <span className="text-amber-700 font-bold">{formatOrderQuantity(order)}</span> • {formatOrderTransport(order)}{' '}
                     {order.sandLocation ? `• Sand from ${order.sandLocation}` : ''}
                     {order.aggregateType ? `• Grade: ${order.aggregateType}` : ''}
                   </p>
                 </div>
 
-                <div className="text-xs text-slate-300 flex items-center gap-1.5">
-                  <span className="text-slate-500">Destination:</span>
-                  <span className="truncate max-w-md">{order.shippingAddress}</span>
+                <div className="text-xs text-slate-600 flex items-center gap-1.5 bg-slate-50 rounded-xl px-3 py-1.5 border border-slate-100">
+                  <MapPin className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span className="truncate max-w-md font-medium">{order.shippingAddress}</span>
                 </div>
               </div>
 
-              {/* Right side info & Action */}
-              <div className="flex items-center justify-between lg:justify-end gap-6 pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-800">
+              {/* Right Side Info & Action Buttons */}
+              <div className="flex items-center justify-between lg:justify-end gap-5 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100 shrink-0">
                 <div className="text-left lg:text-right">
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Total Amount</span>
-                  <span className="text-xl font-black text-brand-400 font-mono">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold block">
+                    Total Amount
+                  </span>
+                  <span className="text-lg sm:text-xl font-black text-slate-900 font-mono">
                     {formatINR(order.totalAmount)}
                   </span>
                 </div>
@@ -156,7 +178,7 @@ export default function MyOrders() {
                 <div className="flex items-center gap-2">
                   <Link
                     to={`/user/orders/${order._id}/invoice`}
-                    className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-xs font-bold text-amber-400 border border-amber-500/30 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 border border-slate-200 transition-all active:scale-95 shadow-2xs"
                     title="Download / View Tax Invoice"
                   >
                     <FileText className="w-3.5 h-3.5" />
@@ -164,10 +186,10 @@ export default function MyOrders() {
                   </Link>
                   <Link
                     to={`/user/orders/${order._id}`}
-                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-100 transition-colors border border-slate-700"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-xs font-black text-slate-950 transition-all active:scale-95 shadow-xs"
                   >
-                    View Details & OTP
-                    <ArrowRight className="w-3.5 h-3.5 text-brand-400" />
+                    <span>Track & OTP</span>
+                    <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
                   </Link>
                 </div>
               </div>

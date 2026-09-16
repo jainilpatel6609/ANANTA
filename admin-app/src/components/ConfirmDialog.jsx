@@ -14,41 +14,45 @@ export default function ConfirmDialog({
 }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth="max-w-md">
-      <div className="flex items-start gap-4">
-        <div
-          className={`p-3 rounded-xl shrink-0 ${
-            isDestructive ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-amber-500/10 text-brand-400 border border-brand-500/20'
-          }`}
-        >
-          <AlertTriangle className="w-6 h-6" />
+      <div className="space-y-4">
+        <div className="flex items-start gap-3.5">
+          <div
+            className={`p-3 rounded-2xl shrink-0 border ${
+              isDestructive
+                ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+                : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+            }`}
+          >
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm text-slate-300 leading-relaxed font-medium">{message}</p>
+          </div>
         </div>
-        <div className="space-y-2">
-          <p className="text-sm text-slate-300">{message}</p>
-        </div>
-      </div>
 
-      <div className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-4 py-2 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors"
-        >
-          {cancelText}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            onConfirm();
-            onClose();
-          }}
-          className={`px-4 py-2 rounded-xl text-sm font-bold text-white transition-colors shadow-lg ${
-            isDestructive
-              ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-900/30'
-              : 'bg-brand-500 hover:bg-brand-400 text-slate-950 font-bold shadow-brand-500/20'
-          }`}
-        >
-          {confirmText}
-        </button>
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-4 border-t border-slate-800/80">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full sm:w-auto px-5 py-3 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800/80 active:scale-95 transition-all text-center"
+          >
+            {cancelText}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onConfirm();
+              onClose();
+            }}
+            className={`w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-extrabold transition-all shadow-lg active:scale-95 text-center ${
+              isDestructive
+                ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-900/40'
+                : 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/25'
+            }`}
+          >
+            {confirmText}
+          </button>
+        </div>
       </div>
     </Modal>
   );

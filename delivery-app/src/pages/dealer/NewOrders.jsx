@@ -278,8 +278,8 @@ export default function NewOrders() {
                       Payment Verified & Placed
                     </span>
                     {isAssignedToMe && (
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500 text-slate-950 uppercase tracking-wider animate-pulse">
-                        ⭐ Nearest Assigned Depot
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wide">
+                        Nearest Depot
                       </span>
                     )}
                   </div>
@@ -288,12 +288,12 @@ export default function NewOrders() {
                     {/* Live 15-Minute Response SLA Countdown */}
                     {timeInfo && (
                       <div
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-black ${
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold ${
                           timeInfo.diffSec <= 180
-                            ? 'bg-red-500/20 text-red-400 border border-red-500/40 animate-ping'
+                            ? 'bg-red-950/40 text-red-300 border border-red-800/50'
                             : timeInfo.diffSec <= 600
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                            : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            ? 'bg-amber-950/40 text-amber-300 border border-amber-800/50'
+                            : 'bg-emerald-950/40 text-emerald-300 border border-emerald-800/50'
                         }`}
                       >
                         <Clock className="w-3.5 h-3.5" />
@@ -396,7 +396,7 @@ export default function NewOrders() {
                   <button
                     type="button"
                     onClick={() => openAcceptModal(order)}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 font-black text-sm transition-all shadow-lg shadow-brand-500/20 cursor-pointer active:scale-95"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs sm:text-sm transition-all shadow-sm cursor-pointer active:scale-95"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>Accept Order & Claim Dispatch</span>

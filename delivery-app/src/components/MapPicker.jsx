@@ -805,8 +805,8 @@ export default function MapPicker({
     <div className="space-y-3">
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-        <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-          <MapPin className="w-4 h-4 text-amber-400" />
+        <label className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+          <MapPin className="w-4 h-4 text-amber-600" />
           <span>Set Exact Delivery Location on Google Maps</span>
         </label>
 
@@ -815,7 +815,7 @@ export default function MapPicker({
           type="button"
           onClick={handleSyncAddress}
           disabled={isSearching || locatingActive || isReverseGeocoding}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition-all shadow-md shadow-amber-500/10 disabled:opacity-50 active:scale-95 cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all shadow-sm disabled:opacity-50 active:scale-95 cursor-pointer"
           title="Sync manual address to map location"
         >
           {isSearching || isReverseGeocoding ? (
@@ -832,9 +832,9 @@ export default function MapPicker({
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
             {isSearching || isReverseGeocoding || isSearchingSuggestions ? (
-              <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+              <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
             ) : (
-              <Search className="w-4 h-4 text-amber-400" />
+              <Search className="w-4 h-4 text-amber-500" />
             )}
           </div>
           <input
@@ -845,8 +845,8 @@ export default function MapPicker({
             onFocus={() => {
               if (suggestions.length > 0) setShowSuggestions(true);
             }}
-            placeholder="Search address, site, road, highway..."
-            className="w-full pl-10 pr-10 py-3 rounded-2xl bg-slate-950/95 border border-slate-700 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 transition-all shadow-xl"
+            placeholder="Search site address, landmark, highway, or area..."
+            className="w-full pl-10 pr-10 py-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all shadow-sm"
           />
           {searchValue && (
             <button
@@ -856,7 +856,7 @@ export default function MapPicker({
                 setSuggestions([]);
                 setShowSuggestions(false);
               }}
-              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white cursor-pointer"
+              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-700 cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -865,26 +865,26 @@ export default function MapPicker({
 
         {/* Fallback Autocomplete Suggestions Dropdown */}
         {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden z-50 max-h-60 overflow-y-auto">
+          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-50 max-h-60 overflow-y-auto">
             {suggestions.map((item, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => handleSelectCustomSuggestion(item)}
-                className="w-full text-left px-4 py-2.5 hover:bg-slate-800/80 border-b border-slate-800/50 last:border-0 transition-colors flex items-start gap-2.5 cursor-pointer"
+                className="w-full text-left px-4 py-2.5 hover:bg-amber-50/50 border-b border-slate-100 last:border-0 transition-colors flex items-start gap-2.5 cursor-pointer"
               >
-                <MapPin className={`w-4 h-4 shrink-0 mt-0.5 ${item.isGooglePlace ? 'text-red-400' : 'text-amber-400'}`} />
+                <MapPin className={`w-4 h-4 shrink-0 mt-0.5 ${item.isGooglePlace ? 'text-amber-600' : 'text-slate-500'}`} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold text-white truncate">{item.title}</div>
-                  <div className="text-[11px] text-slate-400 truncate">{item.subtitle || item.formattedAddress}</div>
+                  <div className="text-xs font-bold text-slate-900 truncate">{item.title}</div>
+                  <div className="text-[11px] text-slate-500 truncate">{item.subtitle || item.formattedAddress}</div>
                 </div>
                 {item.isGooglePlace && (
-                  <span className="text-[9px] font-bold bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 shrink-0">
+                  <span className="text-[9px] font-bold bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200 shrink-0">
                     Google Maps
                   </span>
                 )}
                 {item.pincode && (
-                  <span className="text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md shrink-0">
+                  <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md shrink-0">
                     {item.pincode}
                   </span>
                 )}
@@ -897,34 +897,34 @@ export default function MapPicker({
       {/* Status Feedback Banner */}
       {activeStatus && activeStatus.text && (
         <div
-          className={`p-3 rounded-2xl border flex items-start gap-2.5 text-xs transition-all shadow-md ${
+          className={`p-3 rounded-xl border flex items-start gap-2.5 text-xs transition-all shadow-sm ${
             activeStatus.type === 'success'
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
               : activeStatus.type === 'warning'
-              ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+              ? 'bg-amber-50 border-amber-200 text-amber-800'
               : activeStatus.type === 'error'
-              ? 'bg-red-500/10 border-red-500/30 text-red-300'
-              : 'bg-slate-900 border-slate-800 text-slate-300'
+              ? 'bg-rose-50 border-rose-200 text-rose-800'
+              : 'bg-slate-100 border-slate-200 text-slate-700'
           }`}
         >
           {activeStatus.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
           ) : (
-            <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
           )}
           <span className="font-medium leading-relaxed">{activeStatus.text}</span>
         </div>
       )}
 
-      {/* Google Maps Container */}
-      <div className="h-72 sm:h-96 w-full rounded-3xl overflow-hidden border-2 border-slate-700/80 shadow-2xl relative z-10 select-none bg-slate-950">
+      {/* Google Maps Container (Spacious 380px+ height) */}
+      <div className="h-80 sm:h-[400px] w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm relative z-10 select-none bg-slate-100">
         <div ref={mapContainerRef} className="h-full w-full" />
 
         {/* Loading Spinner overlay before Google Maps mounts */}
         {!mapLoaded && !mapError && (
-          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center gap-3 text-slate-400">
-            <Loader2 className="w-8 h-8 animate-spin text-amber-400" />
-            <span className="text-xs font-bold text-slate-300">Loading Google Maps Platform...</span>
+          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center gap-3 text-slate-500">
+            <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+            <span className="text-xs font-bold text-slate-700">Loading Google Maps Platform...</span>
           </div>
         )}
 
@@ -933,22 +933,22 @@ export default function MapPicker({
           type="button"
           onClick={handleCurrentGPS}
           disabled={locatingActive || isReverseGeocoding}
-          className="absolute bottom-4 right-4 z-[400] px-4 py-2.5 rounded-2xl bg-slate-900/95 hover:bg-slate-800/95 backdrop-blur-xl border border-slate-700 text-xs font-black text-emerald-400 flex items-center gap-2 shadow-2xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 group cursor-pointer"
+          className="absolute bottom-4 right-4 z-[400] px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 backdrop-blur-md border border-slate-200 text-xs font-bold text-emerald-700 flex items-center gap-2 shadow-lg transition-all active:scale-95 disabled:opacity-50 group cursor-pointer"
           title="Use My Current Location via GPS"
         >
           {locatingActive ? (
-            <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+            <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
           ) : (
-            <Crosshair className="w-4 h-4 text-emerald-400 group-hover:rotate-45 transition-transform" />
+            <Crosshair className="w-4 h-4 text-emerald-600 group-hover:rotate-45 transition-transform" />
           )}
           <span>{locatingActive ? 'Detecting GPS...' : 'Use My Current Location'}</span>
         </button>
 
         {/* Real-Time Location Pill at Bottom Left */}
         <div className="absolute bottom-4 left-4 z-[400] max-w-[65%] sm:max-w-[70%] pointer-events-none">
-          <div className="px-3.5 py-2 rounded-2xl bg-slate-950/90 backdrop-blur-md border border-slate-800 text-[11px] font-medium text-slate-300 flex items-center gap-2 shadow-2xl truncate">
-            <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0 animate-pulse" />
-            <span className="truncate font-mono text-[10px] text-amber-300">
+          <div className="px-3.5 py-2 rounded-xl bg-white/95 backdrop-blur-md border border-slate-200 text-[11px] font-medium text-slate-700 flex items-center gap-2 shadow-md truncate">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+            <span className="truncate font-mono text-[10px] text-slate-600">
               {coordinates?.lat ? Number(coordinates.lat).toFixed(5) : '0.00000'},{' '}
               {coordinates?.lng ? Number(coordinates.lng).toFixed(5) : '0.00000'}
             </span>
@@ -957,12 +957,12 @@ export default function MapPicker({
       </div>
 
       {/* Helper Footer */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-slate-400 px-1">
-        <span>💡 Drag the Delivery Spot marker or click on Google Map to pinpoint exact unloading spot.</span>
-        <span className="font-mono text-slate-500">
-          Lat: <strong className="text-amber-400">{coordinates?.lat ? Number(coordinates.lat).toFixed(5) : '—'}</strong>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-slate-500 px-1">
+        <span>💡 Drag the marker or tap on map to pinpoint exact unloading spot.</span>
+        <span className="font-mono text-slate-600">
+          Lat: <strong className="text-amber-700 font-bold">{coordinates?.lat ? Number(coordinates.lat).toFixed(5) : '—'}</strong>
           , Lng:{' '}
-          <strong className="text-amber-400">{coordinates?.lng ? Number(coordinates.lng).toFixed(5) : '—'}</strong>
+          <strong className="text-amber-700 font-bold">{coordinates?.lng ? Number(coordinates.lng).toFixed(5) : '—'}</strong>
         </span>
       </div>
     </div>

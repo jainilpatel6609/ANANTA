@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 export default function OrderAlarmBanner({
   role = 'DEALER',
   count = 1,
-  type = 'NEW_ORDER', // 'NEW_ORDER' | 'DEALER_DECLINED' | 'DEALER_TIMEOUT'
+  type = 'NEW_ORDER',
   latestOrder = null,
   isMuted = false,
   onToggleMute = () => {},
@@ -14,62 +14,62 @@ export default function OrderAlarmBanner({
   const isDealer = role === 'DEALER';
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 p-4 text-white shadow-2xl animate-pulse border-2 border-red-400">
-      {/* Background industrial diagonal stripes effect */}
-      <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(0,0,0,0.08)_25%,transparent_25%,transparent_50%,rgba(0,0,0,0.08)_50%,rgba(0,0,0,0.08)_75%,transparent_75%,transparent)] [background-size:24px_24px] pointer-events-none" />
+    <div className="relative overflow-hidden rounded-3xl bg-slate-900 border border-red-500/40 p-4 sm:p-5 text-white shadow-classic my-3">
+      {/* Subtle red tint glow */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-red-500/80" />
 
       <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        {/* Icon and Title */}
-        <div className="flex items-start md:items-center gap-3.5">
-          <div className="p-2.5 rounded-xl bg-white/20 backdrop-blur-md text-white shadow-inner animate-bounce">
+        {/* Left Side Info */}
+        <div className="flex items-start gap-3.5 flex-1">
+          <div className="p-2.5 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-400 shrink-0">
             {isDealer ? (
-              <BellRing className="w-6 h-6" />
+              <BellRing className="w-5 h-5" />
             ) : type === 'DEALER_DECLINED' ? (
-              <ShieldAlert className="w-6 h-6 text-yellow-200" />
+              <ShieldAlert className="w-5 h-5 text-red-400" />
             ) : (
-              <AlertTriangle className="w-6 h-6" />
+              <AlertTriangle className="w-5 h-5" />
             )}
           </div>
 
-          <div>
+          <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-full bg-white text-red-700 text-[10px] font-black uppercase tracking-wider shadow-sm">
+              <span className="px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-300 text-[11px] font-semibold border border-red-500/30 uppercase tracking-wide">
                 {isDealer
-                  ? '🚨 URGENT: NEW ORDER ASSIGNED'
+                  ? 'New Order Dispatch'
                   : type === 'DEALER_DECLINED'
-                  ? '🚨 IMMEDIATE ESCALATION: DEALER DECLINED'
-                  : '🚨 15-MIN TIMEOUT ESCALATION'}
+                  ? 'Dealer Declined'
+                  : 'Response Timeout'}
               </span>
-              <span className="text-xs font-bold text-red-100 font-mono">
+              <span className="text-xs font-medium text-slate-400 font-mono">
                 {count} {count === 1 ? 'Action Required' : 'Orders Need Attention'}
               </span>
             </div>
 
-            <p className="text-sm font-black text-white mt-1 leading-snug">
+            <p className="text-xs sm:text-sm font-semibold text-slate-200 leading-snug">
               {isDealer ? (
                 <>
-                  New nearest delivery order assigned to your depot! Respond within 15 minutes.
+                  New nearest delivery order assigned to your depot. Please respond within 15 minutes.
                   {latestOrder && (
-                    <span className="block text-xs font-semibold text-red-100 mt-0.5">
-                      Order #{latestOrder.orderNumber} • {latestOrder.productNameSnapshot} • Delivery PIN: {latestOrder.pincode}
+                    <span className="block text-[11px] font-normal text-slate-400 mt-0.5 truncate">
+                      #{latestOrder.orderNumber} • {latestOrder.productNameSnapshot} • PIN: {latestOrder.pincode}
                     </span>
                   )}
                 </>
               ) : type === 'DEALER_DECLINED' ? (
                 <>
-                  Dealer declined a customer order! Immediate Admin intervention required.
+                  A dealer has declined a customer order. Immediate re-routing required.
                   {latestOrder && (
-                    <span className="block text-xs font-semibold text-red-100 mt-0.5">
-                      Order #{latestOrder.orderNumber} • Declined by: {latestOrder.assignedDealerId?.companyName || latestOrder.assignedDealerId?.name || 'Assigned Dealer'}
+                    <span className="block text-[11px] font-normal text-slate-400 mt-0.5 truncate">
+                      #{latestOrder.orderNumber} • Declined by: {latestOrder.assignedDealerId?.companyName || latestOrder.assignedDealerId?.name || 'Assigned Dealer'}
                     </span>
                   )}
                 </>
               ) : (
                 <>
-                  Dealer failed to respond within 15 minutes! Reassignment required.
+                  Dealer failed to respond within 15 minutes. Dispatch reassignment needed.
                   {latestOrder && (
-                    <span className="block text-xs font-semibold text-red-100 mt-0.5">
-                      Order #{latestOrder.orderNumber} • Assigned to: {latestOrder.assignedDealerId?.companyName || latestOrder.assignedDealerId?.name}
+                    <span className="block text-[11px] font-normal text-slate-400 mt-0.5 truncate">
+                      #{latestOrder.orderNumber} • Assigned to: {latestOrder.assignedDealerId?.companyName || latestOrder.assignedDealerId?.name}
                     </span>
                   )}
                 </>
@@ -78,39 +78,28 @@ export default function OrderAlarmBanner({
           </div>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-2.5 w-full md:w-auto justify-end">
-          {/* Mute/Unmute Audio Button */}
+        {/* Right Side Action Buttons */}
+        <div className="flex items-center gap-2.5 w-full md:w-auto justify-end shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
           <button
             type="button"
             onClick={onToggleMute}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-md ${
+            className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all active:scale-95 border ${
               isMuted
-                ? 'bg-white/20 hover:bg-white/30 text-white'
-                : 'bg-white text-red-700 hover:bg-red-50'
+                ? 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+                : 'bg-red-500/15 text-red-300 border-red-500/30 hover:bg-red-500/25'
             }`}
             title={isMuted ? 'Unmute alarm audio' : 'Silence alarm sound'}
           >
-            {isMuted ? (
-              <>
-                <VolumeX className="w-4 h-4" />
-                <span>Audio Muted</span>
-              </>
-            ) : (
-              <>
-                <Volume2 className="w-4 h-4 animate-ping" />
-                <span>Silence Alarm</span>
-              </>
-            )}
+            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            <span>{isMuted ? 'Muted' : 'Silence'}</span>
           </button>
 
-          {/* Quick Nav Button */}
           {isDealer ? (
             <Link
               to="/dealer/new-orders"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-950 hover:bg-slate-900 text-amber-400 text-xs font-black transition-all shadow-lg"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold transition-all shadow-sm active:scale-95 min-h-[38px]"
             >
-              <span>View & Accept</span>
+              <span>Review Order</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           ) : (
@@ -118,7 +107,7 @@ export default function OrderAlarmBanner({
               <button
                 type="button"
                 onClick={() => onAcknowledge(latestOrder._id)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-950 hover:bg-slate-900 text-amber-400 text-xs font-black transition-all shadow-lg"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold transition-all shadow-sm active:scale-95 min-h-[38px]"
               >
                 <span>Acknowledge</span>
               </button>
@@ -129,4 +118,3 @@ export default function OrderAlarmBanner({
     </div>
   );
 }
-

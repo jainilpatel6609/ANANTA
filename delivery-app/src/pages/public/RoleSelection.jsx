@@ -61,132 +61,125 @@ export default function RoleSelection({ onSelectRole }) {
       badgeClass: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
       btnClass: 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/25',
       features: [
-        { icon: Clock, text: '15-Min Real-Time Order Alarm' },
-        { icon: Truck, text: 'Driver & Vehicle Assignment' },
-        { icon: MapPin, text: 'Pincode Zone Auto-Routing' }
+        { icon: Clock, text: 'Live Order Pool & 15-min Alarms' },
+        { icon: KeyRound, text: 'Customer Delivery OTP Verification' },
+        { icon: Truck, text: 'Tipper & Tractor Fleet Dispatch' }
       ]
     },
     {
       key: 'DRIVER',
-      title: 'Fleet Driver Portal',
-      roleLabel: 'Delivery Navigation',
-      subtitle: 'Turn-by-Turn GPS Route & Customer OTP Verification',
+      title: 'Driver Console',
+      roleLabel: 'Fleet Driver',
+      subtitle: 'Fast Driver Login with Live Route & Customer OTP',
       icon: Navigation,
-      badge: 'Live Navigation',
-      themeColor: 'sky',
-      bgGradient: 'from-sky-500/15 via-sky-500/5 to-slate-900',
-      borderClass: 'border-sky-500/30 hover:border-sky-400 hover:shadow-sky-500/20',
-      iconBg: 'bg-sky-500/20 text-sky-400 border border-sky-500/30',
-      badgeClass: 'bg-sky-500/10 text-sky-400 border-sky-500/30',
-      btnClass: 'bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-sky-500/25',
+      badge: 'Fleet Transit',
+      themeColor: 'cyan',
+      bgGradient: 'from-cyan-500/15 via-cyan-500/5 to-slate-900',
+      borderClass: 'border-cyan-500/30 hover:border-cyan-400 hover:shadow-cyan-500/20',
+      iconBg: 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30',
+      badgeClass: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
+      btnClass: 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-cyan-500/25',
       features: [
-        { icon: Navigation, text: 'One-Tap Google Maps Route' },
-        { icon: KeyRound, text: '6-Digit Delivery OTP Handover' },
-        { icon: PhoneCall, text: 'Direct Customer Calling' }
+        { icon: MapPin, text: 'Turn-by-turn Site Navigation' },
+        { icon: KeyRound, text: 'Verify 6-digit Customer OTP' },
+        { icon: ShieldCheck, text: 'Proof of Delivery Photo Upload' }
       ]
     }
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between py-6 px-4 sm:px-6 selection:bg-amber-500 selection:text-slate-950">
-      <div className="w-full max-w-xl mx-auto space-y-6">
-        {/* Mobile-Friendly App Header */}
-        <div className="text-center space-y-3 pt-2">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 shadow-xl shadow-amber-500/20 ring-4 ring-amber-500/10">
-            <Truck className="w-8 h-8 stroke-[2.5]" />
-          </div>
+    <div className="min-h-screen bg-slate-950 flex flex-col justify-between p-4 sm:p-8 relative overflow-hidden select-none">
+      {/* Background Ambience Glow */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-brand-500/10 blur-[130px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-10 left-10 w-72 h-72 bg-emerald-500/5 blur-[100px] rounded-full pointer-events-none" />
 
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[11px] font-bold text-amber-400 uppercase tracking-wider mb-2">
-              <Sparkles className="w-3.5 h-3.5" /> Direct Riverbed & Fleet Platform
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-display">
-              ANANTA <span className="text-amber-400">TRADERS</span>
-            </h1>
-            <p className="text-xs text-slate-400 font-medium mt-1">
-              Select your role to access your dedicated mobile workspace
-            </p>
-          </div>
+      {/* Top Header */}
+      <div className="relative z-10 max-w-4xl mx-auto w-full pt-4 sm:pt-6 text-center space-y-3">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-brand-500/30 text-brand-400 text-xs font-black uppercase tracking-wider shadow-lg shadow-brand-500/10">
+          <Sparkles className="w-4 h-4 text-brand-400 animate-pulse" />
+          Gateway To Gujarat's Construction Fleet
         </div>
 
-        {/* Vertical Stacked Mobile Cards */}
-        <div className="space-y-4">
-          {roles.map((role) => {
-            const Icon = role.icon;
-            return (
-              <div
-                key={role.key}
-                onClick={() => handleSelect(role.key)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && handleSelect(role.key)}
-                className={`group relative bg-gradient-to-br ${role.bgGradient} bg-slate-900/90 border ${role.borderClass} rounded-2xl p-5 shadow-xl transition-all duration-200 active:scale-[0.98] cursor-pointer`}
-              >
-                {/* Card Top Row */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3.5">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-lg ${role.iconBg}`}>
-                      <Icon className="w-6 h-6 stroke-[2.2]" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-black text-white font-display group-hover:text-amber-400 transition-colors">
-                          {role.title}
-                        </h2>
-                        <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${role.badgeClass}`}>
-                          {role.badge}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-300 font-medium line-clamp-1 mt-0.5">
-                        {role.subtitle}
-                      </p>
-                    </div>
-                  </div>
+        <h1 className="text-3xl sm:text-5xl font-black text-white font-display tracking-tight">
+          ANANTA <span className="text-brand-400">TRADERS</span>
+        </h1>
 
-                  <div className="hidden sm:flex items-center justify-center w-8 h-8 rounded-full bg-slate-800/80 text-slate-400 group-hover:text-white group-hover:bg-slate-700 transition-all">
-                    <ChevronRight className="w-4 h-4" />
+        <p className="text-xs sm:text-sm font-medium text-slate-400 max-w-md mx-auto leading-relaxed">
+          Select your operational role below to enter your dedicated material management portal.
+        </p>
+      </div>
+
+      {/* Role Cards Grid */}
+      <div className="relative z-10 max-w-4xl mx-auto w-full py-8 grid grid-cols-1 md:grid-cols-3 gap-5">
+        {roles.map((role) => {
+          const Icon = role.icon;
+          return (
+            <div
+              key={role.key}
+              onClick={() => handleSelect(role.key)}
+              className={`relative overflow-hidden bg-gradient-to-b ${role.bgGradient} backdrop-blur-xl border rounded-3xl p-6 sm:p-7 flex flex-col justify-between shadow-2xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer group ${role.borderClass}`}
+            >
+              <div className="space-y-4">
+                {/* Header with icon and role badge */}
+                <div className="flex items-center justify-between">
+                  <div className={`p-3 rounded-2xl ${role.iconBg} shadow-inner group-hover:scale-110 transition-transform`}>
+                    <Icon className="w-7 h-7" />
                   </div>
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${role.badgeClass}`}>
+                    {role.badge}
+                  </span>
                 </div>
 
-                {/* Feature Pills */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4 pt-3.5 border-t border-slate-800/80">
+                {/* Role Title & Description */}
+                <div>
+                  <h3 className="text-xl font-black text-white font-display tracking-tight group-hover:text-brand-300 transition-colors">
+                    {role.title}
+                  </h3>
+                  <div className="text-xs font-bold text-slate-400 mt-0.5">{role.roleLabel}</div>
+                  <p className="text-xs text-slate-400 mt-2 font-medium leading-relaxed">{role.subtitle}</p>
+                </div>
+
+                {/* Features List */}
+                <div className="pt-3 border-t border-slate-800/80 space-y-2.5">
                   {role.features.map((feat, idx) => {
                     const FeatIcon = feat.icon;
                     return (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-1.5 text-[11px] text-slate-300 font-medium bg-slate-950/60 px-2.5 py-1.5 rounded-lg border border-slate-800/60"
-                      >
-                        <FeatIcon className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <div key={idx} className="flex items-center gap-2.5 text-xs text-slate-300 font-medium">
+                        <FeatIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         <span className="truncate">{feat.text}</span>
                       </div>
                     );
                   })}
                 </div>
-
-                {/* Action Button */}
-                <div className="mt-4 pt-1">
-                  <div
-                    className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all group-hover:opacity-95 ${role.btnClass}`}
-                  >
-                    <span>Proceed to {role.title}</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
               </div>
-            );
-          })}
-        </div>
+
+              {/* Action Trigger Button */}
+              <div className="mt-6 pt-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSelect(role.key);
+                  }}
+                  className={`w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl text-xs font-black transition-all shadow-lg active:scale-95 ${role.btnClass}`}
+                >
+                  <span>Enter {role.title.split(' ')[0]}</span>
+                  <ArrowRight className="w-4 h-4 stroke-[2.5] group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Footer Info */}
-      <div className="w-full max-w-xl mx-auto text-center pt-6 pb-2 text-[11px] text-slate-500 space-y-1">
-        <p className="font-medium text-slate-400">
-          Need Dispatch Assistance? Call Helpline: <a href="tel:+919876543210" className="text-amber-400 hover:underline font-bold">+91 98765 43210</a>
-        </p>
-        <p className="text-slate-600">
-          ANANTA TRADERS • High Quality River Sand, Aggregate & Grit Delivery
-        </p>
+      {/* Footer / Quick Help */}
+      <div className="relative z-10 max-w-4xl mx-auto w-full pt-4 pb-2 border-t border-slate-900 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div>Quality Materials • Reliable Delivery • 100% Genuine Royalty</div>
+        <div className="flex items-center gap-4">
+          <a href="tel:+919876543210" className="text-slate-400 hover:text-brand-400 transition-colors font-bold">
+            Dispatch Helpline: +91 98765 43210
+          </a>
+        </div>
       </div>
     </div>
   );

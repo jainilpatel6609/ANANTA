@@ -9,20 +9,27 @@ export default function EmptyState({
   icon: Icon = PackageOpen
 }) {
   return (
-    <div className="flex flex-col items-center justify-center p-12 text-center bg-slate-900/40 border border-slate-800/80 rounded-2xl">
-      <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700 text-slate-400 mb-4">
-        <Icon className="w-8 h-8 text-brand-500" />
+    <div className="relative overflow-hidden flex flex-col items-center justify-center p-8 sm:p-12 text-center bg-slate-900/60 backdrop-blur-md border border-slate-800/90 rounded-3xl shadow-lg my-4">
+      {/* Background radial glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-brand-500/5 rounded-full blur-2xl pointer-events-none" />
+
+      <div className="relative z-10 flex flex-col items-center">
+        <div className="p-4 sm:p-5 rounded-2xl bg-slate-800/80 border border-slate-700/80 text-brand-400 mb-4 shadow-inner shadow-black/40">
+          <Icon className="w-8 h-8 sm:w-10 sm:h-10 text-brand-400" />
+        </div>
+        <h4 className="text-base sm:text-lg font-black text-white font-display tracking-tight">{title}</h4>
+        <p className="text-xs sm:text-sm text-slate-400 max-w-sm mt-1.5 font-medium leading-relaxed">{description}</p>
+        
+        {actionText && onAction && (
+          <button
+            type="button"
+            onClick={onAction}
+            className="mt-6 px-6 py-3 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 text-xs font-black transition-all shadow-lg shadow-brand-500/25 active:scale-95"
+          >
+            {actionText}
+          </button>
+        )}
       </div>
-      <h4 className="text-base font-bold text-slate-200">{title}</h4>
-      <p className="text-xs text-slate-400 max-w-sm mt-1">{description}</p>
-      {actionText && onAction && (
-        <button
-          onClick={onAction}
-          className="mt-5 px-4 py-2 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 text-xs font-bold transition-colors shadow-md shadow-brand-500/10"
-        >
-          {actionText}
-        </button>
-      )}
     </div>
   );
 }
