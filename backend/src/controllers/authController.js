@@ -721,13 +721,21 @@ const updateProfile = async (req, res) => {
       if (!PincodeService.isValidIndianPincode(cleanPin)) {
         return errorResponse(res, 'Invalid 6-digit Indian PIN code format (e.g. 384001).', 400);
       }
+      // Only re-geocode from the PIN code when it actually changed, or no coordinates exist yet.
+      // Otherwise this would silently overwrite a dealer's precise live-GPS location
+      // (set via /api/auth/live-location) with the much coarser PIN-code centroid
+      // on every unrelated profile save (e.g. just updating ratePerKm).
+      const pincodeChanged = cleanPin !== (user.pincode || '').trim();
+      const hasNoCoords = user.latitude === null || user.latitude === undefined || user.longitude === null || user.longitude === undefined;
       user.pincode = cleanPin;
-      const pinGeo = await PincodeService.lookup(cleanPin);
-      if (pinGeo) {
-        user.latitude = pinGeo.latitude;
-        user.longitude = pinGeo.longitude;
-        if (!user.city) user.city = pinGeo.city;
-        if (!user.state) user.state = pinGeo.state;
+      if (pincodeChanged || hasNoCoords) {
+        const pinGeo = await PincodeService.lookup(cleanPin);
+        if (pinGeo) {
+          user.latitude = pinGeo.latitude;
+          user.longitude = pinGeo.longitude;
+          if (!user.city) user.city = pinGeo.city;
+          if (!user.state) user.state = pinGeo.state;
+        }
       }
     } else if (user.role === 'DEALER' && !user.pincode) {
       return errorResponse(res, 'A 6-digit PIN code is mandatory for Dealer profile.', 400);
