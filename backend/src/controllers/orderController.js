@@ -51,7 +51,8 @@ const createOrder = async (req, res) => {
       placeId: rawPlaceId,
       placeName: rawPlaceName,
       gpsAccuracy: rawGpsAccuracy,
-      deliveryInstructions
+      deliveryInstructions,
+      dealerId: customerSelectedDealerId
     } = req.body;
 
     // 1. Validate Material / Product from MongoDB
@@ -262,12 +263,39 @@ const createOrder = async (req, res) => {
       }
     }
 
-    // 7. Geographically Nearest Dealer Calculation (Haversine Formula)
-    const activeDealers = await User.find({ role: 'DEALER', isActive: true, isDeleted: { $ne: true } });
-    const { nearestDealer, distanceKm } = await PincodeService.findNearestDealer(
-      { latitude: finalLat, longitude: finalLng },
-      activeDealers
-    );
+    // 7. Dealer Assignment: use the customer-selected dealer when provided (from the
+    // "Select Dealer" pricing step), else fall back to geographically nearest (Haversine).
+    let nearestDealer = null;
+    let distanceKm = null;
+
+    if (customerSelectedDealerId) {
+      const selectedDealer = await User.findOne({
+        _id: customerSelectedDealerId,
+        role: 'DEALER',
+        isActive: true,
+        isDeleted: { $ne: true }
+      });
+      if (!selectedDealer) {
+        return errorResponse(res, 'The selected dealer is no longer available. Please choose another dealer.', 400);
+      }
+      if (selectedDealer.latitude !== null && selectedDealer.longitude !== null) {
+        distanceKm = PincodeService.calculateHaversineDistanceKm(
+          finalLat,
+          finalLng,
+          selectedDealer.latitude,
+          selectedDealer.longitude
+        );
+      }
+      nearestDealer = selectedDealer;
+    } else {
+      const activeDealers = await User.find({ role: 'DEALER', isActive: true, isDeleted: { $ne: true } });
+      const result = await PincodeService.findNearestDealer(
+        { latitude: finalLat, longitude: finalLng },
+        activeDealers
+      );
+      nearestDealer = result.nearestDealer;
+      distanceKm = result.distanceKm;
+    }
 
     // 8. Generate human-readable unique order number & Initialize Razorpay order
     const orderNumber = await generateOrderNumber();

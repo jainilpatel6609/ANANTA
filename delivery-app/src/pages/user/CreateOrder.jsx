@@ -92,6 +92,11 @@ export default function CreateOrder() {
   const [gpsAccuracy, setGpsAccuracy] = useState(null);
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
 
+  // Dealer Selection (price per ton = dealer's ratePerKm * distance to shipping address)
+  const [dealers, setDealers] = useState([]);
+  const [loadingDealers, setLoadingDealers] = useState(false);
+  const [selectedDealerId, setSelectedDealerId] = useState('');
+
   // Two-Way Location & Map Synchronization States
   const [mapStatus, setMapStatus] = useState(null); // { type: 'success' | 'warning' | 'error' | 'info', text: string }
   const [isSearchingMap, setIsSearchingMap] = useState(false);
@@ -725,6 +730,22 @@ export default function CreateOrder() {
     }
   };
 
+  const fetchDealersForOrder = async () => {
+    setLoadingDealers(true);
+    try {
+      const res = await pincodeService.getDealersForOrder(coordinates.lat, coordinates.lng);
+      const list = res.data?.dealers || [];
+      setDealers(list);
+      if (list.length > 0 && !list.some((d) => d.dealerId === selectedDealerId)) {
+        setSelectedDealerId(list[0].dealerId);
+      }
+    } catch (err) {
+      toast.error('Failed to load dealers for this delivery location.');
+    } finally {
+      setLoadingDealers(false);
+    }
+  };
+
   const handleProceedToPayment = async () => {
     if (!shippingDetails.fullName || !shippingDetails.mobile || !shippingDetails.pincode || !shippingDetails.addressLine1) {
       toast.error('Please fill in all mandatory delivery site details.');
@@ -780,7 +801,8 @@ export default function CreateOrder() {
         placeId: placeId || undefined,
         placeName: placeName || undefined,
         gpsAccuracy: typeof gpsAccuracy === 'number' ? gpsAccuracy : undefined,
-        deliveryInstructions
+        deliveryInstructions,
+        dealerId: selectedDealerId || undefined
       };
 
       const res = await orderService.create(payload);
@@ -882,7 +904,8 @@ export default function CreateOrder() {
           { id: 4, title: 'Grain Size', icon: Sparkles },
           { id: 5, title: 'Capacity', icon: Building2 },
           { id: 6, title: 'Delivery', icon: Calendar },
-          { id: 7, title: 'Summary & Pay', icon: CreditCard }
+          { id: 7, title: 'Select Dealer', icon: Building2 },
+          { id: 8, title: 'Summary & Pay', icon: CreditCard }
         ]
       : [
           { id: 1, title: 'Material', icon: Layers },
@@ -891,7 +914,8 @@ export default function CreateOrder() {
           { id: 4, title: 'Trolley', icon: Building2 },
           { id: 5, title: 'Quantity', icon: Clock },
           { id: 6, title: 'Delivery', icon: Calendar },
-          { id: 7, title: 'Summary & Pay', icon: CreditCard }
+          { id: 7, title: 'Select Dealer', icon: Building2 },
+          { id: 8, title: 'Summary & Pay', icon: CreditCard }
         ]
     : [
         { id: 1, title: 'Material', icon: Layers },
@@ -900,7 +924,8 @@ export default function CreateOrder() {
         { id: 4, title: selectedVehicleType === 'DUMPER' ? 'Sand Quality' : 'Trolley', icon: Sparkles },
         { id: 5, title: selectedVehicleType === 'DUMPER' ? 'Capacity' : 'Quantity', icon: Building2 },
         { id: 6, title: 'Delivery', icon: Calendar },
-        { id: 7, title: 'Summary & Pay', icon: CreditCard }
+        { id: 7, title: 'Select Dealer', icon: Building2 },
+        { id: 8, title: 'Summary & Pay', icon: CreditCard }
       ];
 
   const currentStepObj = dynamicSteps.find((s) => s.id === step) || dynamicSteps[0];
@@ -1809,11 +1834,79 @@ export default function CreateOrder() {
           </div>
         )}
 
-        {/* ================= STEP 7: ORDER SUMMARY & REVIEW ================= */}
+        {/* ================= STEP 7: SELECT DEALER ================= */}
         {step === 7 && (
           <div className="space-y-6">
             <div>
-              <span className="text-xs font-bold text-amber-600 uppercase tracking-widest">Step 7 of 7</span>
+              <span className="text-xs font-bold text-amber-600 uppercase tracking-widest">Step 7 of {dynamicSteps.length}</span>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">Select Dealer</h2>
+              <p className="text-xs sm:text-sm text-slate-500">
+                Price per ton = dealer's rate per KM &times; distance from dealer to your shipping address.
+              </p>
+            </div>
+
+            {loadingDealers ? (
+              <div className="flex items-center justify-center py-12 text-slate-500 text-sm gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Finding dealers near your delivery address...</span>
+              </div>
+            ) : dealers.length === 0 ? (
+              <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center text-sm text-slate-500">
+                No active dealers found for this delivery location. Please go back and check your address, or contact support.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {dealers.map((dealer) => {
+                  const isSelected = selectedDealerId === dealer.dealerId;
+                  return (
+                    <button
+                      key={dealer.dealerId}
+                      type="button"
+                      onClick={() => setSelectedDealerId(dealer.dealerId)}
+                      className={`w-full text-left p-4 sm:p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 cursor-pointer ${
+                        isSelected
+                          ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-500/20'
+                          : 'border-slate-200 bg-white hover:border-amber-300'
+                      }`}
+                    >
+                      <div className="min-w-0 flex items-center gap-3">
+                        <div
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                            isSelected ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500'
+                          }`}
+                        >
+                          <Building2 className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-black text-slate-900 truncate">
+                            {dealer.companyName || dealer.name}
+                          </div>
+                          <div className="text-[11px] text-slate-500 font-mono">
+                            {dealer.city ? `${dealer.city} • ` : ''}
+                            {dealer.distanceKm != null ? `${dealer.distanceKm} km away` : 'Distance unavailable'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-base sm:text-lg font-black text-amber-700 font-mono">
+                          {formatINR(dealer.pricePerTon)}
+                        </div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Per Ton</div>
+                      </div>
+                      {isSelected && <Check className="w-5 h-5 text-amber-600 shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ================= STEP 8: ORDER SUMMARY & REVIEW ================= */}
+        {step === 8 && (
+          <div className="space-y-6">
+            <div>
+              <span className="text-xs font-bold text-amber-600 uppercase tracking-widest">Step 8 of {dynamicSteps.length}</span>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">Review Order Summary</h2>
               <p className="text-xs sm:text-sm text-slate-500">Verify all material specifications and delivery coordinates before payment.</p>
             </div>
@@ -1901,6 +1994,29 @@ export default function CreateOrder() {
               )}
             </div>
 
+            {/* Selected Dealer Info */}
+            {dealers.find((d) => d.dealerId === selectedDealerId) && (
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs shadow-sm">
+                <span className="text-slate-500 block uppercase font-bold text-[10px] tracking-wider">
+                  Assigned Dealer
+                </span>
+                {(() => {
+                  const dealer = dealers.find((d) => d.dealerId === selectedDealerId);
+                  return (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-bold text-slate-900">{dealer.companyName || dealer.name}</div>
+                        <div className="text-slate-500 font-mono text-[11px]">{dealer.distanceKm} km away</div>
+                      </div>
+                      <div className="text-amber-700 font-mono font-black text-sm">
+                        {formatINR(dealer.pricePerTon)} / ton
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
             {/* Price Breakdown */}
             <div className="p-6 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50/80 border border-amber-200 space-y-3 text-xs shadow-sm">
               <div className="flex items-center justify-between text-slate-600">
@@ -1938,7 +2054,7 @@ export default function CreateOrder() {
             <div />
           )}
 
-          {step < 7 ? (
+          {step < 8 ? (
             <button
               type="button"
               onClick={() => {
@@ -1949,6 +2065,13 @@ export default function CreateOrder() {
                   }
                   if (pincodeValidation.valid === false) {
                     toast.error('Please enter a valid 6-digit Indian PIN code.');
+                    return;
+                  }
+                  fetchDealersForOrder();
+                }
+                if (step === 7) {
+                  if (!selectedDealerId) {
+                    toast.error('Please select a dealer to continue.');
                     return;
                   }
                 }

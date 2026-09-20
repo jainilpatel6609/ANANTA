@@ -693,6 +693,7 @@ const updateProfile = async (req, res) => {
       city,
       state,
       pincode,
+      ratePerKm,
       currentPassword,
       newPassword,
       password
@@ -730,6 +731,14 @@ const updateProfile = async (req, res) => {
       }
     } else if (user.role === 'DEALER' && !user.pincode) {
       return errorResponse(res, 'A 6-digit PIN code is mandatory for Dealer profile.', 400);
+    }
+
+    if (ratePerKm !== undefined && user.role === 'DEALER') {
+      const cleanRate = Number(ratePerKm);
+      if (Number.isNaN(cleanRate) || cleanRate < 0) {
+        return errorResponse(res, 'Rate per KM must be a valid non-negative number.', 400);
+      }
+      user.ratePerKm = cleanRate;
     }
 
     if (officeAddress !== undefined) {

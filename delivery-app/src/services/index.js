@@ -134,5 +134,6 @@ export const pincodeService = {
   lookup: (pincode) => api.get(`/pincode/lookup/${pincode}`),
   getNearestDealer: (pincode) => api.get(`/pincode/nearest-dealer/${pincode}`),
   geocode: (q) => api.get('/pincode/geocode', { params: { q } }),
-  reverseGeocode: (lat, lng) => api.get('/pincode/reverse-geocode', { params: { lat, lng } })
+  reverseGeocode: (lat, lng) => api.get('/pincode/reverse-geocode', { params: { lat, lng } }),
+  getDealersForOrder: (lat, lng) => api.get('/pincode/dealers-for-order', { params: { lat, lng } })
 };

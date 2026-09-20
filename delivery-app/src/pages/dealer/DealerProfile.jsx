@@ -14,7 +14,8 @@ import {
   Lock,
   User,
   Mail,
-  Truck
+  Truck,
+  IndianRupee
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -32,6 +33,7 @@ export default function DealerProfile() {
     state: user?.state || 'Gujarat',
     pincode: user?.pincode || '',
     officeAddress: user?.officeAddress || '',
+    ratePerKm: user?.ratePerKm ?? 0,
     password: ''
   });
 
@@ -344,6 +346,37 @@ export default function DealerProfile() {
                   className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500 min-h-[44px]"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Delivery Pricing */}
+          <div className="space-y-4 pt-4 border-t border-slate-800/80">
+            <h3 className="text-xs font-bold text-amber-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-800 pb-2">
+              <IndianRupee className="w-4 h-4" />
+              <span>Delivery Pricing</span>
+            </h3>
+
+            <div>
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
+                Rate per KM (₹ per ton, per km)
+              </label>
+              <div className="relative max-w-xs">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                  <IndianRupee className="w-4 h-4" />
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="e.g. 12.5"
+                  value={formData.ratePerKm}
+                  onChange={(e) => setFormData({ ...formData, ratePerKm: e.target.value })}
+                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500 font-mono min-h-[44px]"
+                />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1.5">
+                Customers see: <strong className="text-slate-200">Price per ton = this rate &times; distance (km) to shipping address</strong>.
+              </p>
             </div>
           </div>
 

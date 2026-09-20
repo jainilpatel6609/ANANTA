@@ -121,4 +121,48 @@ router.get('/nearest-dealer/:pincode', async (req, res) => {
   }
 });
 
+// @desc    List active dealers with per-ton delivery price for a shipping location,
+//          computed as dealer.ratePerKm * distance(dealer -> shipping location) km.
+//          Sorted nearest (cheapest, typically) first.
+// @route   GET /api/pincode/dealers-for-order?lat=&lng=
+// @access  Public / Private
+router.get('/dealers-for-order', async (req, res) => {
+  try {
+    const { lat, lng } = req.query;
+
+    if (lat === undefined || lng === undefined) {
+      return errorResponse(res, 'Latitude and Longitude query parameters are required.', 400);
+    }
+
+    const shippingCoords = { lat: Number(lat), lng: Number(lng) };
+    if (Number.isNaN(shippingCoords.lat) || Number.isNaN(shippingCoords.lng)) {
+      return errorResponse(res, 'Latitude and Longitude must be valid numbers.', 400);
+    }
+
+    const activeDealers = await User.find({ role: 'DEALER', isActive: true });
+    const { dealersEvaluated } = await PincodeService.findNearestDealer(
+      shippingCoords,
+      activeDealers,
+      Number.MAX_SAFE_INTEGER
+    );
+
+    const dealers = dealersEvaluated.map((d) => {
+      const ratePerKm = Number(d.dealer.ratePerKm) || 0;
+      return {
+        dealerId: d.dealer._id,
+        name: d.dealer.name,
+        companyName: d.dealer.companyName,
+        city: d.dealer.city,
+        distanceKm: d.distanceKm,
+        ratePerKm,
+        pricePerTon: Math.round(ratePerKm * d.distanceKm * 100) / 100
+      };
+    });
+
+    return successResponse(res, 'Dealers with delivery pricing retrieved.', { dealers });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+});
+
 module.exports = router;
