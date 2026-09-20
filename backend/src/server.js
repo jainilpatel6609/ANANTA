@@ -112,6 +112,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/pincode', pincodeRoutes);
 app.use('/api/drivers', require('./routes/driverRoutes'));
+app.use('/api/dealer-transport', require('./routes/dealerTransportRoutes'));
 
 // Global Error Handler
 app.use(errorHandler);

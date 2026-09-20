@@ -7,7 +7,8 @@ import {
   vehicleConfigService,
   orderService,
   paymentService,
-  pincodeService
+  pincodeService,
+  dealerTransportService
 } from '../../services';
 import { formatINR } from '../../utils/formatters';
 import MapPicker from '../../components/MapPicker';
@@ -92,7 +93,7 @@ export default function CreateOrder() {
   const [gpsAccuracy, setGpsAccuracy] = useState(null);
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
 
-  // Dealer Selection (price per ton = dealer's ratePerKm * distance to shipping address)
+  // Dealer Selection (transport cost = dealer's configured rate for this Material+Location x distance to shipping address)
   const [dealers, setDealers] = useState([]);
   const [loadingDealers, setLoadingDealers] = useState(false);
   const [selectedDealerId, setSelectedDealerId] = useState('');
@@ -113,6 +114,7 @@ export default function CreateOrder() {
   // Derived selected objects
   const selectedMaterial = materials.find((m) => m._id === selectedMaterialId) || materials[0];
   const isAggregate = selectedMaterial?.category === 'Aggregate';
+  const selectedDealerForSummary = dealers.find((d) => d.dealerId === selectedDealerId) || null;
 
   // Fetch initial global data (materials and visibility settings)
   useEffect(() => {
@@ -731,13 +733,21 @@ export default function CreateOrder() {
   };
 
   const fetchDealersForOrder = async () => {
+    const sourcingLocationName = isAggregate && selectedVehicleType === 'TRACTOR' ? '' : (selectedLocation?.name || '');
     setLoadingDealers(true);
     try {
-      const res = await pincodeService.getDealersForOrder(coordinates.lat, coordinates.lng);
+      const res = await dealerTransportService.getEligibleDealers({
+        material: selectedMaterial?.category,
+        locationName: sourcingLocationName,
+        lat: coordinates.lat,
+        lng: coordinates.lng
+      });
       const list = res.data?.dealers || [];
       setDealers(list);
       if (list.length > 0 && !list.some((d) => d.dealerId === selectedDealerId)) {
         setSelectedDealerId(list[0].dealerId);
+      } else if (list.length === 0) {
+        setSelectedDealerId('');
       }
     } catch (err) {
       toast.error('Failed to load dealers for this delivery location.');
@@ -1841,7 +1851,8 @@ export default function CreateOrder() {
               <span className="text-xs font-bold text-amber-600 uppercase tracking-widest">Step 7 of {dynamicSteps.length}</span>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">Select Dealer</h2>
               <p className="text-xs sm:text-sm text-slate-500">
-                Price per ton = dealer's rate per KM &times; distance from dealer to your shipping address.
+                Transport cost = dealer's rate per KM for {selectedMaterial?.category}
+                {selectedLocation?.name && !(isAggregate && selectedVehicleType === 'TRACTOR') ? ` (${selectedLocation.name})` : ''} &times; distance to your shipping address.
               </p>
             </div>
 
@@ -1852,7 +1863,8 @@ export default function CreateOrder() {
               </div>
             ) : dealers.length === 0 ? (
               <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center text-sm text-slate-500">
-                No active dealers found for this delivery location. Please go back and check your address, or contact support.
+                No dealers currently offer transport for {selectedMaterial?.category}
+                {selectedLocation?.name ? ` from ${selectedLocation.name}` : ''}. A nearby dealer will be auto-assigned, or please contact support.
               </div>
             ) : (
               <div className="space-y-3">
@@ -1889,9 +1901,9 @@ export default function CreateOrder() {
                       </div>
                       <div className="text-right shrink-0">
                         <div className="text-base sm:text-lg font-black text-amber-700 font-mono">
-                          {formatINR(dealer.pricePerTon)}
+                          {formatINR(dealer.transportCost)}
                         </div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Per Ton</div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Transport Cost</div>
                       </div>
                       {isSelected && <Check className="w-5 h-5 text-amber-600 shrink-0" />}
                     </button>
@@ -1995,25 +2007,20 @@ export default function CreateOrder() {
             </div>
 
             {/* Selected Dealer Info */}
-            {dealers.find((d) => d.dealerId === selectedDealerId) && (
+            {selectedDealerForSummary && (
               <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs shadow-sm">
                 <span className="text-slate-500 block uppercase font-bold text-[10px] tracking-wider">
                   Assigned Dealer
                 </span>
-                {(() => {
-                  const dealer = dealers.find((d) => d.dealerId === selectedDealerId);
-                  return (
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-bold text-slate-900">{dealer.companyName || dealer.name}</div>
-                        <div className="text-slate-500 font-mono text-[11px]">{dealer.distanceKm} km away</div>
-                      </div>
-                      <div className="text-amber-700 font-mono font-black text-sm">
-                        {formatINR(dealer.pricePerTon)} / ton
-                      </div>
-                    </div>
-                  );
-                })()}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-bold text-slate-900">{selectedDealerForSummary.companyName || selectedDealerForSummary.name}</div>
+                    <div className="text-slate-500 font-mono text-[11px]">{selectedDealerForSummary.distanceKm} km away</div>
+                  </div>
+                  <div className="text-amber-700 font-mono font-black text-sm">
+                    {formatINR(selectedDealerForSummary.transportCost)}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -2024,8 +2031,10 @@ export default function CreateOrder() {
                 <span className="font-mono font-bold text-slate-900">{formatINR(subtotal)}</span>
               </div>
               <div className="flex items-center justify-between text-slate-600">
-                <span>Delivery & Weighbridge Freight:</span>
-                <span className="font-mono font-bold text-emerald-700">FREE / INCLUDED</span>
+                <span>Transport Cost:</span>
+                <span className="font-mono font-bold text-slate-900">
+                  {selectedDealerForSummary ? formatINR(selectedDealerForSummary.transportCost) : 'FREE / INCLUDED'}
+                </span>
               </div>
               <div className="flex items-center justify-between text-slate-600">
                 <span>Royalty Slips & GST:</span>
@@ -2033,7 +2042,9 @@ export default function CreateOrder() {
               </div>
               <div className="border-t border-amber-200 pt-3 flex items-center justify-between text-sm">
                 <span className="font-black text-slate-900 uppercase tracking-wider">Grand Total Amount:</span>
-                <span className="font-black font-mono text-2xl text-amber-700">{formatINR(subtotal)}</span>
+                <span className="font-black font-mono text-2xl text-amber-700">
+                  {formatINR(subtotal + (selectedDealerForSummary?.transportCost || 0))}
+                </span>
               </div>
             </div>
           </div>
@@ -2070,7 +2081,7 @@ export default function CreateOrder() {
                   fetchDealersForOrder();
                 }
                 if (step === 7) {
-                  if (!selectedDealerId) {
+                  if (dealers.length > 0 && !selectedDealerId) {
                     toast.error('Please select a dealer to continue.');
                     return;
                   }

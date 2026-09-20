@@ -5,6 +5,7 @@ const VehicleConfig = require('../models/VehicleConfig');
 const VehicleSetting = require('../models/VehicleSetting');
 const User = require('../models/User');
 const Driver = require('../models/Driver');
+const DealerTransportConfig = require('../models/DealerTransportConfig');
 const { generateOrderNumber } = require('../utils/orderNumber');
 const RazorpayService = require('../services/razorpayService');
 const NotificationService = require('../services/notificationService');
@@ -160,9 +161,8 @@ const createOrder = async (req, res) => {
       subtotal = Math.round(flatTractorPrice * qty);
     }
 
-    const deliveryCharge = 0;
+    let deliveryCharge = 0;
     const tax = 0;
-    const totalAmount = subtotal + deliveryCharge + tax;
 
     // 5. Validate Delivery Date (Must not be in the past)
     let deliveryDate = new Date();
@@ -264,9 +264,16 @@ const createOrder = async (req, res) => {
     }
 
     // 7. Dealer Assignment: use the customer-selected dealer when provided (from the
-    // "Select Dealer" pricing step), else fall back to geographically nearest (Haversine).
+    // "Select Dealer" transport-pricing step), else fall back to the nearest ELIGIBLE dealer
+    // (one who has an active DealerTransportConfig rate for this exact Material + Sourcing
+    // Location). If no dealer has configured a rate for this combination yet, we gracefully
+    // fall back to the original geography-only nearest-dealer assignment with no transport
+    // charge, so checkout never breaks while dealers are still onboarding their rates.
     let nearestDealer = null;
     let distanceKm = null;
+    let dealerRatePerKm = null;
+
+    const transportMaterial = ['Sand', 'Aggregate'].includes(product.category) ? product.category : null;
 
     if (customerSelectedDealerId) {
       const selectedDealer = await User.findOne({
@@ -278,6 +285,24 @@ const createOrder = async (req, res) => {
       if (!selectedDealer) {
         return errorResponse(res, 'The selected dealer is no longer available. Please choose another dealer.', 400);
       }
+
+      if (transportMaterial && finalLocationName) {
+        const config = await DealerTransportConfig.findOne({
+          dealerId: selectedDealer._id,
+          material: transportMaterial,
+          locationName: { $regex: `^${finalLocationName}$`, $options: 'i' },
+          isActive: true
+        });
+        if (!config) {
+          return errorResponse(
+            res,
+            `${selectedDealer.companyName || selectedDealer.name} no longer offers transport for ${transportMaterial} from ${finalLocationName}. Please go back and select another dealer.`,
+            400
+          );
+        }
+        dealerRatePerKm = config.ratePerKm;
+      }
+
       if (selectedDealer.latitude !== null && selectedDealer.longitude !== null) {
         distanceKm = PincodeService.calculateHaversineDistanceKm(
           finalLat,
@@ -288,14 +313,47 @@ const createOrder = async (req, res) => {
       }
       nearestDealer = selectedDealer;
     } else {
-      const activeDealers = await User.find({ role: 'DEALER', isActive: true, isDeleted: { $ne: true } });
-      const result = await PincodeService.findNearestDealer(
-        { latitude: finalLat, longitude: finalLng },
-        activeDealers
-      );
-      nearestDealer = result.nearestDealer;
-      distanceKm = result.distanceKm;
+      let eligibleConfigs = [];
+      if (transportMaterial && finalLocationName) {
+        const configs = await DealerTransportConfig.find({
+          material: transportMaterial,
+          locationName: { $regex: `^${finalLocationName}$`, $options: 'i' },
+          isActive: true
+        }).populate({
+          path: 'dealerId',
+          match: { role: 'DEALER', isActive: true, isDeleted: { $ne: true } }
+        });
+        eligibleConfigs = configs.filter((c) => c.dealerId);
+      }
+
+      if (eligibleConfigs.length > 0) {
+        const dealerDocs = eligibleConfigs.map((c) => c.dealerId);
+        const result = await PincodeService.findNearestDealer(
+          { latitude: finalLat, longitude: finalLng },
+          dealerDocs
+        );
+        nearestDealer = result.nearestDealer;
+        distanceKm = result.distanceKm;
+        if (nearestDealer) {
+          const matchedConfig = eligibleConfigs.find((c) => String(c.dealerId._id) === String(nearestDealer._id));
+          dealerRatePerKm = matchedConfig ? matchedConfig.ratePerKm : null;
+        }
+      } else {
+        const activeDealers = await User.find({ role: 'DEALER', isActive: true, isDeleted: { $ne: true } });
+        const result = await PincodeService.findNearestDealer(
+          { latitude: finalLat, longitude: finalLng },
+          activeDealers
+        );
+        nearestDealer = result.nearestDealer;
+        distanceKm = result.distanceKm;
+      }
     }
+
+    if (dealerRatePerKm !== null && distanceKm !== null) {
+      deliveryCharge = Math.round(dealerRatePerKm * distanceKm * 100) / 100;
+    }
+
+    const totalAmount = subtotal + deliveryCharge + tax;
 
     // 8. Generate human-readable unique order number & Initialize Razorpay order
     const orderNumber = await generateOrderNumber();
@@ -327,6 +385,7 @@ const createOrder = async (req, res) => {
       dealerId: null,
       assignedDealerId: nearestDealer ? nearestDealer._id : null,
       dealerDistanceKm: distanceKm,
+      dealerRatePerKm,
       orderAssignedAt: assignedAt,
       dealerResponseDeadline: deadline,
       dealerResponseStatus: 'PENDING',

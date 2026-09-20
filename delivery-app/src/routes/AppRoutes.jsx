@@ -37,6 +37,7 @@ import ActiveDeliveries from '../pages/dealer/ActiveDeliveries';
 import CompletedDeliveries from '../pages/dealer/CompletedDeliveries';
 import DriverManagement from '../pages/dealer/DriverManagement';
 import DealerProfile from '../pages/dealer/DealerProfile';
+import TransportConfig from '../pages/dealer/TransportConfig';
 
 // Driver Pages
 import DriverDashboard from '../pages/driver/DriverDashboard';
@@ -87,6 +88,7 @@ export default function AppRoutes() {
           <Route path="/dealer/active" element={<ActiveDeliveries />} />
           <Route path="/dealer/completed" element={<CompletedDeliveries />} />
           <Route path="/dealer/drivers" element={<DriverManagement />} />
+          <Route path="/dealer/transport-config" element={<TransportConfig />} />
           <Route path="/dealer/profile" element={<DealerProfile />} />
           <Route path="/dealer/notifications" element={<UserNotifications />} />
         </Route>

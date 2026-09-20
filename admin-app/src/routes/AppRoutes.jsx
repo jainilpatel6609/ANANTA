@@ -20,6 +20,7 @@ import CustomerManagement from '../pages/admin/CustomerManagement';
 import DriverManagement from '../pages/admin/DriverManagement';
 import ProductManagement from '../pages/admin/ProductManagement';
 import LocationManagement from '../pages/admin/LocationManagement';
+import DealerTransportRates from '../pages/admin/DealerTransportRates';
 import VehicleManagement from '../pages/admin/VehicleManagement';
 import DeliveryMonitoring from '../pages/admin/DeliveryMonitoring';
 import Reports from '../pages/admin/Reports';
@@ -46,6 +47,7 @@ export default function AppRoutes() {
           <Route path="/products" element={<ProductManagement />} />
           <Route path="/materials" element={<ProductManagement />} />
           <Route path="/locations" element={<LocationManagement />} />
+          <Route path="/dealer-transport-rates" element={<DealerTransportRates />} />
           <Route path="/vehicles" element={<VehicleManagement />} />
           <Route path="/deliveries" element={<DeliveryMonitoring />} />
           <Route path="/reports" element={<Reports />} />

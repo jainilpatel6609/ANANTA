@@ -114,6 +114,12 @@ export const locationService = {
   deleteLocation: (id, vehicleType) => api.delete(`/locations/admin/${id}`, { params: vehicleType ? { vehicleType } : {} })
 };
 
+export const dealerTransportService = {
+  getAllConfigs: (params) => api.get('/dealer-transport/admin', { params }),
+  updateConfig: (id, data) => api.put(`/dealer-transport/admin/${id}`, data),
+  toggleConfig: (id) => api.patch(`/dealer-transport/admin/${id}/toggle`)
+};
+
 export const vehicleConfigService = {
   getPublicConfigs: (vehicleType) => api.get('/vehicle-configs', { params: vehicleType ? { vehicleType } : {} }),
   getVehicleSettings: () => api.get('/vehicle-configs/settings'),

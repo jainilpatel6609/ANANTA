@@ -30,6 +30,10 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       default: null
     },
+    dealerRatePerKm: {
+      type: Number,
+      default: null
+    },
     productId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Product',

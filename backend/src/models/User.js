@@ -138,13 +138,6 @@ const userSchema = new mongoose.Schema(
       trim: true,
       default: ''
     },
-    // Dealer pricing: rate charged per kilometer, used to compute per-ton price
-    // as ratePerKm * distanceKm from dealer to shipping address.
-    ratePerKm: {
-      type: Number,
-      default: 0,
-      min: 0
-    },
     passwordHash: {
       type: String,
       required: [true, 'Password hash is required']

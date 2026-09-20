@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { authService, pincodeService } from '../../services';
 import {
@@ -15,7 +16,7 @@ import {
   User,
   Mail,
   Truck,
-  IndianRupee
+  ChevronRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -33,7 +34,6 @@ export default function DealerProfile() {
     state: user?.state || 'Gujarat',
     pincode: user?.pincode || '',
     officeAddress: user?.officeAddress || '',
-    ratePerKm: user?.ratePerKm ?? 0,
     password: ''
   });
 
@@ -349,35 +349,23 @@ export default function DealerProfile() {
             </div>
           </div>
 
-          {/* Delivery Pricing */}
-          <div className="space-y-4 pt-4 border-t border-slate-800/80">
-            <h3 className="text-xs font-bold text-amber-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-800 pb-2">
-              <IndianRupee className="w-4 h-4" />
-              <span>Delivery Pricing</span>
-            </h3>
-
-            <div>
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
-                Rate per KM (₹ per ton, per km)
-              </label>
-              <div className="relative max-w-xs">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                  <IndianRupee className="w-4 h-4" />
+          {/* Transport Configuration Callout */}
+          <div className="pt-4 border-t border-slate-800/80">
+            <Link
+              to="/dealer/transport-config"
+              className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/5 border border-amber-500/30 hover:border-amber-500/60 transition-all group"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0">
+                  <Truck className="w-5 h-5" />
                 </div>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="e.g. 12.5"
-                  value={formData.ratePerKm}
-                  onChange={(e) => setFormData({ ...formData, ratePerKm: e.target.value })}
-                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500 font-mono min-h-[44px]"
-                />
+                <div className="min-w-0">
+                  <div className="text-sm font-black text-white">Transport Configuration</div>
+                  <div className="text-[11px] text-slate-400">Set your per-KM rate for each material & sourcing location</div>
+                </div>
               </div>
-              <p className="text-[11px] text-slate-400 mt-1.5">
-                Customers see: <strong className="text-slate-200">Price per ton = this rate &times; distance (km) to shipping address</strong>.
-              </p>
-            </div>
+              <ChevronRight className="w-4 h-4 text-amber-400 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
           </div>
 
           {/* Security */}

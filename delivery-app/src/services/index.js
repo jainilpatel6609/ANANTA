@@ -134,6 +134,14 @@ export const pincodeService = {
   lookup: (pincode) => api.get(`/pincode/lookup/${pincode}`),
   getNearestDealer: (pincode) => api.get(`/pincode/nearest-dealer/${pincode}`),
   geocode: (q) => api.get('/pincode/geocode', { params: { q } }),
-  reverseGeocode: (lat, lng) => api.get('/pincode/reverse-geocode', { params: { lat, lng } }),
-  getDealersForOrder: (lat, lng) => api.get('/pincode/dealers-for-order', { params: { lat, lng } })
+  reverseGeocode: (lat, lng) => api.get('/pincode/reverse-geocode', { params: { lat, lng } })
+};
+
+export const dealerTransportService = {
+  getMaterialLocations: () => api.get('/dealer-transport/material-locations'),
+  getMyConfigs: () => api.get('/dealer-transport/my-configs'),
+  bulkSave: (configs) => api.post('/dealer-transport/my-configs', { configs }),
+  toggleConfig: (id) => api.patch(`/dealer-transport/my-configs/${id}/toggle`),
+  deleteConfig: (id) => api.delete(`/dealer-transport/my-configs/${id}`),
+  getEligibleDealers: (params) => api.get('/dealer-transport/eligible-dealers', { params })
 };
