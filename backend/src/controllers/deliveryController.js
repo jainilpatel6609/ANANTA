@@ -55,6 +55,10 @@ const assignDriverToOrder = async (req, res) => {
     order.driverAssignedAt = new Date();
     order.driverTaskDispatchedAt = new Date();
 
+    if (order.vehicleTypeSnapshot === 'DUMPER' && order.fulfillmentStage === 'AWAITING_DRIVER') {
+      order.fulfillmentStage = 'DRIVER_ASSIGNED';
+    }
+
     await order.save();
 
     // If driver is saved in fleet, update status
@@ -93,6 +97,120 @@ const assignDriverToOrder = async (req, res) => {
         driverMapUrl: mapUrl
       }
     );
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+// @desc    Driver uploads the River Royalty photo (Dumper only) -- requires live location to
+//          already have been shared at least once for this order.
+// @route   POST /api/deliveries/:id/river-royalty
+// @access  Private (Driver)
+const uploadRiverRoyalty = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return errorResponse(res, 'Order not found.', 404);
+    }
+    if (!order.driverId || order.driverId.toString() !== req.user._id.toString()) {
+      return errorResponse(res, 'Unauthorized. This order is not assigned to you.', 403);
+    }
+    if (!order.driverLocationSharedAt) {
+      return errorResponse(res, 'Please share your live location before uploading the River Royalty photo.', 400);
+    }
+    if (!req.file) {
+      return errorResponse(res, 'River Royalty photo is required.', 400);
+    }
+
+    order.riverRoyaltyUrl = await processUploadedFile(req.file, 'ananta_traders/royalty');
+    order.fulfillmentStage = 'RIVER_ROYALTY_DONE';
+    await order.save();
+
+    return successResponse(res, 'River Royalty photo uploaded successfully.', { order });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+// @desc    Driver uploads the Plant Stock Yard Royalty photo, or explicitly skips this step
+//          (Dumper only). Skipping is a first-class option, not a workaround.
+// @route   POST /api/deliveries/:id/stock-yard-royalty
+// @access  Private (Driver)
+const uploadStockYardRoyalty = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return errorResponse(res, 'Order not found.', 404);
+    }
+    if (!order.driverId || order.driverId.toString() !== req.user._id.toString()) {
+      return errorResponse(res, 'Unauthorized. This order is not assigned to you.', 403);
+    }
+    if (order.fulfillmentStage !== 'RIVER_ROYALTY_DONE') {
+      return errorResponse(res, 'Please upload the River Royalty photo first.', 400);
+    }
+
+    if (req.file) {
+      order.plantStockYardRoyaltyUrl = await processUploadedFile(req.file, 'ananta_traders/stock_yard');
+    }
+    // No file provided = this step was skipped; plantStockYardRoyaltyUrl stays '' by design.
+
+    order.fulfillmentStage = 'STOCK_YARD_DONE';
+    await order.save();
+
+    return successResponse(
+      res,
+      req.file ? 'Plant Stock Yard Royalty photo uploaded successfully.' : 'Plant Stock Yard Royalty step skipped.',
+      { order }
+    );
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+// @desc    Driver submits the 5 required photos (Weight Bridge Slip, Weight Bridge Display,
+//          Dumper Top/Front/Rear) in one bundled submission. Notifies the Dealer -- who acts as
+//          the Transporter in this flow -- that the weighbridge photos are ready for review.
+// @route   POST /api/deliveries/:id/required-photos
+// @access  Private (Driver)
+const uploadRequiredPhotos = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return errorResponse(res, 'Order not found.', 404);
+    }
+    if (!order.driverId || order.driverId.toString() !== req.user._id.toString()) {
+      return errorResponse(res, 'Unauthorized. This order is not assigned to you.', 403);
+    }
+    if (order.fulfillmentStage !== 'STOCK_YARD_DONE') {
+      return errorResponse(res, 'Please complete the Plant Stock Yard Royalty step first (or skip it).', 400);
+    }
+
+    const required = ['weightBridgeSlip', 'weightBridgeDisplay', 'dumperTop', 'dumperFront', 'dumperRear'];
+    const missing = required.filter((field) => !req.files || !req.files[field] || !req.files[field][0]);
+    if (missing.length > 0) {
+      return errorResponse(res, `All 5 photos are required. Missing: ${missing.join(', ')}.`, 400);
+    }
+
+    order.waybridgePhotoUrl = await processUploadedFile(req.files.weightBridgeSlip[0], 'ananta_traders/waybridge');
+    order.weightBridgeDisplayUrl = await processUploadedFile(req.files.weightBridgeDisplay[0], 'ananta_traders/waybridge');
+    order.dumperTopPhotoUrl = await processUploadedFile(req.files.dumperTop[0], 'ananta_traders/dumper_photos');
+    order.dumperFrontPhotoUrl = await processUploadedFile(req.files.dumperFront[0], 'ananta_traders/dumper_photos');
+    order.dumperRearPhotoUrl = await processUploadedFile(req.files.dumperRear[0], 'ananta_traders/dumper_photos');
+    order.fulfillmentStage = 'PHOTOS_SUBMITTED';
+    await order.save();
+
+    if (order.dealerId) {
+      await NotificationService.send({
+        recipientId: order.dealerId,
+        recipientRole: 'DEALER',
+        type: 'GENERAL',
+        title: 'Weight Bridge Photos Ready 📸',
+        message: `Order #${order.orderNumber}: the driver has submitted the Weight Bridge Slip and Display photos. Please review and enter the Total Weight to proceed.`,
+        orderId: order._id
+      });
+    }
+
+    return successResponse(res, 'All required photos submitted successfully. The dealer has been notified.', { order });
   } catch (error) {
     return errorResponse(res, error.message, 500);
   }
@@ -373,6 +491,9 @@ const getDeliveryOtp = async (req, res) => {
 
 module.exports = {
   assignDriverToOrder,
+  uploadRiverRoyalty,
+  uploadStockYardRoyalty,
+  uploadRequiredPhotos,
   dispatchOrder,
   verifyDeliveryOtp,
   getDeliveryOtp

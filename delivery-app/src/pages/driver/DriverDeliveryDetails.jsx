@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { orderService, deliveryService, driverService } from '../../services';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import LiveCameraModal from '../../components/LiveCameraModal';
 import {
   Truck,
   MapPin,
@@ -15,9 +16,22 @@ import {
   AlertCircle,
   ArrowLeft,
   KeyRound,
-  Radio
+  Radio,
+  Camera,
+  SkipForward,
+  Clock,
+  Weight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+// The 5 required photos for the Dumper fulfillment flow, in the order they're captured.
+const REQUIRED_PHOTO_SLOTS = [
+  { key: 'weightBridgeSlip', label: 'Weight Bridge Slip' },
+  { key: 'weightBridgeDisplay', label: 'Weight Bridge Display' },
+  { key: 'dumperTop', label: 'Dumper Top' },
+  { key: 'dumperFront', label: 'Dumper Front' },
+  { key: 'dumperRear', label: 'Dumper Rear' }
+];
 
 export default function DriverDeliveryDetails() {
   const { id } = useParams();
@@ -27,6 +41,11 @@ export default function DriverDeliveryDetails() {
   const [deliveryOtp, setDeliveryOtp] = useState('');
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [broadcastingGps, setBroadcastingGps] = useState(false);
+
+  // Dumper fulfillment flow (Share Location -> River Royalty -> Stock Yard -> 5 Required Photos)
+  const [activeCameraTarget, setActiveCameraTarget] = useState(null); // which photo slot is being captured
+  const [uploadingStage, setUploadingStage] = useState(false);
+  const [requiredPhotos, setRequiredPhotos] = useState({}); // { [slotKey]: { file, preview } } -- staged locally until all 5 are submitted together
 
   const fetchOrder = async () => {
     try {
@@ -86,6 +105,7 @@ export default function DriverDeliveryDetails() {
             speed: speed || 0
           });
           toast.success('Live GPS coordinates broadcasted to customer!');
+          fetchOrder(); // Picks up fulfillmentStage advancing to LOCATION_SHARED on Dumper orders
         } catch (err) {
           toast.error('Failed to update live GPS.');
         } finally {
@@ -98,6 +118,81 @@ export default function DriverDeliveryDetails() {
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
+  };
+
+  // River Royalty photo captured -> upload immediately (single required photo)
+  const handleRiverRoyaltyCapture = async (blob) => {
+    setActiveCameraTarget(null);
+    setUploadingStage(true);
+    try {
+      await deliveryService.uploadRiverRoyalty(id, blob);
+      toast.success('River Royalty photo uploaded!');
+      fetchOrder();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to upload River Royalty photo.');
+    } finally {
+      setUploadingStage(false);
+    }
+  };
+
+  // Plant Stock Yard Royalty photo captured -> upload immediately
+  const handleStockYardCapture = async (blob) => {
+    setActiveCameraTarget(null);
+    setUploadingStage(true);
+    try {
+      await deliveryService.uploadStockYardRoyalty(id, blob);
+      toast.success('Plant Stock Yard Royalty photo uploaded!');
+      fetchOrder();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to upload photo.');
+    } finally {
+      setUploadingStage(false);
+    }
+  };
+
+  // Explicit skip -- no file sent
+  const handleSkipStockYard = async () => {
+    setUploadingStage(true);
+    try {
+      await deliveryService.uploadStockYardRoyalty(id, null);
+      toast.success('Plant Stock Yard Royalty step skipped.');
+      fetchOrder();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to skip this step.');
+    } finally {
+      setUploadingStage(false);
+    }
+  };
+
+  // One of the 5 required photos captured -> stage it locally (all 5 submit together)
+  const handleRequiredPhotoCapture = (blob, dataUrl) => {
+    setRequiredPhotos((prev) => ({ ...prev, [activeCameraTarget]: { file: blob, preview: dataUrl } }));
+    setActiveCameraTarget(null);
+  };
+
+  const handleSubmitRequiredPhotos = async () => {
+    const missing = REQUIRED_PHOTO_SLOTS.filter((slot) => !requiredPhotos[slot.key]);
+    if (missing.length > 0) {
+      toast.error(`Please capture all 5 photos first. Missing: ${missing.map((s) => s.label).join(', ')}.`);
+      return;
+    }
+
+    setUploadingStage(true);
+    try {
+      await deliveryService.uploadRequiredPhotos(id, {
+        weightBridgeSlip: requiredPhotos.weightBridgeSlip.file,
+        weightBridgeDisplay: requiredPhotos.weightBridgeDisplay.file,
+        dumperTop: requiredPhotos.dumperTop.file,
+        dumperFront: requiredPhotos.dumperFront.file,
+        dumperRear: requiredPhotos.dumperRear.file
+      });
+      toast.success('All required photos submitted! Dealer has been notified.');
+      fetchOrder();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to submit photos.');
+    } finally {
+      setUploadingStage(false);
+    }
   };
 
   if (loading) return <LoadingSpinner />;
@@ -115,6 +210,12 @@ export default function DriverDeliveryDetails() {
 
   const customerMobile = order.shippingDetails?.mobile || order.userId?.mobile;
   const customerName = order.shippingDetails?.fullName || order.userId?.name;
+
+  // Dumper orders go through the royalty/weighbridge/weight/final-payment steps below before
+  // Delivery OTP even exists (orderStatus stays ACCEPTED throughout). Tractor orders never set
+  // fulfillmentStage, so they skip straight to the existing OTP box exactly as before.
+  const isDumper = order.vehicleTypeSnapshot === 'DUMPER';
+  const showFulfillmentFlow = isDumper && order.orderStatus === 'ACCEPTED';
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
@@ -207,46 +308,172 @@ export default function DriverDeliveryDetails() {
         </div>
       </div>
 
-      {/* Delivery OTP Verification Box */}
-      {order.orderStatus !== 'DELIVERED' ? (
-        <div className="bg-gradient-to-tr from-slate-900 via-slate-900 to-amber-950/30 border border-amber-500/30 p-6 rounded-2xl shadow-xl space-y-4">
-          <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
-            <KeyRound className="w-5 h-5" />
-            <span>Customer Drop-off Verification</span>
-          </div>
-          <p className="text-xs text-slate-300">
-            Ask customer for the 6-digit Delivery OTP once materials have been offloaded at the destination site.
-          </p>
+      {/* Dumper Fulfillment Flow: Share Location -> River Royalty -> Stock Yard -> 5 Required Photos */}
+      {showFulfillmentFlow && (
+        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-5">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+            <Truck className="w-4 h-4 text-amber-400" /> Dispatch Checklist
+          </h2>
 
-          <form onSubmit={handleVerifyOtp} className="space-y-3">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                required
-                maxLength={6}
-                value={deliveryOtp}
-                onChange={(e) => setDeliveryOtp(e.target.value.replace(/\D/g, ''))}
-                placeholder="Enter 6-digit OTP"
-                className="flex-1 px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono text-center text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
+          {/* Step 1: Share Live Location (gates River Royalty) */}
+          {!order.driverLocationSharedAt && (
+            <div className="p-4 bg-slate-950/60 rounded-xl border border-amber-500/30 space-y-3">
+              <p className="text-sm text-slate-200 font-semibold">Step 1: Share your live location</p>
+              <p className="text-xs text-slate-400">Required before you can upload the River Royalty photo.</p>
               <button
-                type="submit"
-                disabled={verifyingOtp || deliveryOtp.length !== 6}
-                className="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-sm shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50"
+                onClick={handleBroadcastGps}
+                disabled={broadcastingGps}
+                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
               >
-                {verifyingOtp ? 'Verifying...' : 'Verify OTP & Complete'}
+                <Radio className={`w-4 h-4 ${broadcastingGps ? 'animate-pulse' : ''}`} />
+                <span>{broadcastingGps ? 'Sharing...' : 'Share Live Location'}</span>
               </button>
             </div>
-          </form>
+          )}
+
+          {/* Step 2: River Royalty */}
+          {order.driverLocationSharedAt && !order.riverRoyaltyUrl && (
+            <div className="p-4 bg-slate-950/60 rounded-xl border border-amber-500/30 space-y-3">
+              <p className="text-sm text-slate-200 font-semibold">Step 2: River Royalty photo</p>
+              <button
+                onClick={() => setActiveCameraTarget('riverRoyalty')}
+                disabled={uploadingStage}
+                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+              >
+                <Camera className="w-4 h-4" />
+                <span>Capture River Royalty Photo</span>
+              </button>
+            </div>
+          )}
+
+          {/* Step 3: Plant Stock Yard Royalty (optional -- capture or skip) */}
+          {order.fulfillmentStage === 'RIVER_ROYALTY_DONE' && (
+            <div className="p-4 bg-slate-950/60 rounded-xl border border-amber-500/30 space-y-3">
+              <p className="text-sm text-slate-200 font-semibold">Step 3: Plant Stock Yard Royalty photo</p>
+              <p className="text-xs text-slate-400">Optional -- capture a photo, or skip this step.</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setActiveCameraTarget('stockYard')}
+                  disabled={uploadingStage}
+                  className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>Capture Photo</span>
+                </button>
+                <button
+                  onClick={handleSkipStockYard}
+                  disabled={uploadingStage}
+                  className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                >
+                  <SkipForward className="w-4 h-4" />
+                  <span>Skip This Step</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: The 5 required photos, staged locally then submitted together */}
+          {order.fulfillmentStage === 'STOCK_YARD_DONE' && (
+            <div className="p-4 bg-slate-950/60 rounded-xl border border-amber-500/30 space-y-3">
+              <p className="text-sm text-slate-200 font-semibold">Step 4: Required photos (camera only)</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {REQUIRED_PHOTO_SLOTS.map((slot) => (
+                  <button
+                    key={slot.key}
+                    type="button"
+                    onClick={() => setActiveCameraTarget(slot.key)}
+                    disabled={uploadingStage}
+                    className={`aspect-square rounded-xl border-2 flex flex-col items-center justify-center gap-1.5 p-2 text-center transition-all disabled:opacity-50 ${
+                      requiredPhotos[slot.key]
+                        ? 'border-emerald-500/50 bg-emerald-500/5'
+                        : 'border-dashed border-slate-700 hover:border-amber-500/50'
+                    }`}
+                  >
+                    {requiredPhotos[slot.key] ? (
+                      <img src={requiredPhotos[slot.key].preview} alt={slot.label} className="w-full h-full object-cover rounded-lg" />
+                    ) : (
+                      <>
+                        <Camera className="w-5 h-5 text-slate-500" />
+                        <span className="text-[10px] text-slate-400 font-semibold leading-tight">{slot.label}</span>
+                      </>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={handleSubmitRequiredPhotos}
+                disabled={uploadingStage || REQUIRED_PHOTO_SLOTS.some((s) => !requiredPhotos[s.key])}
+                className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{uploadingStage ? 'Submitting...' : 'Submit All 5 Photos'}</span>
+              </button>
+            </div>
+          )}
+
+          {/* Step 5: waiting on the dealer to review photos and enter Total Weight */}
+          {order.fulfillmentStage === 'PHOTOS_SUBMITTED' && (
+            <div className="p-4 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center gap-3">
+              <Clock className="w-5 h-5 text-amber-400 shrink-0" />
+              <p className="text-sm text-slate-300">Photos submitted. Waiting for the dealer to review and enter the Total Weight.</p>
+            </div>
+          )}
+
+          {/* Step 6: waiting on customer's final payment */}
+          {order.fulfillmentStage === 'WEIGHT_ENTERED' && (
+            <div className="p-4 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center gap-3">
+              <Weight className="w-5 h-5 text-amber-400 shrink-0" />
+              <p className="text-sm text-slate-300">
+                Total Weight: {order.totalWeight} Ton. Waiting for the customer to complete the final payment before dispatch.
+              </p>
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="bg-emerald-950/30 border border-emerald-500/30 p-6 rounded-2xl text-center space-y-2">
-          <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto" />
-          <h3 className="text-base font-bold text-white">Delivery Completed & Verified</h3>
-          <p className="text-xs text-emerald-300/80">
-            Delivered on {new Date(order.deliveredAt || order.updatedAt).toLocaleString('en-IN')}
-          </p>
-        </div>
+      )}
+
+      {/* Delivery OTP Verification Box (hidden while the Dumper fulfillment flow above is active --
+          there is no OTP to verify yet at that point) */}
+      {!showFulfillmentFlow && (
+        order.orderStatus !== 'DELIVERED' ? (
+          <div className="bg-gradient-to-tr from-slate-900 via-slate-900 to-amber-950/30 border border-amber-500/30 p-6 rounded-2xl shadow-xl space-y-4">
+            <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+              <KeyRound className="w-5 h-5" />
+              <span>Customer Drop-off Verification</span>
+            </div>
+            <p className="text-xs text-slate-300">
+              Ask customer for the 6-digit Delivery OTP once materials have been offloaded at the destination site.
+            </p>
+
+            <form onSubmit={handleVerifyOtp} className="space-y-3">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  required
+                  maxLength={6}
+                  value={deliveryOtp}
+                  onChange={(e) => setDeliveryOtp(e.target.value.replace(/\D/g, ''))}
+                  placeholder="Enter 6-digit OTP"
+                  className="flex-1 px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono text-center text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <button
+                  type="submit"
+                  disabled={verifyingOtp || deliveryOtp.length !== 6}
+                  className="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-sm shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50"
+                >
+                  {verifyingOtp ? 'Verifying...' : 'Verify OTP & Complete'}
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          <div className="bg-emerald-950/30 border border-emerald-500/30 p-6 rounded-2xl text-center space-y-2">
+            <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto" />
+            <h3 className="text-base font-bold text-white">Delivery Completed & Verified</h3>
+            <p className="text-xs text-emerald-300/80">
+              Delivered on {new Date(order.deliveredAt || order.updatedAt).toLocaleString('en-IN')}
+            </p>
+          </div>
+        )
       )}
 
       {/* Weighbridge & River Royalty Photos (If Uploaded) */}
@@ -279,6 +506,31 @@ export default function DriverDeliveryDetails() {
           </div>
         </div>
       )}
+
+      {/* Shared live-camera capture modal for every Dumper fulfillment photo step above --
+          camera-only, no gallery picker (see LiveCameraModal itself). */}
+      <LiveCameraModal
+        isOpen={!!activeCameraTarget}
+        onClose={() => setActiveCameraTarget(null)}
+        facingMode="environment"
+        title={
+          activeCameraTarget === 'riverRoyalty'
+            ? 'River Royalty Photo'
+            : activeCameraTarget === 'stockYard'
+            ? 'Plant Stock Yard Royalty Photo'
+            : REQUIRED_PHOTO_SLOTS.find((s) => s.key === activeCameraTarget)?.label || 'Capture Photo'
+        }
+        helperText="Camera capture only -- gallery selection is not allowed for this document."
+        onCapture={(blob, dataUrl) => {
+          if (activeCameraTarget === 'riverRoyalty') {
+            handleRiverRoyaltyCapture(blob);
+          } else if (activeCameraTarget === 'stockYard') {
+            handleStockYardCapture(blob);
+          } else {
+            handleRequiredPhotoCapture(blob, dataUrl);
+          }
+        }}
+      />
     </div>
   );
 }

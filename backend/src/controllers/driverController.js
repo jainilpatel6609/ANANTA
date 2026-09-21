@@ -438,6 +438,20 @@ const updateDriverLocation = async (req, res) => {
       return errorResponse(res, 'Order not found.', 404);
     }
 
+    if (order.driverId && order.driverId.toString() !== req.user._id.toString()) {
+      return errorResponse(res, 'Unauthorized. This order is not assigned to you.', 403);
+    }
+
+    // First time this driver shares live location for this order (Dumper fulfillment flow) --
+    // this gates River Royalty upload, so persist it. Later pings just broadcast, no DB write.
+    if (order.vehicleTypeSnapshot === 'DUMPER' && !order.driverLocationSharedAt) {
+      order.driverLocationSharedAt = new Date();
+      if (order.fulfillmentStage === 'DRIVER_ASSIGNED') {
+        order.fulfillmentStage = 'LOCATION_SHARED';
+      }
+      await order.save();
+    }
+
     // Broadcast real-time location to customer
     const { emitLocationUpdate } = require('../sockets/socket');
     emitLocationUpdate(order._id, order.userId, {

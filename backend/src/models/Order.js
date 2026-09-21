@@ -288,10 +288,98 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: ''
     },
+    // Weight Bridge SLIP photo (kept on the original field name for backward compatibility).
     waybridgePhotoUrl: {
       type: String,
       default: ''
     },
+
+    // ===================== DUMPER fulfillment lifecycle (post-accept) =====================
+    // Permanent code of the dealer who accepted this order, snapshotted at accept time so it
+    // never changes even if the dealer's own code is regenerated later.
+    dealerCodeSnapshot: {
+      type: String,
+      default: ''
+    },
+    // Set the first time the driver broadcasts live location for this order -- gates River
+    // Royalty upload (a driver cannot upload royalty proof before sharing their location).
+    driverLocationSharedAt: {
+      type: Date,
+      default: null
+    },
+    // Plant Stock Yard Royalty photo -- optional, driver may skip this step (stays '' if skipped).
+    plantStockYardRoyaltyUrl: {
+      type: String,
+      default: ''
+    },
+    // Weight Bridge DISPLAY photo (the screen showing the reading) -- distinct from the slip
+    // photo above, since the Slip and Display are two separate required photos.
+    weightBridgeDisplayUrl: {
+      type: String,
+      default: ''
+    },
+    dumperTopPhotoUrl: {
+      type: String,
+      default: ''
+    },
+    dumperFrontPhotoUrl: {
+      type: String,
+      default: ''
+    },
+    dumperRearPhotoUrl: {
+      type: String,
+      default: ''
+    },
+    // Actual weighed tonnage, entered manually by the Dealer (acting as Transporter) after
+    // reviewing the Weight Bridge Slip + Display photos the driver submitted.
+    totalWeight: {
+      type: Number,
+      default: null
+    },
+    weightEnteredAt: {
+      type: Date,
+      default: null
+    },
+    // Final settlement amount = totalWeight x pricePerTonSnapshot, charged AFTER the upfront
+    // booking payment and gates Dumper dispatch -- entirely separate from paymentStatus/
+    // razorpayOrderId/paymentId above, which remain the upfront booking payment.
+    finalPaymentAmount: {
+      type: Number,
+      default: null
+    },
+    finalPaymentStatus: {
+      type: String,
+      enum: ['PENDING', 'PAID', 'FAILED'],
+      default: 'PENDING',
+      index: true
+    },
+    finalPaymentId: {
+      type: String,
+      default: ''
+    },
+    finalRazorpayOrderId: {
+      type: String,
+      default: ''
+    },
+    // Fine-grained progress through the DUMPER post-accept fulfillment flow. Only ever set for
+    // Dumper orders -- Tractor orders never touch this field and keep using orderStatus alone.
+    fulfillmentStage: {
+      type: String,
+      enum: [
+        'AWAITING_DRIVER',
+        'DRIVER_ASSIGNED',
+        'LOCATION_SHARED',
+        'RIVER_ROYALTY_DONE',
+        'STOCK_YARD_DONE',
+        'PHOTOS_SUBMITTED',
+        'WEIGHT_ENTERED',
+        'FINAL_PAYMENT_PAID',
+        'DISPATCHED'
+      ],
+      default: null
+    },
+    // ======================================================================================
+
     deliveryOtpHash: {
       type: String,
       default: ''

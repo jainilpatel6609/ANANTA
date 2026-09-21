@@ -3,8 +3,75 @@ const Payment = require('../models/Payment');
 const User = require('../models/User');
 const RazorpayService = require('../services/razorpayService');
 const NotificationService = require('../services/notificationService');
+const OtpService = require('../services/otpService');
+const SmsService = require('../services/smsService');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
-const { emitNewOrder } = require('../sockets/socket');
+const { emitNewOrder, emitOrderStatusUpdate } = require('../sockets/socket');
+
+// @desc    Runs immediately after the DUMPER final (weight-based) payment succeeds: generates
+//          the delivery OTP, dispatches the order, and notifies Dealer + Driver + Admin. Shared
+//          by both verifyFinalPayment and devConfirmFinalPayment so the two stay in lockstep.
+const dispatchAfterFinalPayment = async (order) => {
+  const { rawOtp, otpHash, expiresAt } = await OtpService.generateOtp(1440); // 24 hours
+
+  order.deliveryOtpHash = otpHash;
+  order.deliveryOtpDisplay = rawOtp;
+  order.deliveryOtpExpiresAt = expiresAt;
+  order.otpAttempts = 0;
+  order.orderStatus = 'OUT_FOR_DELIVERY';
+  order.outForDeliveryAt = new Date();
+  order.fulfillmentStage = 'DISPATCHED';
+  await order.save();
+
+  const customerMobile = order.userId.mobile || order.userId.whatsappNumber;
+
+  await SmsService.sendDeliveryOtpSms({
+    mobile: customerMobile,
+    otp: rawOtp,
+    orderNumber: order.orderNumber,
+    driverName: order.driverName,
+    vehicleNumber: order.vehicleNumber
+  }).catch((err) => console.warn('[SMS Delivery OTP Warning]', err.message));
+
+  await NotificationService.send({
+    recipientId: order.userId._id,
+    recipientRole: 'USER',
+    type: 'OUT_FOR_DELIVERY',
+    title: 'Material Out for Delivery! 🚚',
+    message: `Final payment received for order #${order.orderNumber}. Driver: ${order.driverName} (${order.driverMobile}), Vehicle: ${order.vehicleNumber}. Your Delivery OTP is ${rawOtp}. Share this OTP with the driver only upon receiving the material.`,
+    orderId: order._id,
+    targetPhone: customerMobile
+  });
+
+  if (order.dealerId) {
+    await NotificationService.send({
+      recipientId: order.dealerId,
+      recipientRole: 'DEALER',
+      type: 'GENERAL',
+      title: 'Final Payment Received ✅',
+      message: `Order #${order.orderNumber}: final payment of ₹${order.finalPaymentAmount.toLocaleString('en-IN')} received. The Dumper is cleared for dispatch.`,
+      orderId: order._id
+    });
+  }
+
+  await NotificationService.notifyAdmin({
+    title: 'Final Payment Received — Dumper Dispatched',
+    message: `Order #${order.orderNumber}: final payment of ₹${order.finalPaymentAmount.toLocaleString('en-IN')} received (${order.totalWeight} Ton). Dumper dispatched.`,
+    orderId: order._id
+  });
+
+  // Drivers don't yet have push-notification device tokens wired up (a separate piece of
+  // infrastructure), so they're reached via the same SMS channel already used to assign them.
+  if (order.driverMobile) {
+    await SmsService.sendSms({
+      mobile: order.driverMobile,
+      message: `ANANTA TRADERS: Final payment received for order #${order.orderNumber}. You are cleared to dispatch to the delivery address now.`,
+      type: 'GENERAL'
+    }).catch((err) => console.warn('[SMS Driver Dispatch Warning]', err.message));
+  }
+
+  emitOrderStatusUpdate(order);
+};
 
 // @desc    Verify Razorpay Payment Signature
 // @route   POST /api/payments/verify
@@ -252,7 +319,121 @@ const devConfirmPayment = async (req, res) => {
   }
 };
 
+// @desc    Verify Razorpay signature for the DUMPER final (weight-based) payment -- entirely
+//          separate from verifyPayment above, which handles the upfront booking payment.
+// @route   POST /api/payments/verify-final
+// @access  Private (User)
+const verifyFinalPayment = async (req, res) => {
+  try {
+    const { orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+
+    if (!orderId || !razorpayOrderId || !razorpayPaymentId) {
+      return errorResponse(res, 'Missing payment verification credentials.', 400);
+    }
+
+    const order = await Order.findById(orderId).populate('userId', 'name mobile whatsappNumber');
+    if (!order) {
+      return errorResponse(res, 'Order not found.', 404);
+    }
+
+    if (order.userId._id.toString() !== req.user._id.toString() && req.user.role !== 'ADMIN') {
+      return errorResponse(res, 'Unauthorized access to this order payment.', 403);
+    }
+
+    if (order.fulfillmentStage !== 'WEIGHT_ENTERED') {
+      return errorResponse(res, 'Final payment is not due yet for this order.', 400);
+    }
+
+    if (order.finalRazorpayOrderId !== razorpayOrderId) {
+      return errorResponse(res, 'This payment does not match the final payment initialized for this order.', 400);
+    }
+
+    const isValid = RazorpayService.verifySignature({ razorpayOrderId, razorpayPaymentId, razorpaySignature });
+
+    if (!isValid) {
+      order.finalPaymentStatus = 'FAILED';
+      await order.save();
+
+      await Payment.create({
+        orderId: order._id,
+        userId: req.user._id,
+        razorpayOrderId,
+        razorpayPaymentId,
+        amount: order.finalPaymentAmount,
+        status: 'FAILED',
+        signature: razorpaySignature || ''
+      });
+
+      return errorResponse(res, 'Payment signature verification failed. Please contact your bank or try again.', 400);
+    }
+
+    order.finalPaymentStatus = 'PAID';
+    order.finalPaymentId = razorpayPaymentId;
+    order.fulfillmentStage = 'FINAL_PAYMENT_PAID';
+    await order.save();
+
+    await Payment.create({
+      orderId: order._id,
+      userId: req.user._id,
+      razorpayOrderId,
+      razorpayPaymentId,
+      amount: order.finalPaymentAmount,
+      status: 'PAID',
+      signature: razorpaySignature || '',
+      verifiedAt: new Date()
+    });
+
+    await dispatchAfterFinalPayment(order);
+
+    return successResponse(res, 'Final payment verified successfully! Your order is dispatched.', { order });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+// @desc    Simulate/Dev final-payment confirm (Dev helper, mirrors devConfirmPayment)
+// @route   POST /api/payments/dev-confirm-final
+// @access  Private (User)
+const devConfirmFinalPayment = async (req, res) => {
+  try {
+    const { orderId } = req.body;
+    const order = await Order.findById(orderId).populate('userId', 'name mobile whatsappNumber');
+
+    if (!order) {
+      return errorResponse(res, 'Order not found.', 404);
+    }
+
+    if (order.fulfillmentStage !== 'WEIGHT_ENTERED') {
+      return errorResponse(res, 'Final payment is not due yet for this order.', 400);
+    }
+
+    order.finalPaymentStatus = 'PAID';
+    order.finalPaymentId = `dev_pay_${Date.now()}`;
+    order.fulfillmentStage = 'FINAL_PAYMENT_PAID';
+    await order.save();
+
+    await Payment.create({
+      orderId: order._id,
+      userId: req.user._id,
+      razorpayOrderId: order.finalRazorpayOrderId || `dev_rzp_final_${Date.now()}`,
+      razorpayPaymentId: order.finalPaymentId,
+      amount: order.finalPaymentAmount,
+      status: 'PAID',
+      signature: 'test_sig_dev_mode',
+      verifiedAt: new Date()
+    });
+
+    await dispatchAfterFinalPayment(order);
+
+    return successResponse(res, 'Development final payment simulated successfully! Order dispatched.', { order });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
 module.exports = {
   verifyPayment,
-  devConfirmPayment
+  devConfirmPayment,
+  verifyFinalPayment,
+  devConfirmFinalPayment
 };

@@ -47,7 +47,8 @@ export const orderService = {
   getAdminEscalations: () => api.get('/orders/admin/escalations'),
   adminAcknowledge: (id) => api.post(`/orders/${id}/admin-acknowledge`),
   adminReassign: (id, targetDealerId) => api.post(`/orders/${id}/reassign`, { targetDealerId }),
-  getAllAdmin: (params) => api.get('/admin/orders', { params })
+  getAllAdmin: (params) => api.get('/admin/orders', { params }),
+  enterWeight: (id, totalWeight) => api.post(`/orders/${id}/weight`, { totalWeight })
 };
 
 export const deliveryService = {
@@ -56,7 +57,32 @@ export const deliveryService = {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
   verifyOtp: (id, otp) => api.post(`/deliveries/${id}/verify-otp`, { otp }),
-  getOtpStatus: (id) => api.get(`/deliveries/${id}/otp`)
+  getOtpStatus: (id) => api.get(`/deliveries/${id}/otp`),
+  uploadRiverRoyalty: (id, file) => {
+    const formData = new FormData();
+    formData.append('riverRoyalty', file);
+    return api.post(`/deliveries/${id}/river-royalty`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  uploadStockYardRoyalty: (id, file) => {
+    const formData = new FormData();
+    if (file) formData.append('stockYardRoyalty', file);
+    return api.post(`/deliveries/${id}/stock-yard-royalty`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  uploadRequiredPhotos: (id, photos) => {
+    const formData = new FormData();
+    formData.append('weightBridgeSlip', photos.weightBridgeSlip);
+    formData.append('weightBridgeDisplay', photos.weightBridgeDisplay);
+    formData.append('dumperTop', photos.dumperTop);
+    formData.append('dumperFront', photos.dumperFront);
+    formData.append('dumperRear', photos.dumperRear);
+    return api.post(`/deliveries/${id}/required-photos`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  }
 };
 
 export const driverService = {
@@ -76,7 +102,9 @@ export const paymentService = {
   verify: (data) => api.post('/payments/verify', data),
   verifyPayment: (data) => api.post('/payments/verify', data),
   devConfirm: (orderId) => api.post('/payments/dev-confirm', { orderId }),
-  devConfirmPayment: (orderId) => api.post('/payments/dev-confirm', { orderId })
+  devConfirmPayment: (orderId) => api.post('/payments/dev-confirm', { orderId }),
+  verifyFinal: (data) => api.post('/payments/verify-final', data),
+  devConfirmFinal: (orderId) => api.post('/payments/dev-confirm-final', { orderId })
 };
 
 export const dealerService = {

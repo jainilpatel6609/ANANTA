@@ -14,6 +14,7 @@ router.get('/dealer/my-deliveries', authenticateToken, authorizeRoles('DEALER', 
 router.post('/:id/accept', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), orderController.acceptOrder);
 router.post('/:id/decline', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), orderController.declineOrder);
 router.post('/:id/reject', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), orderController.declineOrder);
+router.post('/:id/weight', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), orderController.enterTotalWeight);
 
 // Admin Escalation & Reassignment routes
 router.get('/admin/escalations', authenticateToken, authorizeRoles('ADMIN'), orderController.getAdminEscalations);

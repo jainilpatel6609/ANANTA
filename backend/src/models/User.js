@@ -97,6 +97,15 @@ const userSchema = new mongoose.Schema(
       trim: true,
       default: ''
     },
+    // Unique permanent code shown to customers once this dealer accepts an order.
+    // Lazily generated (see utils/dealerCode.js) the first time a DEALER accepts an order.
+    dealerCode: {
+      type: String,
+      trim: true,
+      default: null,
+      unique: true,
+      sparse: true
+    },
     // Dealer KYC & Identity Fields
     dob: {
       type: String,

@@ -22,9 +22,17 @@ import {
   Users,
   Zap,
   CheckCircle2,
-  Navigation
+  Navigation,
+  Clock,
+  Weight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+const isTractorOrder = (order) =>
+  order?.transportType === 'Tractor' ||
+  order?.vehicleTypeSnapshot === 'TRACTOR' ||
+  Boolean(order?.tractorType) ||
+  (order?.vehicleType && order.vehicleType.toLowerCase().includes('patiya'));
 
 export default function AcceptedOrders() {
   const [orders, setOrders] = useState([]);
@@ -42,6 +50,10 @@ export default function AcceptedOrders() {
   const [waybridgeFile, setWaybridgeFile] = useState(null);
   const [waybridgePreview, setWaybridgePreview] = useState(null);
   const [dispatching, setDispatching] = useState(false);
+
+  // Dumper "Transporter" step: reviewing weighbridge photos and entering Total Weight
+  const [weightInputs, setWeightInputs] = useState({}); // { [orderId]: '30' }
+  const [enteringWeightOrderId, setEnteringWeightOrderId] = useState(null);
 
   const loadData = async () => {
     try {
@@ -125,53 +137,70 @@ export default function AcceptedOrders() {
       return;
     }
 
-    const isTractorOrder =
-      selectedOrder?.transportType === 'Tractor' ||
-      selectedOrder?.vehicleTypeSnapshot === 'TRACTOR' ||
-      Boolean(selectedOrder?.tractorType) ||
-      (selectedOrder?.vehicleType && selectedOrder.vehicleType.toLowerCase().includes('patiya'));
-
-    if (!isTractorOrder) {
-      if (!royaltyFile && !selectedOrder.riverRoyaltyUrl) {
-        toast.error('Please upload the River Royalty photo for Dumper / Truck delivery.');
-        return;
-      }
-
-      if (!waybridgeFile && !selectedOrder.waybridgePhotoUrl) {
-        toast.error('Please upload the Weighbridge slip photo for Dumper / Truck delivery.');
-        return;
-      }
-    }
+    const isTractor = isTractorOrder(selectedOrder);
 
     setDispatching(true);
     try {
-      const formData = new FormData();
-      if (selectedDriverId) {
-        formData.append('driverId', selectedDriverId);
-      }
-      formData.append('driverName', driverName.trim());
-      formData.append('driverMobile', cleanMobile);
-      formData.append('vehicleNumber', vehicleNumber.trim().toUpperCase());
+      if (isTractor) {
+        // Unchanged Tractor flow: driver assignment + royalty/weighbridge upload + dispatch + OTP, all in one call.
+        const formData = new FormData();
+        if (selectedDriverId) {
+          formData.append('driverId', selectedDriverId);
+        }
+        formData.append('driverName', driverName.trim());
+        formData.append('driverMobile', cleanMobile);
+        formData.append('vehicleNumber', vehicleNumber.trim().toUpperCase());
 
-      if (royaltyFile) {
-        formData.append('riverRoyalty', royaltyFile);
-      }
-      if (waybridgeFile) {
-        formData.append('waybridgePhoto', waybridgeFile);
-      }
+        if (royaltyFile) {
+          formData.append('riverRoyalty', royaltyFile);
+        }
+        if (waybridgeFile) {
+          formData.append('waybridgePhoto', waybridgeFile);
+        }
 
-      await deliveryService.dispatchOrder(selectedOrder._id, formData);
-      toast.success('Order dispatched! Customer received OTP and Driver received Google Maps Live Navigation link.');
+        await deliveryService.dispatchOrder(selectedOrder._id, formData);
+        toast.success('Order dispatched! Customer received OTP and Driver received Google Maps Live Navigation link.');
+      } else {
+        // Dumper: assignment only. The driver shares live location, uploads River Royalty /
+        // Stock Yard / weighbridge photos from their own app, and dispatch happens
+        // automatically once you enter Total Weight and the customer completes final payment.
+        await deliveryService.assignDriver(selectedOrder._id, {
+          driverId: selectedDriverId || undefined,
+          driverName: driverName.trim(),
+          driverMobile: cleanMobile,
+          vehicleNumber: vehicleNumber.trim().toUpperCase()
+        });
+        toast.success('Driver assigned! They will share live location and upload the required photos next.');
+      }
       setSelectedOrder(null);
       loadData();
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || 'Dispatch submission failed');
+      toast.error(err.response?.data?.message || err.message || 'Failed to assign driver.');
     } finally {
       setDispatching(false);
     }
   };
 
   // Helper to generate WhatsApp Task Share Link for Driver
+  const handleEnterWeight = async (order) => {
+    const weight = Number(weightInputs[order._id]);
+    if (!weight || weight <= 0) {
+      toast.error('Please enter a valid Total Weight in tons.');
+      return;
+    }
+
+    setEnteringWeightOrderId(order._id);
+    try {
+      await orderService.enterWeight(order._id, weight);
+      toast.success('Total Weight recorded. Customer has been notified for final payment.');
+      loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to record Total Weight.');
+    } finally {
+      setEnteringWeightOrderId(null);
+    }
+  };
+
   const getDriverWhatsAppUrl = (order, driverMob, driverNm) => {
     const mapUrl =
       order.latitude && order.longitude
@@ -330,17 +359,86 @@ export default function AcceptedOrders() {
                   </div>
                 )}
 
-                {/* Action Button: Open Dispatch Modal */}
-                <div className="flex items-center justify-end gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => openDispatchModal(order)}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95"
-                  >
-                    <Truck className="w-4 h-4" />
-                    <span>Assign Driver & Dispatch Material</span>
-                  </button>
-                </div>
+                {/* Action Area: differs for Tractor (dispatch modal, unchanged) vs Dumper
+                    (assign driver only -- then track fulfillment progress here) */}
+                {isTractorOrder(order) ? (
+                  <div className="flex items-center justify-end gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => openDispatchModal(order)}
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95"
+                    >
+                      <Truck className="w-4 h-4" />
+                      <span>Assign Driver & Dispatch Material</span>
+                    </button>
+                  </div>
+                ) : !order.driverName ? (
+                  <div className="flex items-center justify-end gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => openDispatchModal(order)}
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95"
+                    >
+                      <Truck className="w-4 h-4" />
+                      <span>Assign Driver</span>
+                    </button>
+                  </div>
+                ) : order.fulfillmentStage === 'PHOTOS_SUBMITTED' ? (
+                  <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/30 space-y-4">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                      <Scale className="w-4 h-4" /> Weighbridge Review &amp; Total Weight
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="p-2 bg-slate-950 rounded-xl border border-slate-800">
+                        <span className="text-[10px] text-slate-400 block mb-1.5 font-semibold uppercase">Weight Bridge Slip</span>
+                        <img src={order.waybridgePhotoUrl} alt="Weight Bridge Slip" className="w-full h-32 object-cover rounded-lg" />
+                      </div>
+                      <div className="p-2 bg-slate-950 rounded-xl border border-slate-800">
+                        <span className="text-[10px] text-slate-400 block mb-1.5 font-semibold uppercase">Weight Bridge Display</span>
+                        <img src={order.weightBridgeDisplayUrl} alt="Weight Bridge Display" className="w-full h-32 object-cover rounded-lg" />
+                      </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="relative flex-1">
+                        <input
+                          type="number"
+                          min="0.1"
+                          step="0.1"
+                          placeholder="Total Weight (Tons)"
+                          value={weightInputs[order._id] || ''}
+                          onChange={(e) => setWeightInputs((prev) => ({ ...prev, [order._id]: e.target.value }))}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm font-mono text-white focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleEnterWeight(order)}
+                        disabled={enteringWeightOrderId === order._id}
+                        className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-amber-500/20 disabled:opacity-50"
+                      >
+                        {enteringWeightOrderId === order._id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Weight className="w-4 h-4" />
+                        )}
+                        <span>Submit Total Weight</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : order.fulfillmentStage === 'WEIGHT_ENTERED' ? (
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex items-center gap-3 text-xs text-slate-300">
+                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>
+                      Total Weight: <strong className="text-white">{order.totalWeight} Ton</strong>. Waiting for customer's
+                      final payment of <strong className="text-amber-400">{formatINR(order.finalPaymentAmount)}</strong> before dispatch.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex items-center gap-3 text-xs text-slate-300">
+                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>Waiting for driver to share live location and upload the pickup photos.</span>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -351,7 +449,11 @@ export default function AcceptedOrders() {
       <Modal
         isOpen={Boolean(selectedOrder)}
         onClose={() => setSelectedOrder(null)}
-        title={`Dispatch Material: Order #${selectedOrder?.orderNumber}`}
+        title={
+          isTractorOrder(selectedOrder)
+            ? `Dispatch Material: Order #${selectedOrder?.orderNumber}`
+            : `Assign Driver: Order #${selectedOrder?.orderNumber}`
+        }
       >
         {selectedOrder && (
           <form onSubmit={handleDispatchSubmit} className="space-y-5">
@@ -431,18 +533,17 @@ export default function AcceptedOrders() {
               </div>
             </div>
 
-            {/* Upload Area for Royalty & Weighbridge Photos - ONLY FOR DUMPER / TRUCK */}
-            {selectedOrder?.transportType !== 'Tractor' &&
-            selectedOrder?.vehicleTypeSnapshot !== 'TRACTOR' &&
-            !selectedOrder?.tractorType &&
-            !selectedOrder?.vehicleType?.toLowerCase().includes('patiya') ? (
+            {/* Upload Area for Royalty & Weighbridge Photos -- Tractor only. For Dumper, the
+                driver now shares live location and uploads these (and the required weighbridge/
+                dumper photos) directly from their own app after being assigned here. */}
+            {isTractorOrder(selectedOrder) ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                 {/* River Royalty Upload */}
                 <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-white flex items-center gap-1.5">
                       <FileCheck className="w-4 h-4 text-amber-400" />
-                      River Royalty Photo *
+                      River Royalty Photo (optional)
                     </span>
                   </div>
 
@@ -479,7 +580,7 @@ export default function AcceptedOrders() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-white flex items-center gap-1.5">
                       <Scale className="w-4 h-4 text-emerald-400" />
-                      Weighbridge Slip Photo *
+                      Weighbridge Slip Photo (optional)
                     </span>
                   </div>
 
@@ -515,7 +616,7 @@ export default function AcceptedOrders() {
               <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2.5 text-xs text-emerald-300">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>
-                  <strong>Tractor Delivery:</strong> Direct dispatch with fixed trolley rate. River Royalty & Weighbridge certificate are not required for Tractor.
+                  <strong>Dumper Delivery:</strong> once assigned, your driver will share live location and upload the River Royalty, Stock Yard, and Weighbridge photos directly from their own app. You'll be notified to enter the Total Weight once they're done.
                 </span>
               </div>
             )}
@@ -550,12 +651,12 @@ export default function AcceptedOrders() {
                   {dispatching ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Dispatching...</span>
+                      <span>{isTractorOrder(selectedOrder) ? 'Dispatching...' : 'Assigning...'}</span>
                     </>
                   ) : (
                     <>
                       <Truck className="w-4 h-4" />
-                      <span>Dispatch & Send Map to Driver</span>
+                      <span>{isTractorOrder(selectedOrder) ? 'Dispatch & Send Map to Driver' : 'Assign Driver & Send Map'}</span>
                     </>
                   )}
                 </button>

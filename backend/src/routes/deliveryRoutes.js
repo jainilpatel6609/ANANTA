@@ -13,6 +13,39 @@ router.post(
   deliveryController.assignDriverToOrder
 );
 
+// Driver uploads River Royalty photo (Dumper fulfillment flow, requires location already shared)
+router.post(
+  '/:id/river-royalty',
+  authenticateToken,
+  authorizeRoles('DRIVER'),
+  upload.single('riverRoyalty'),
+  deliveryController.uploadRiverRoyalty
+);
+
+// Driver uploads Plant Stock Yard Royalty photo, or skips this step (no file = skip)
+router.post(
+  '/:id/stock-yard-royalty',
+  authenticateToken,
+  authorizeRoles('DRIVER'),
+  upload.single('stockYardRoyalty'),
+  deliveryController.uploadStockYardRoyalty
+);
+
+// Driver submits the 5 required photos (Weight Bridge Slip/Display, Dumper Top/Front/Rear)
+router.post(
+  '/:id/required-photos',
+  authenticateToken,
+  authorizeRoles('DRIVER'),
+  upload.fields([
+    { name: 'weightBridgeSlip', maxCount: 1 },
+    { name: 'weightBridgeDisplay', maxCount: 1 },
+    { name: 'dumperTop', maxCount: 1 },
+    { name: 'dumperFront', maxCount: 1 },
+    { name: 'dumperRear', maxCount: 1 }
+  ]),
+  deliveryController.uploadRequiredPhotos
+);
+
 // Dealer dispatch driver & uploads documents
 router.post(
   '/:id/dispatch',

@@ -7,6 +7,7 @@ const User = require('../models/User');
 const Driver = require('../models/Driver');
 const DealerTransportConfig = require('../models/DealerTransportConfig');
 const { generateOrderNumber } = require('../utils/orderNumber');
+const { generateDealerCode } = require('../utils/dealerCode');
 const RazorpayService = require('../services/razorpayService');
 const NotificationService = require('../services/notificationService');
 const PincodeService = require('../services/pincodeService');
@@ -628,7 +629,10 @@ const getOrderById = async (req, res) => {
 
     const responseOrder = req.user.role === 'DEALER' && !isAssignedDealer ? maskAddressForPendingDealer(order, userIdStr) : order;
 
-    return successResponse(res, 'Order retrieved successfully.', { order: responseOrder });
+    return successResponse(res, 'Order retrieved successfully.', {
+      order: responseOrder,
+      keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_mock_key'
+    });
   } catch (error) {
     return errorResponse(res, error.message, 500);
   }
@@ -772,6 +776,19 @@ const acceptOrder = async (req, res) => {
     order.adminAlarmActive = false;
     order.adminEscalationSent = false;
 
+    // Every dealer has a permanent unique code, shown to the customer once they accept an
+    // order. Generate it lazily on first use rather than requiring a one-off migration for
+    // dealers created before this existed.
+    if (!req.user.dealerCode) {
+      req.user.dealerCode = await generateDealerCode();
+      await req.user.save();
+    }
+    order.dealerCodeSnapshot = req.user.dealerCode;
+
+    if (order.vehicleTypeSnapshot === 'DUMPER') {
+      order.fulfillmentStage = 'AWAITING_DRIVER';
+    }
+
     // Update active assignment history record
     if (Array.isArray(order.assignmentHistory) && order.assignmentHistory.length > 0) {
       const matchIndex = order.assignmentHistory.findIndex(
@@ -851,7 +868,7 @@ const acceptOrder = async (req, res) => {
       recipientRole: 'USER',
       type: 'ORDER_ACCEPTED',
       title: 'Order Accepted by Dealer',
-      message: `Your order #${order.orderNumber} has been accepted by dealer ${req.user.companyName || req.user.name}. Vehicle dispatch is being prepared.`,
+      message: `Your order #${order.orderNumber} has been accepted by dealer ${req.user.companyName || req.user.name} (Dealer Code: ${order.dealerCodeSnapshot}). Vehicle dispatch is being prepared.`,
       orderId: order._id,
       targetPhone: order.userId.whatsappNumber || order.userId.mobile
     });
@@ -1195,6 +1212,64 @@ const getAllOrdersAdmin = async (req, res) => {
   }
 };
 
+// @desc    Dealer (acting as Transporter) enters the actual weighed tonnage after reviewing the
+//          Weight Bridge Slip + Display photos the driver submitted. Computes the Final Payment
+//          amount (Total Weight x Rate Per Ton) and creates its Razorpay order so the customer's
+//          app can immediately show the payment screen. This is entirely separate from the
+//          upfront booking payment (paymentStatus/razorpayOrderId) -- both remain in effect.
+// @route   POST /api/orders/:id/weight
+// @access  Private (Dealer)
+const enterTotalWeight = async (req, res) => {
+  try {
+    const { totalWeight } = req.body;
+    const weight = Number(totalWeight);
+    if (!weight || Number.isNaN(weight) || weight <= 0) {
+      return errorResponse(res, 'A valid Total Weight (in tons) is required.', 400);
+    }
+
+    const order = await Order.findById(req.params.id).populate('userId', 'name mobile whatsappNumber');
+    if (!order) {
+      return errorResponse(res, 'Order not found.', 404);
+    }
+
+    if (!order.dealerId || order.dealerId.toString() !== req.user._id.toString()) {
+      return errorResponse(res, 'Unauthorized. This order is not assigned to you.', 403);
+    }
+
+    if (order.fulfillmentStage !== 'PHOTOS_SUBMITTED') {
+      return errorResponse(res, 'The driver must submit all required weighbridge photos before Total Weight can be entered.', 400);
+    }
+
+    const finalPaymentAmount = Math.round(weight * order.pricePerTonSnapshot * 100) / 100;
+    const rzpOrder = await RazorpayService.createOrder(finalPaymentAmount, `${order.orderNumber}-FINAL`);
+
+    order.totalWeight = weight;
+    order.weightEnteredAt = new Date();
+    order.finalPaymentAmount = finalPaymentAmount;
+    order.finalRazorpayOrderId = rzpOrder.id;
+    order.fulfillmentStage = 'WEIGHT_ENTERED';
+    await order.save();
+
+    await NotificationService.send({
+      recipientId: order.userId._id,
+      recipientRole: 'USER',
+      type: 'GENERAL',
+      title: 'Final Weight Confirmed — Payment Due',
+      message: `Order #${order.orderNumber}: Total Weight ${weight} Ton x ₹${order.pricePerTonSnapshot}/Ton = ₹${finalPaymentAmount.toLocaleString('en-IN')}. Please complete the final payment to dispatch your material.`,
+      orderId: order._id,
+      targetPhone: order.userId.whatsappNumber || order.userId.mobile
+    });
+
+    return successResponse(res, 'Total Weight recorded and final payment initialized.', {
+      order,
+      razorpayOrder: rzpOrder,
+      keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_mock_key'
+    });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
 module.exports = {
   createOrder,
   getMyOrders,
@@ -1203,6 +1278,7 @@ module.exports = {
   getDealerDeliveries,
   acceptOrder,
   declineOrder,
+  enterTotalWeight,
   getAllOrdersAdmin,
   getAdminEscalations,
   adminAcknowledgeAlert,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { orderService } from '../../services';
+import { useAuth } from '../../context/AuthContext';
+import { orderService, paymentService } from '../../services';
 import StatusBadge from '../../components/StatusBadge';
 import DeliveryTimeline from '../../components/DeliveryTimeline';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -20,31 +21,103 @@ import {
   FileText,
   Printer,
   Copy,
-  Check
+  Check,
+  BadgeCheck,
+  Weight,
+  CreditCard,
+  Loader2,
+  Zap
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function OrderDetails() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copiedOtp, setCopiedOtp] = useState(false);
+  const [payingFinal, setPayingFinal] = useState(false);
+  const [razorpayKeyId, setRazorpayKeyId] = useState('rzp_test_mock_key');
+
+  const fetchOrder = async () => {
+    try {
+      const res = await orderService.getOrderById(id);
+      if (res.data?.order) {
+        setOrder(res.data.order);
+      }
+      if (res.data?.keyId) {
+        setRazorpayKeyId(res.data.keyId);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrder = async () => {
-      try {
-        const res = await orderService.getOrderById(id);
-        if (res.data?.order) {
-          setOrder(res.data.order);
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchOrder();
   }, [id]);
+
+  // Final payment (Total Weight x Rate Per Ton) -- entirely separate from the upfront booking
+  // payment above; becomes due once the dealer enters the weighed tonnage.
+  const handleDemoFinalConfirm = async () => {
+    setPayingFinal(true);
+    try {
+      await paymentService.devConfirmFinal(order._id);
+      toast.success('🎉 Final payment confirmed (Demo Mode)! Your Dumper is dispatched.');
+      fetchOrder();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Final payment failed.');
+    } finally {
+      setPayingFinal(false);
+    }
+  };
+
+  const handleRazorpayFinalCheckout = () => {
+    if (!order?.finalRazorpayOrderId || !window.Razorpay) {
+      toast.error('Razorpay SDK is not loaded. Please use Demo Payment mode for instant testing.');
+      return;
+    }
+
+    const options = {
+      key: razorpayKeyId,
+      amount: Math.round(order.finalPaymentAmount * 100),
+      currency: 'INR',
+      name: 'ANANTA TRADERS',
+      description: `Final Payment - Order #${order.orderNumber}`,
+      order_id: order.finalRazorpayOrderId,
+      prefill: {
+        name: order.shippingDetails?.fullName || user?.name,
+        contact: order.shippingDetails?.mobile || user?.mobile,
+        email: user?.email || 'sales@anantatraders.com'
+      },
+      theme: { color: '#f59e0b' },
+      handler: async function (response) {
+        try {
+          toast.loading('Verifying secure transaction...', { id: 'final-pay' });
+          await paymentService.verifyFinal({
+            razorpayOrderId: response.razorpay_order_id,
+            razorpayPaymentId: response.razorpay_payment_id,
+            razorpaySignature: response.razorpay_signature,
+            orderId: order._id
+          });
+          toast.success('Final payment verified! Your Dumper is dispatched.', { id: 'final-pay' });
+          fetchOrder();
+        } catch (err) {
+          toast.error('Payment verification failed. Please contact support.', { id: 'final-pay' });
+        }
+      },
+      modal: {
+        ondismiss: function () {
+          toast('Payment window dismissed. You can retry final payment anytime.');
+        }
+      }
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+  };
 
   const copyOtpToClipboard = (otp) => {
     if (!otp) return;
@@ -96,7 +169,15 @@ export default function OrderDetails() {
               </span>
               <StatusBadge status={order.orderStatus} size="sm" />
             </div>
-            <p className="text-xs text-slate-400 mt-0.5 font-medium">Placed on {formatDate(order.createdAt)}</p>
+            <p className="text-xs text-slate-400 mt-0.5 font-medium">
+              Placed on {formatDate(order.createdAt)}
+              {order.dealerCodeSnapshot && (
+                <span className="ml-2 inline-flex items-center gap-1 text-amber-700 font-bold">
+                  <BadgeCheck className="w-3.5 h-3.5" />
+                  Dealer Code: <span className="font-mono">{order.dealerCodeSnapshot}</span>
+                </span>
+              )}
+            </p>
           </div>
         </div>
 
@@ -368,6 +449,56 @@ export default function OrderDetails() {
               </div>
             )}
           </div>
+
+          {/* Final Payment (Total Weight x Rate Per Ton) -- separate from the upfront booking
+              payment above. Becomes due once the dealer enters the weighed tonnage. */}
+          {order.fulfillmentStage === 'WEIGHT_ENTERED' && order.finalPaymentStatus !== 'PAID' && (
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50/80 border border-amber-300/80 rounded-3xl p-5 sm:p-6 space-y-3.5 shadow-xs">
+              <h3 className="font-black text-amber-900 text-xs uppercase tracking-wider flex items-center gap-2 border-b border-amber-200/80 pb-3">
+                <Weight className="w-4 h-4 text-amber-700" />
+                Final Payment Due
+              </h3>
+              <div className="flex justify-between py-1 border-b border-amber-200/60 text-xs">
+                <span className="text-amber-800">Total Weight:</span>
+                <span className="font-mono font-bold text-slate-900">{order.totalWeight} Ton</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-amber-200/60 text-xs">
+                <span className="text-amber-800">Rate Per Ton:</span>
+                <span className="font-mono font-bold text-slate-900">{formatINR(order.pricePerTonSnapshot)}</span>
+              </div>
+              <div className="pt-1 flex justify-between items-baseline">
+                <span className="text-sm font-black text-slate-900">Total Price:</span>
+                <span className="text-2xl font-black text-amber-700 font-mono">{formatINR(order.finalPaymentAmount)}</span>
+              </div>
+              <p className="text-[11px] text-amber-800/80">
+                Your Dumper will be dispatched as soon as this payment is completed.
+              </p>
+
+              <div className="space-y-2 pt-1">
+                <button
+                  type="button"
+                  disabled={payingFinal}
+                  onClick={handleDemoFinalConfirm}
+                  className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {payingFinal ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                  <span>Confirm & Pay (Demo Mode)</span>
+                </button>
+
+                {window.Razorpay && order.finalRazorpayOrderId && (
+                  <button
+                    type="button"
+                    disabled={payingFinal}
+                    onClick={handleRazorpayFinalCheckout}
+                    className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-amber-400 font-bold text-xs shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    <span>Pay with Razorpay Gateway</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Invoice Breakdown */}
           <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-6 space-y-3 text-xs shadow-xs">
