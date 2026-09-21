@@ -805,9 +805,9 @@ export default function CreateOrder() {
       setCreatedOrder(order);
       setRazorpayData({ razorpayOrder, keyId });
 
-      // Open Interactive Payment & Demo Mode Confirmation Modal
+      // Open Interactive Payment & Demo Mode Confirmation Modal -- no toast here, since the
+      // order isn't placed yet; the modal itself is the only signal until payment completes.
       setShowPaymentModal(true);
-      toast.success(`Order #${order.orderNumber} initiated! Please complete payment to confirm.`);
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Failed to initialize order.');
     } finally {
