@@ -1882,7 +1882,6 @@ export default function CreateOrder() {
                             {dealer.companyName || dealer.name}
                           </div>
                           <div className="text-[11px] text-slate-500 font-mono">
-                            {dealer.city ? `${dealer.city} • ` : ''}
                             {dealer.distanceKm != null ? `${dealer.distanceKm} km away` : 'Distance unavailable'}
                           </div>
                         </div>
