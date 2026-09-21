@@ -188,11 +188,21 @@ const getEligibleDealers = async (req, res) => {
       const key = locName.toLowerCase();
       if (locationDistanceCache.has(key)) return locationDistanceCache.get(key);
 
-      const locationDoc = await Location.findOne({
+      // A sourcing Location's real-world coordinates are the same physical place regardless of
+      // vehicleType, but the Location collection stores a separate document per vehicleType
+      // (e.g. "Patan" for DUMPER and "Patan" for TRACTOR) and only one of them may have
+      // coordinates configured. This endpoint isn't vehicleType-scoped (a dealer's rate applies
+      // to both), so query every matching document and use whichever one actually has
+      // coordinates set, rather than an arbitrary `findOne` match that could pick the wrong one.
+      const locationDocs = await Location.find({
         name: { $regex: `^${locName}$`, $options: 'i' },
         category: material,
         isActive: true
       });
+      const locationDoc =
+        locationDocs.find((l) => l.latitude !== null && l.latitude !== undefined && l.longitude !== null && l.longitude !== undefined) ||
+        locationDocs[0] ||
+        null;
 
       let result = null;
       if (locationDoc && locationDoc.latitude !== null && locationDoc.latitude !== undefined && locationDoc.longitude !== null && locationDoc.longitude !== undefined) {

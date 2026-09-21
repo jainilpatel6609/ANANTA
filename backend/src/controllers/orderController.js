@@ -150,6 +150,7 @@ const createOrder = async (req, res) => {
       locationDoc = await Location.findOne({
         name: { $regex: `^${finalLocationName}$`, $options: 'i' },
         vehicleType,
+        category: product.category,
         isActive: true
       });
     }
