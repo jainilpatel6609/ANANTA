@@ -190,7 +190,9 @@ export default function DealerDashboard() {
                     <div className="text-xs font-bold text-slate-200">
                       {formatOrderQuantity(order)} {order.productNameSnapshot}
                     </div>
-                    <div className="text-[11px] text-slate-400 truncate max-w-xs">{order.shippingAddress}</div>
+                    <div className="text-[11px] text-slate-400 truncate max-w-xs">
+                      {order.shippingAddress || (typeof order.distanceToDealer === 'number' ? `~${order.distanceToDealer} km away · address unlocks on accept` : 'Address unlocks on accept')}
+                    </div>
                   </div>
                   <Link
                     to="/dealer/new-orders"

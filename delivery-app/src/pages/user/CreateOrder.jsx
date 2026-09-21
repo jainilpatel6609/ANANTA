@@ -115,6 +115,8 @@ export default function CreateOrder() {
   const selectedMaterial = materials.find((m) => m._id === selectedMaterialId) || materials[0];
   const isAggregate = selectedMaterial?.category === 'Aggregate';
   const selectedDealerForSummary = dealers.find((d) => d.dealerId === selectedDealerId) || null;
+  // Dumper's entire charge: Distance(km) x the selected dealer's Rate/KM = Rate Per Ton.
+  const dumperRatePerTon = selectedVehicleType === 'DUMPER' ? (selectedDealerForSummary?.transportCost ?? null) : null;
 
   // Fetch initial global data (materials and visibility settings)
   useEffect(() => {
@@ -225,46 +227,11 @@ export default function CreateOrder() {
   const currentQuantity = selectedVehicleType === 'DUMPER' ? dumperQuantity : tractorQuantity;
 
   if (selectedVehicleType === 'DUMPER' && selectedCapacity) {
-    let grainPricePerTon = null;
-    if (isAggregate && selectedAggregateType) {
-      const dumperPricing = selectedMaterial?.dumperGrainPricing?.find(
-        (g) => g.name && g.name.toLowerCase().trim() === selectedAggregateType.toLowerCase().trim()
-      );
-      if (dumperPricing?.pricePerTon) {
-        grainPricePerTon = dumperPricing.pricePerTon;
-      }
-    }
-
-    // Check location-specific wheel price & tonnage
-    let locationWheelPrice = null;
-    let locationWheelTon = null;
-    if (selectedLocation) {
-      const wheelNum = Number(selectedCapacity.wheelCount);
-      if (selectedLocation.dumperWheelConfigs?.length && wheelNum) {
-        const tier = selectedLocation.dumperWheelConfigs.find((w) => Number(w.wheelCount) === wheelNum);
-        if (tier) {
-          if (tier.pricePerTon) locationWheelPrice = tier.pricePerTon;
-          if (tier.approximateTon) locationWheelTon = tier.approximateTon;
-        }
-      }
-      if (!locationWheelPrice && wheelNum) {
-        if (wheelNum === 10 && selectedLocation.wheel10PricePerTon) locationWheelPrice = selectedLocation.wheel10PricePerTon;
-        if (wheelNum === 12 && selectedLocation.wheel12PricePerTon) locationWheelPrice = selectedLocation.wheel12PricePerTon;
-        if (wheelNum === 16 && selectedLocation.wheel16PricePerTon) locationWheelPrice = selectedLocation.wheel16PricePerTon;
-        if (wheelNum === 18 && selectedLocation.wheel18PricePerTon) locationWheelPrice = selectedLocation.wheel18PricePerTon;
-      }
-      if (!locationWheelTon && wheelNum) {
-        if (wheelNum === 10 && selectedLocation.wheel10ApproxTon) locationWheelTon = selectedLocation.wheel10ApproxTon;
-        if (wheelNum === 12 && selectedLocation.wheel12ApproxTon) locationWheelTon = selectedLocation.wheel12ApproxTon;
-        if (wheelNum === 16 && selectedLocation.wheel16ApproxTon) locationWheelTon = selectedLocation.wheel16ApproxTon;
-        if (wheelNum === 18 && selectedLocation.wheel18ApproxTon) locationWheelTon = selectedLocation.wheel18ApproxTon;
-      }
-    }
-
-    unitPrice = grainPricePerTon || locationWheelPrice || selectedCapacity.basePricePerTon || selectedMaterial?.pricePerTon || 800;
-    const effectiveTon = locationWheelTon || selectedCapacity.approximateTon || 25;
-    approxTotalTonnage = effectiveTon * dumperQuantity;
-    subtotal = Math.round(unitPrice * approxTotalTonnage);
+    // Dumper has no material/base price any more -- the customer's Rate Per Ton is the
+    // distance-based transport rate resolved once a dealer is selected (Step 7), computed as
+    // Distance(km) x Dealer Rate/KM. unitPrice/subtotal stay 0 here; only capacity (tonnage)
+    // is known this early in the wizard, kept for the spec summary display.
+    approxTotalTonnage = (selectedCapacity.approximateTon || 25) * dumperQuantity;
   } else if (selectedVehicleType === 'TRACTOR' && selectedCapacity) {
     const isDoublePatiya = selectedOptionName === 'Double Patiya' || selectedCapacity?.optionName === 'Double Patiya' || selectedCapacity?.name === 'Double Patiya';
     let locationPrice = null;
@@ -1851,8 +1818,8 @@ export default function CreateOrder() {
               <span className="text-xs font-bold text-amber-600 uppercase tracking-widest">Step 7 of {dynamicSteps.length}</span>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">Select Dealer</h2>
               <p className="text-xs sm:text-sm text-slate-500">
-                Transport cost = dealer's rate per KM for {selectedMaterial?.category}
-                {selectedLocation?.name && !(isAggregate && selectedVehicleType === 'TRACTOR') ? ` (${selectedLocation.name})` : ''} &times; distance to your shipping address.
+                {selectedVehicleType === 'DUMPER' ? 'Rate Per Ton' : 'Transport cost'} = dealer&apos;s rate per KM for {selectedMaterial?.category}
+                {selectedLocation?.name && !(isAggregate && selectedVehicleType === 'TRACTOR') ? ` (${selectedLocation.name})` : ''} &times; road distance to your shipping address.
               </p>
             </div>
 
@@ -1864,7 +1831,10 @@ export default function CreateOrder() {
             ) : dealers.length === 0 ? (
               <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center text-sm text-slate-500">
                 No dealers currently offer transport for {selectedMaterial?.category}
-                {selectedLocation?.name ? ` from ${selectedLocation.name}` : ''}. A nearby dealer will be auto-assigned, or please contact support.
+                {selectedLocation?.name ? ` from ${selectedLocation.name}` : ''}.{' '}
+                {selectedVehicleType === 'DUMPER'
+                  ? 'A Dumper booking needs at least one dealer with a configured rate for this location — please choose a different sourcing location or contact support.'
+                  : 'A nearby dealer will be auto-assigned, or please contact support.'}
               </div>
             ) : (
               <div className="space-y-3">
@@ -1903,7 +1873,9 @@ export default function CreateOrder() {
                         <div className="text-base sm:text-lg font-black text-amber-700 font-mono">
                           {formatINR(dealer.transportCost)}
                         </div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Transport Cost</div>
+                        <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">
+                          {selectedVehicleType === 'DUMPER' ? 'Rate Per Ton' : 'Transport Cost'}
+                        </div>
                       </div>
                       {isSelected && <Check className="w-5 h-5 text-amber-600 shrink-0" />}
                     </button>
@@ -2025,28 +1997,44 @@ export default function CreateOrder() {
             )}
 
             {/* Price Breakdown */}
-            <div className="p-6 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50/80 border border-amber-200 space-y-3 text-xs shadow-sm">
-              <div className="flex items-center justify-between text-slate-600">
-                <span>Material Subtotal ({approxTotalTonnage} Tons):</span>
-                <span className="font-mono font-bold text-slate-900">{formatINR(subtotal)}</span>
+            {selectedVehicleType === 'DUMPER' ? (
+              /* DUMPER: no material subtotal / grand total any more -- the customer sees only
+                 the calculated Rate Per Ton (Distance x Dealer Rate/KM). */
+              <div className="p-6 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50/80 border border-amber-200 shadow-sm text-center space-y-1.5">
+                <span className="text-[11px] font-bold text-amber-700 uppercase tracking-widest">Rate Per Ton</span>
+                <div className="font-black font-mono text-3xl text-amber-700">
+                  {dumperRatePerTon !== null ? formatINR(dumperRatePerTon) : '—'}
+                </div>
+                {selectedDealerForSummary && (
+                  <div className="text-[11px] text-slate-500">
+                    {selectedDealerForSummary.distanceKm} km &times; {formatINR(selectedDealerForSummary.ratePerKm)}/km ({selectedDealerForSummary.companyName || selectedDealerForSummary.name})
+                  </div>
+                )}
               </div>
-              <div className="flex items-center justify-between text-slate-600">
-                <span>Transport Cost:</span>
-                <span className="font-mono font-bold text-slate-900">
-                  {selectedDealerForSummary ? formatINR(selectedDealerForSummary.transportCost) : 'FREE / INCLUDED'}
-                </span>
+            ) : (
+              <div className="p-6 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50/80 border border-amber-200 space-y-3 text-xs shadow-sm">
+                <div className="flex items-center justify-between text-slate-600">
+                  <span>Material Subtotal ({approxTotalTonnage} Tons):</span>
+                  <span className="font-mono font-bold text-slate-900">{formatINR(subtotal)}</span>
+                </div>
+                <div className="flex items-center justify-between text-slate-600">
+                  <span>Transport Cost:</span>
+                  <span className="font-mono font-bold text-slate-900">
+                    {selectedDealerForSummary ? formatINR(selectedDealerForSummary.transportCost) : 'FREE / INCLUDED'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-slate-600">
+                  <span>Royalty Slips & GST:</span>
+                  <span className="font-mono font-bold text-emerald-700">100% Certified Included</span>
+                </div>
+                <div className="border-t border-amber-200 pt-3 flex items-center justify-between text-sm">
+                  <span className="font-black text-slate-900 uppercase tracking-wider">Grand Total Amount:</span>
+                  <span className="font-black font-mono text-2xl text-amber-700">
+                    {formatINR(subtotal + (selectedDealerForSummary?.transportCost || 0))}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center justify-between text-slate-600">
-                <span>Royalty Slips & GST:</span>
-                <span className="font-mono font-bold text-emerald-700">100% Certified Included</span>
-              </div>
-              <div className="border-t border-amber-200 pt-3 flex items-center justify-between text-sm">
-                <span className="font-black text-slate-900 uppercase tracking-wider">Grand Total Amount:</span>
-                <span className="font-black font-mono text-2xl text-amber-700">
-                  {formatINR(subtotal + (selectedDealerForSummary?.transportCost || 0))}
-                </span>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -2085,6 +2073,10 @@ export default function CreateOrder() {
                     toast.error('Please select a dealer to continue.');
                     return;
                   }
+                  if (selectedVehicleType === 'DUMPER' && dealers.length === 0) {
+                    toast.error('No dealer currently offers a rate for this Material + Location. Please go back and choose a different sourcing location.');
+                    return;
+                  }
                 }
                 setStep((prev) => prev + 1);
               }}
@@ -2096,7 +2088,7 @@ export default function CreateOrder() {
           ) : (
             <button
               type="button"
-              disabled={submitting}
+              disabled={submitting || (selectedVehicleType === 'DUMPER' && !dumperRatePerTon)}
               onClick={handleProceedToPayment}
               className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-bold text-sm transition-all shadow-md shadow-emerald-600/20 disabled:opacity-50 min-h-[48px] cursor-pointer ml-auto"
             >
@@ -2108,7 +2100,9 @@ export default function CreateOrder() {
               ) : (
                 <>
                   <CreditCard className="w-4 h-4" />
-                  <span>Proceed to Payment ({formatINR(subtotal)})</span>
+                  <span>
+                    Proceed to Payment ({formatINR(selectedVehicleType === 'DUMPER' ? (dumperRatePerTon || 0) : subtotal)})
+                  </span>
                 </>
               )}
             </button>

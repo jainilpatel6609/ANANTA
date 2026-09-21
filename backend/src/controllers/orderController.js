@@ -21,6 +21,53 @@ const {
   ensureProductTractorPrices
 } = require('../utils/tractorPricing');
 
+// Fields identifying the customer's exact shipping address/map location. Hidden from a dealer
+// until they accept the order -- before that, a dealer may see only the computed distance (KM),
+// material and price, never where the delivery actually is.
+const DEALER_HIDDEN_ADDRESS_FIELDS = [
+  'shippingAddress',
+  'deliveryAddress',
+  'pincode',
+  'deliveryPincode',
+  'placeId',
+  'placeName',
+  'gpsAccuracy',
+  'gpsLatitude',
+  'gpsLongitude',
+  'deliveryArea',
+  'deliveryCity',
+  'deliveryState',
+  'latitude',
+  'longitude',
+  'deliveryLatitude',
+  'deliveryLongitude',
+  'deliveryInstructions'
+];
+
+// @desc    Strips the customer's exact shipping address/coordinates from an order before it is
+//          sent to a dealer who has not yet accepted it (order.dealerId is null, or belongs to
+//          a different dealer). Distance in KM, material, quantity and price remain visible --
+//          only "where exactly" is hidden. Full address/coordinates unlock automatically once
+//          `dealerId` is set to that dealer via acceptOrder.
+const maskAddressForPendingDealer = (orderDoc, requestingDealerId) => {
+  const obj = orderDoc.toObject ? orderDoc.toObject() : { ...orderDoc };
+  const ownerId = obj.dealerId && obj.dealerId._id ? String(obj.dealerId._id) : obj.dealerId ? String(obj.dealerId) : null;
+  if (ownerId && requestingDealerId && ownerId === String(requestingDealerId)) {
+    return obj; // Already accepted by this dealer -- full visibility.
+  }
+
+  for (const field of DEALER_HIDDEN_ADDRESS_FIELDS) {
+    obj[field] = null;
+  }
+  if (obj.shippingDetails) {
+    obj.shippingDetails = {
+      fullName: obj.shippingDetails.fullName,
+      mobile: obj.shippingDetails.mobile
+    };
+  }
+  return obj;
+};
+
 // @desc    Create a new order (Dynamic multi-step wizard calculation & Razorpay order initialization)
 // @route   POST /api/orders
 // @access  Private (User)
@@ -143,11 +190,14 @@ const createOrder = async (req, res) => {
     let subtotal = 0;
     let unitPrice = 0;
 
-    if (vehicleType === 'DUMPER') {
-      const pricePerTon = vehicleConfig?.basePricePerTon || product.pricePerTon || 800;
-      unitPrice = pricePerTon;
-      subtotal = Math.round(pricePerTon * approxTon * qty);
-      // Tractor pricing: 1. Location-specific price (e.g. Patan vs Sabarmati), 2. Grain-size specific, 3. VehicleConfig / Base product
+    // DUMPER: no material/base pricing at all any more. The customer's entire charge is the
+    // distance-based transport rate computed in section 7 below (Distance(km) x Dealer Rate/KM),
+    // set as both `unitPrice` (Rate Per Ton, for display) and `deliveryCharge`/`totalAmount`.
+    // TRACTOR: unaffected, unchanged flat-rate pricing (Location-specific > Grain-specific >
+    // VehicleConfig/base product), kept in its own branch (previously this ran unconditionally
+    // inside the `DUMPER` branch above, which meant TRACTOR bookings always got charged ₹0 base
+    // price — fixed here by properly gating it to `vehicleType === 'TRACTOR'`).
+    if (vehicleType === 'TRACTOR') {
       let locationPrice = null;
       if (locationDoc) {
         if (tractorType === 'Single Patiya' && locationDoc.singlePatiyaPrice !== undefined && locationDoc.singlePatiyaPrice !== null) {
@@ -391,6 +441,21 @@ const createOrder = async (req, res) => {
       deliveryCharge = Math.round(dealerRatePerKm * distanceKm * 100) / 100;
     }
 
+    // DUMPER has no material/base price component any more (see section 4 above) — the Rate
+    // Per Ton (Distance x Dealer Rate/KM) IS the entire order value, so it cannot be ₹0/unset.
+    // A dealer with a configured rate for this exact Material + Location must be resolvable.
+    if (vehicleType === 'DUMPER') {
+      if (dealerRatePerKm === null || distanceKm === null || deliveryCharge <= 0) {
+        return errorResponse(
+          res,
+          `No dealer currently offers a transport rate for ${transportMaterial || product.category} from ${finalLocationName || 'this location'}. Please choose a different sourcing location or select another dealer.`,
+          400
+        );
+      }
+      // The computed transport rate IS the customer-facing "Rate Per Ton" for Dumper orders.
+      unitPrice = deliveryCharge;
+    }
+
     const totalAmount = subtotal + deliveryCharge + tax;
 
     // 8. Generate human-readable unique order number & Initialize Razorpay order
@@ -560,7 +625,9 @@ const getOrderById = async (req, res) => {
       return errorResponse(res, 'Unauthorized to view this order details.', 403);
     }
 
-    return successResponse(res, 'Order retrieved successfully.', { order });
+    const responseOrder = req.user.role === 'DEALER' && !isAssignedDealer ? maskAddressForPendingDealer(order, userIdStr) : order;
+
+    return successResponse(res, 'Order retrieved successfully.', { order: responseOrder });
   } catch (error) {
     return errorResponse(res, error.message, 500);
   }
@@ -617,9 +684,11 @@ const getDealerAvailableOrders = async (req, res) => {
         order.assignedDealerId._id.toString() === req.user._id.toString();
       const isWithin5km = distanceToDealer !== null && distanceToDealer <= MAX_DISPATCH_RADIUS_KM;
 
-      // Always include if assigned to this dealer, or if within 5km, or if open pool
+      // Always include if assigned to this dealer, or if within 5km, or if open pool.
+      // Every order here has dealerId: null (per the filter above) -- none has been accepted
+      // yet by any dealer -- so the shipping address/map location is always masked here.
       filteredAndEnriched.push({
-        ...order.toObject(),
+        ...maskAddressForPendingDealer(order, req.user._id),
         distanceToDealer: distanceToDealer !== null ? distanceToDealer : order.dealerDistanceKm,
         isWithin5km: distanceToDealer !== null ? distanceToDealer <= MAX_DISPATCH_RADIUS_KM : true,
         isDirectlyAssigned
@@ -855,7 +924,7 @@ const declineOrder = async (req, res) => {
       recipientRole: 'ADMIN',
       type: 'DEALER_DECLINED_ORDER',
       title: '🚨 DEALER DECLINED ORDER',
-      message: `Dealer ${dealerName} (PIN: ${req.user.pincode}) DECLINED Order #${order.orderNumber} from ${customerName} (PIN: ${order.pincode}). Material: ${order.numberOfTractors || order.quantity} Tractor(s) of ${order.productNameSnapshot} (₹${order.totalAmount.toLocaleString('en-IN')}). Reason: ${reason}`,
+      message: `Dealer ${dealerName} (PIN: ${req.user.pincode}) DECLINED Order #${order.orderNumber} from ${customerName} (PIN: ${order.pincode}). Material: ${order.numberOfTractors || order.quantity} ${order.transportType || 'Vehicle'}(s) of ${order.productNameSnapshot} (₹${order.totalAmount.toLocaleString('en-IN')}). Reason: ${reason}`,
       orderId: order._id
     });
 
@@ -908,7 +977,7 @@ const declineOrder = async (req, res) => {
         recipientRole: 'DEALER',
         type: 'ORDER_PLACED',
         title: '🚨 NEW ORDER ASSIGNED (Re-routed) 🚛',
-        message: `New re-routed order #${order.orderNumber} (${order.shippingDetails?.city || order.pincode} — ${nextDistanceKm !== null ? `${nextDistanceKm} km` : ''}): ${order.numberOfTractors || order.quantity} Tractor(s) of ${order.productNameSnapshot}. Total: ₹${order.totalAmount.toLocaleString('en-IN')}. Please accept within 15 minutes.`,
+        message: `New re-routed order #${order.orderNumber}${nextDistanceKm !== null ? ` — ${nextDistanceKm} km away` : ''}: ${order.numberOfTractors || order.quantity} ${order.transportType || 'Vehicle'}(s) of ${order.productNameSnapshot}. Total: ₹${order.totalAmount.toLocaleString('en-IN')}. Please accept within 15 minutes.`,
         orderId: order._id,
         targetPhone: nextDealer.whatsappNumber || nextDealer.mobile
       });
@@ -1043,7 +1112,7 @@ const adminReassignOrder = async (req, res) => {
       recipientRole: 'DEALER',
       type: 'ORDER_REASSIGNED',
       title: '🚨 ORDER REASSIGNED BY ADMIN 🚛',
-      message: `Admin reassigned Order #${order.orderNumber} to your depot (${order.shippingDetails?.city || order.pincode}): ${order.numberOfTractors || order.quantity} Tractor(s) of ${order.productNameSnapshot}. Total: ₹${order.totalAmount.toLocaleString('en-IN')}. Please accept within 15 minutes.`,
+      message: `Admin reassigned Order #${order.orderNumber}${distanceKm !== null ? ` — ${distanceKm} km away` : ''}: ${order.numberOfTractors || order.quantity} ${order.transportType || 'Vehicle'}(s) of ${order.productNameSnapshot}. Total: ₹${order.totalAmount.toLocaleString('en-IN')}. Please accept within 15 minutes.`,
       orderId: order._id,
       targetPhone: targetDealer.whatsappNumber || targetDealer.mobile
     });

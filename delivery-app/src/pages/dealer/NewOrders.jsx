@@ -24,7 +24,8 @@ import {
   Phone,
   Zap,
   Navigation,
-  ArrowRight
+  ArrowRight,
+  Lock
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -366,7 +367,14 @@ export default function NewOrders() {
                     </div>
                   </div>
 
-                  <div className="text-slate-200 font-medium">{order.shippingAddress}</div>
+                  {order.shippingAddress ? (
+                    <div className="text-slate-200 font-medium">{order.shippingAddress}</div>
+                  ) : (
+                    <div className="text-slate-500 italic flex items-center gap-1.5">
+                      <Lock className="w-3 h-3" />
+                      Full address unlocks after you accept
+                    </div>
+                  )}
                   {order.shippingDetails?.fullName && (
                     <div className="text-slate-400 text-[11px]">
                       Recipient: <span className="text-white font-medium">{order.shippingDetails.fullName}</span>
@@ -423,7 +431,9 @@ export default function NewOrders() {
                 <span className="text-amber-400 font-mono font-bold">{formatOrderQuantity(acceptingOrder)}</span>
               </div>
               <div className="text-slate-300 text-[11px] truncate">
-                📍 Destination: {acceptingOrder.shippingAddress}
+                {acceptingOrder.shippingAddress
+                  ? `📍 Destination: ${acceptingOrder.shippingAddress}`
+                  : '🔒 Full address unlocks once you accept this order'}
               </div>
             </div>
 

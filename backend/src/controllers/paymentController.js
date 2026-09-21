@@ -117,21 +117,23 @@ const verifyPayment = async (req, res) => {
           recipientRole: 'DEALER',
           type: 'ORDER_PLACED',
           title: '🚨 NEW ORDER ASSIGNED 🚛',
-          message: `New order #${order.orderNumber} from ${order.shippingDetails?.fullName || 'Customer'} (${order.shippingDetails?.city || order.pincode}${order.dealerDistanceKm !== null ? ` — ${order.dealerDistanceKm} km` : ''}): ${order.numberOfTractors || order.quantity} Tractor${(order.numberOfTractors || order.quantity) === 1 ? '' : 's'} (${order.tractorType || order.vehicleType}) of ${order.productNameSnapshot}. Total: ₹${order.totalAmount.toLocaleString('en-IN')}. Please accept within 15 minutes.`,
+          // Deliberately excludes the customer's name/city/address — a dealer sees only distance
+          // and price until they accept. Full shipping details unlock in the accepted-order view.
+          message: `New order #${order.orderNumber}${order.dealerDistanceKm !== null ? ` — ${order.dealerDistanceKm} km away` : ''}: ${order.numberOfTractors || order.quantity} ${order.transportType || 'Vehicle'}${(order.numberOfTractors || order.quantity) === 1 ? '' : 's'} (${order.tractorType || order.vehicleType}) of ${order.productNameSnapshot}. Total: ₹${order.totalAmount.toLocaleString('en-IN')}. Please accept within 15 minutes.`,
           orderId: order._id,
           targetPhone: assignedDealer.whatsappNumber || assignedDealer.mobile
         });
       } else {
         await NotificationService.notifyAllDealers({
           title: 'New Delivery Order Available 🚛',
-          message: `New order #${order.orderNumber}: ${order.numberOfTractors || order.quantity} Tractor${(order.numberOfTractors || order.quantity) === 1 ? '' : 's'} (${order.tractorType || order.vehicleType}) of ${order.productNameSnapshot} for delivery to ${order.shippingAddress}.`,
+          message: `New order #${order.orderNumber}${order.dealerDistanceKm !== null ? ` — ${order.dealerDistanceKm} km away` : ''}: ${order.numberOfTractors || order.quantity} ${order.transportType || 'Vehicle'}${(order.numberOfTractors || order.quantity) === 1 ? '' : 's'} (${order.tractorType || order.vehicleType}) of ${order.productNameSnapshot}.`,
           orderId: order._id
         });
       }
     } else {
       await NotificationService.notifyAllDealers({
         title: 'New Delivery Order Available 🚛',
-        message: `New order #${order.orderNumber}: ${order.numberOfTractors || order.quantity} Tractor${(order.numberOfTractors || order.quantity) === 1 ? '' : 's'} (${order.tractorType || order.vehicleType}) of ${order.productNameSnapshot} for delivery to ${order.shippingAddress}.`,
+        message: `New order #${order.orderNumber}${order.dealerDistanceKm !== null ? ` — ${order.dealerDistanceKm} km away` : ''}: ${order.numberOfTractors || order.quantity} ${order.transportType || 'Vehicle'}${(order.numberOfTractors || order.quantity) === 1 ? '' : 's'} (${order.tractorType || order.vehicleType}) of ${order.productNameSnapshot}.`,
         orderId: order._id
       });
     }
@@ -222,21 +224,21 @@ const devConfirmPayment = async (req, res) => {
           recipientRole: 'DEALER',
           type: 'ORDER_PLACED',
           title: 'Nearest Delivery Order Assigned 🚛',
-          message: `New order #${order.orderNumber} in your service zone (${order.shippingDetails?.city || order.pincode}${order.dealerDistanceKm !== null ? ` — ${order.dealerDistanceKm} km from depot` : ''}): ${order.numberOfTractors || order.quantity} Tractor${(order.numberOfTractors || order.quantity) === 1 ? '' : 's'} of ${order.productNameSnapshot}.`,
+          message: `New order #${order.orderNumber}${order.dealerDistanceKm !== null ? ` — ${order.dealerDistanceKm} km away` : ''}: ${order.numberOfTractors || order.quantity} ${order.transportType || 'Vehicle'}${(order.numberOfTractors || order.quantity) === 1 ? '' : 's'} of ${order.productNameSnapshot}.`,
           orderId: order._id,
           targetPhone: assignedDealer.whatsappNumber || assignedDealer.mobile
         });
       } else {
         await NotificationService.notifyAllDealers({
           title: 'New Delivery Order Available 🚛',
-          message: `New order #${order.orderNumber}: ${order.numberOfTractors || order.quantity} Tractor${(order.numberOfTractors || order.quantity) === 1 ? '' : 's'} (${order.tractorType || order.vehicleType}) of ${order.productNameSnapshot}.`,
+          message: `New order #${order.orderNumber}${order.dealerDistanceKm !== null ? ` — ${order.dealerDistanceKm} km away` : ''}: ${order.numberOfTractors || order.quantity} ${order.transportType || 'Vehicle'}${(order.numberOfTractors || order.quantity) === 1 ? '' : 's'} (${order.tractorType || order.vehicleType}) of ${order.productNameSnapshot}.`,
           orderId: order._id
         });
       }
     } else {
       await NotificationService.notifyAllDealers({
         title: 'New Delivery Order Available 🚛',
-        message: `New order #${order.orderNumber}: ${order.numberOfTractors || order.quantity} Tractor${(order.numberOfTractors || order.quantity) === 1 ? '' : 's'} (${order.tractorType || order.vehicleType}) of ${order.productNameSnapshot}.`,
+        message: `New order #${order.orderNumber}${order.dealerDistanceKm !== null ? ` — ${order.dealerDistanceKm} km away` : ''}: ${order.numberOfTractors || order.quantity} ${order.transportType || 'Vehicle'}${(order.numberOfTractors || order.quantity) === 1 ? '' : 's'} (${order.tractorType || order.vehicleType}) of ${order.productNameSnapshot}.`,
         orderId: order._id
       });
     }
