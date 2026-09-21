@@ -87,6 +87,12 @@ export default function CreateOrder() {
 
   const [shippingAddress, setShippingAddress] = useState(user?.officeAddress || '');
   const [coordinates, setCoordinates] = useState({ lat: user?.latitude || 23.0225, lng: user?.longitude || 72.5714 });
+  // True only once `coordinates` has been set by a genuine resolution (PIN lookup, address
+  // geocode, GPS, or a map pin/drag) for the CURRENTLY entered shipping address -- never by the
+  // initial default above. Distance-based Dumper pricing depends entirely on this being correct,
+  // so "Continue" from the delivery-details step re-verifies it rather than trusting stale state.
+  const [coordinatesConfirmed, setCoordinatesConfirmed] = useState(false);
+  const [isConfirmingLocation, setIsConfirmingLocation] = useState(false);
   const [gpsCoordinates, setGpsCoordinates] = useState(null);
   const [placeId, setPlaceId] = useState('');
   const [placeName, setPlaceName] = useState('');
@@ -343,6 +349,7 @@ export default function CreateOrder() {
 
         if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
           setCoordinates({ lat, lng });
+          setCoordinatesConfirmed(true);
           isInternalLocationUpdateRef.current = true;
 
           setShippingDetails((prev) => ({
@@ -367,7 +374,7 @@ export default function CreateOrder() {
             text: `✓ Location synced to map: ${bestMatch.formattedAddress || bestMatch.title} (Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)})`
           });
           if (isExplicit) toast.success('Location synced to map!');
-          return;
+          return { lat, lng };
         }
       }
 
@@ -379,6 +386,7 @@ export default function CreateOrder() {
         });
         toast.error("Location not found. Try a more specific address or position the marker manually.");
       }
+      return null;
     } catch (err) {
       if (isExplicit) {
         setMapStatus({
@@ -387,6 +395,7 @@ export default function CreateOrder() {
         });
         toast.error('Geocoding service unavailable.');
       }
+      return null;
     } finally {
       setIsSearchingMap(false);
     }
@@ -399,6 +408,11 @@ export default function CreateOrder() {
       isInternalLocationUpdateRef.current = false;
       return;
     }
+
+    // A genuine user edit to the address invalidates whatever coordinates were confirmed
+    // before -- re-confirmation is required (see the Continue-button guard) before this order
+    // can proceed on the new address.
+    setCoordinatesConfirmed(false);
 
     const { addressLine1, area, city, pincode, landmark } = shippingDetails;
     if (!addressLine1 && !area && !city && !pincode && !landmark) return;
@@ -464,6 +478,7 @@ export default function CreateOrder() {
         const accuracy = pos.coords.accuracy;
 
         setCoordinates({ lat, lng });
+        setCoordinatesConfirmed(true);
         setGpsCoordinates({ lat, lng });
         setGpsAccuracy(typeof accuracy === 'number' ? accuracy : null);
 
@@ -522,6 +537,7 @@ export default function CreateOrder() {
   // Map Click / Marker Drag Handler (Manual Location Setting via Google Maps)
   const handleMapLocationChange = async (lat, lng, source, parsedLocation = null) => {
     setCoordinates({ lat, lng });
+    setCoordinatesConfirmed(true);
 
     if (source !== 'gps') {
       setGpsAccuracy(null);
@@ -678,6 +694,7 @@ export default function CreateOrder() {
         }));
         if (geo.latitude && geo.longitude) {
           setCoordinates({ lat: geo.latitude, lng: geo.longitude });
+          setCoordinatesConfirmed(true);
           setMapStatus({
             type: 'success',
             text: `✓ Located region via PIN Code ${numericVal} (${geo.city}).`
@@ -699,15 +716,16 @@ export default function CreateOrder() {
     }
   };
 
-  const fetchDealersForOrder = async () => {
+  const fetchDealersForOrder = async (coordsOverride = null) => {
     const sourcingLocationName = isAggregate && selectedVehicleType === 'TRACTOR' ? '' : (selectedLocation?.name || '');
+    const useCoords = coordsOverride || coordinates;
     setLoadingDealers(true);
     try {
       const res = await dealerTransportService.getEligibleDealers({
         material: selectedMaterial?.category,
         locationName: sourcingLocationName,
-        lat: coordinates.lat,
-        lng: coordinates.lng
+        lat: useCoords.lat,
+        lng: useCoords.lng
       });
       const list = res.data?.dealers || [];
       setDealers(list);
@@ -2056,7 +2074,8 @@ export default function CreateOrder() {
           {step < 8 ? (
             <button
               type="button"
-              onClick={() => {
+              disabled={isConfirmingLocation}
+              onClick={async () => {
                 if (step === 6) {
                   if (!shippingDetails.fullName || !shippingDetails.mobile || !shippingDetails.pincode || !shippingDetails.addressLine1) {
                     toast.error('Please complete all required delivery details.');
@@ -2066,7 +2085,35 @@ export default function CreateOrder() {
                     toast.error('Please enter a valid 6-digit Indian PIN code.');
                     return;
                   }
-                  fetchDealersForOrder();
+
+                  // Distance-based pricing depends entirely on `coordinates` matching the
+                  // address just typed. The debounced auto-geocode may not have finished yet
+                  // (race condition) -- if it hasn't genuinely resolved, force one guaranteed,
+                  // awaited PIN-code lookup right now rather than risk sending a stale/default
+                  // coordinate (e.g. the customer's own account location) into the distance calc.
+                  let coordsToUse = coordinates;
+                  if (!coordinatesConfirmed) {
+                    setIsConfirmingLocation(true);
+                    try {
+                      const res = await pincodeService.lookup(shippingDetails.pincode);
+                      const geo = res.data;
+                      if (geo?.latitude && geo?.longitude) {
+                        coordsToUse = { lat: geo.latitude, lng: geo.longitude };
+                        setCoordinates(coordsToUse);
+                        setCoordinatesConfirmed(true);
+                      } else {
+                        toast.error('Could not verify your delivery location. Please use "Find on Map" or GPS to confirm it before continuing.');
+                        return;
+                      }
+                    } catch (e) {
+                      toast.error('Could not verify your delivery location. Please use "Find on Map" or GPS to confirm it before continuing.');
+                      return;
+                    } finally {
+                      setIsConfirmingLocation(false);
+                    }
+                  }
+
+                  fetchDealersForOrder(coordsToUse);
                 }
                 if (step === 7) {
                   if (dealers.length > 0 && !selectedDealerId) {
@@ -2080,10 +2127,19 @@ export default function CreateOrder() {
                 }
                 setStep((prev) => prev + 1);
               }}
-              className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 active:scale-95 text-white font-bold text-xs transition-all shadow-md shadow-amber-500/25 min-h-[48px] cursor-pointer ml-auto"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 active:scale-95 text-white font-bold text-xs transition-all shadow-md shadow-amber-500/25 min-h-[48px] cursor-pointer ml-auto disabled:opacity-60"
             >
-              <span>Continue</span>
-              <ArrowRight className="w-4 h-4" />
+              {isConfirmingLocation ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Confirming delivery location...</span>
+                </>
+              ) : (
+                <>
+                  <span>Continue</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           ) : (
             <button
