@@ -34,6 +34,13 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       default: null
     },
+    // How dealerDistanceKm was computed: 'google_routes' | 'osrm' | 'haversine_fallback'
+    // (admin Location coords as origin) or 'dealer_fallback_haversine' (legacy dealer-coords
+    // origin, used only when the admin hasn't configured coordinates for that Location yet).
+    dealerDistanceSource: {
+      type: String,
+      default: null
+    },
     productId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Product',

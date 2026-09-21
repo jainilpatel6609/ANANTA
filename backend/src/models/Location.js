@@ -25,6 +25,20 @@ const locationSchema = new mongoose.Schema(
       default: 'Gujarat',
       trim: true
     },
+    // Admin-configured coordinates of the actual physical sourcing point (quarry/riverbed).
+    // Used as the fixed origin for road-distance transport pricing (Material + Location -> shipping address).
+    latitude: {
+      type: Number,
+      default: null,
+      min: -90,
+      max: 90
+    },
+    longitude: {
+      type: Number,
+      default: null,
+      min: -180,
+      max: 180
+    },
     description: {
       type: String,
       default: ''

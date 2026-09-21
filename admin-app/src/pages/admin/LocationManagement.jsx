@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { locationService } from '../../services';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Modal from '../../components/Modal';
-import { PlusCircle, Edit3, ShieldCheck, CheckCircle2, XCircle, Power, MapPin, Search, Filter } from 'lucide-react';
+import { PlusCircle, Edit3, ShieldCheck, CheckCircle2, XCircle, Power, MapPin, Search, Filter, Navigation, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function LocationManagement() {
@@ -19,7 +19,9 @@ export default function LocationManagement() {
     category: 'Sand',
     state: 'Gujarat',
     description: '',
-    displayOrder: 0
+    displayOrder: 0,
+    latitude: '',
+    longitude: ''
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -53,7 +55,9 @@ export default function LocationManagement() {
       category: categoryFilter || 'Sand',
       state: 'Gujarat',
       description: '',
-      displayOrder: locations.length + 1
+      displayOrder: locations.length + 1,
+      latitude: '',
+      longitude: ''
     });
     setIsModalOpen(true);
   };
@@ -66,7 +70,9 @@ export default function LocationManagement() {
       category: loc.category || 'ALL',
       state: loc.state || 'Gujarat',
       description: loc.description || '',
-      displayOrder: loc.displayOrder || 0
+      displayOrder: loc.displayOrder || 0,
+      latitude: loc.latitude !== null && loc.latitude !== undefined ? String(loc.latitude) : '',
+      longitude: loc.longitude !== null && loc.longitude !== undefined ? String(loc.longitude) : ''
     });
     setIsModalOpen(true);
   };
@@ -76,6 +82,25 @@ export default function LocationManagement() {
     if (!locationForm.name || !locationForm.name.trim()) {
       toast.error('Location name is required.');
       return;
+    }
+
+    const latProvided = locationForm.latitude !== '' && locationForm.latitude !== null && locationForm.latitude !== undefined;
+    const lngProvided = locationForm.longitude !== '' && locationForm.longitude !== null && locationForm.longitude !== undefined;
+    if (latProvided !== lngProvided) {
+      toast.error('Both Latitude and Longitude are required together.');
+      return;
+    }
+    if (latProvided) {
+      const lat = Number(locationForm.latitude);
+      const lng = Number(locationForm.longitude);
+      if (Number.isNaN(lat) || lat < -90 || lat > 90) {
+        toast.error('Latitude must be a valid number between -90 and 90.');
+        return;
+      }
+      if (Number.isNaN(lng) || lng < -180 || lng > 180) {
+        toast.error('Longitude must be a valid number between -180 and 180.');
+        return;
+      }
     }
 
     setSaving(true);
@@ -213,6 +238,18 @@ export default function LocationManagement() {
                 <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
                   {loc.description || 'Verified quarry & river source'}
                 </p>
+
+                {loc.latitude !== null && loc.latitude !== undefined && loc.longitude !== null && loc.longitude !== undefined ? (
+                  <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-400/90">
+                    <Navigation className="w-3 h-3" />
+                    {loc.latitude.toFixed(6)}, {loc.longitude.toFixed(6)}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-400/90">
+                    <AlertTriangle className="w-3 h-3" />
+                    Coordinates not set
+                  </div>
+                )}
               </div>
 
               <div className="pt-3 border-t border-slate-800 grid grid-cols-2 gap-2">
@@ -315,6 +352,48 @@ export default function LocationManagement() {
               onChange={(e) => setLocationForm({ ...locationForm, displayOrder: e.target.value })}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-amber-400 focus:outline-none focus:border-amber-500"
             />
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+            <label className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Navigation className="w-3.5 h-3.5" />
+              Source Coordinates (for road-distance pricing)
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Latitude
+                </label>
+                <input
+                  type="number"
+                  step="0.000001"
+                  min="-90"
+                  max="90"
+                  placeholder="e.g. 23.850000"
+                  value={locationForm.latitude}
+                  onChange={(e) => setLocationForm({ ...locationForm, latitude: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Longitude
+                </label>
+                <input
+                  type="number"
+                  step="0.000001"
+                  min="-180"
+                  max="180"
+                  placeholder="e.g. 72.110000"
+                  value={locationForm.longitude}
+                  onChange={(e) => setLocationForm({ ...locationForm, longitude: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              This is the actual quarry/riverbed point used as the origin for road-distance transport pricing to the customer's shipping address. Leave blank to keep pricing on the legacy dealer-distance fallback for this location.
+            </p>
           </div>
 
           <div>

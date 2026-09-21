@@ -10,6 +10,7 @@ const { generateOrderNumber } = require('../utils/orderNumber');
 const RazorpayService = require('../services/razorpayService');
 const NotificationService = require('../services/notificationService');
 const PincodeService = require('../services/pincodeService');
+const RoadDistanceService = require('../services/roadDistanceService');
 const SmsService = require('../services/smsService');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
 const { emitOrderAccepted, emitOrderStatusUpdate } = require('../sockets/socket');
@@ -263,17 +264,28 @@ const createOrder = async (req, res) => {
       }
     }
 
-    // 7. Dealer Assignment: use the customer-selected dealer when provided (from the
-    // "Select Dealer" transport-pricing step), else fall back to the nearest ELIGIBLE dealer
-    // (one who has an active DealerTransportConfig rate for this exact Material + Sourcing
-    // Location). If no dealer has configured a rate for this combination yet, we gracefully
-    // fall back to the original geography-only nearest-dealer assignment with no transport
-    // charge, so checkout never breaks while dealers are still onboarding their rates.
+    // 7. Dealer Assignment & Distance-Based Pricing.
+    // Origin for the road-distance price calculation is the ADMIN-configured coordinates of
+    // the resolved sourcing `locationDoc` (Material + Location), never the dealer's own saved
+    // address — every dealer offering the same Material+Location therefore quotes the same
+    // distance, and only their own configured Rate/KM differs. If the admin hasn't saved
+    // coordinates for this Location yet, this gracefully falls back to the original per-dealer
+    // distance model (dealer's own lat/lng vs customer) so checkout never breaks mid-rollout.
     let nearestDealer = null;
     let distanceKm = null;
     let dealerRatePerKm = null;
+    let distanceSource = null;
 
     const transportMaterial = ['Sand', 'Aggregate'].includes(product.category) ? product.category : null;
+    const hasLocationCoords = !!(
+      locationDoc &&
+      transportMaterial &&
+      (locationDoc.category === transportMaterial || locationDoc.category === 'ALL') &&
+      locationDoc.latitude !== null &&
+      locationDoc.latitude !== undefined &&
+      locationDoc.longitude !== null &&
+      locationDoc.longitude !== undefined
+    );
 
     if (customerSelectedDealerId) {
       const selectedDealer = await User.findOne({
@@ -303,13 +315,23 @@ const createOrder = async (req, res) => {
         dealerRatePerKm = config.ratePerKm;
       }
 
-      if (selectedDealer.latitude !== null && selectedDealer.longitude !== null) {
+      if (hasLocationCoords) {
+        const roadResult = await RoadDistanceService.calculateRoadDistanceKm(
+          locationDoc.latitude,
+          locationDoc.longitude,
+          finalLat,
+          finalLng
+        );
+        distanceKm = roadResult ? roadResult.distanceKm : null;
+        distanceSource = roadResult ? roadResult.source : null;
+      } else if (selectedDealer.latitude !== null && selectedDealer.longitude !== null) {
         distanceKm = PincodeService.calculateHaversineDistanceKm(
           finalLat,
           finalLng,
           selectedDealer.latitude,
           selectedDealer.longitude
         );
+        distanceSource = 'dealer_fallback_haversine';
       }
       nearestDealer = selectedDealer;
     } else {
@@ -326,7 +348,21 @@ const createOrder = async (req, res) => {
         eligibleConfigs = configs.filter((c) => c.dealerId);
       }
 
-      if (eligibleConfigs.length > 0) {
+      if (eligibleConfigs.length > 0 && hasLocationCoords) {
+        // Distance is identical for every eligible dealer (fixed Location origin), so
+        // auto-assignment picks the cheapest rate for the customer rather than "nearest".
+        const roadResult = await RoadDistanceService.calculateRoadDistanceKm(
+          locationDoc.latitude,
+          locationDoc.longitude,
+          finalLat,
+          finalLng
+        );
+        distanceKm = roadResult ? roadResult.distanceKm : null;
+        distanceSource = roadResult ? roadResult.source : null;
+        const cheapest = eligibleConfigs.reduce((min, c) => (c.ratePerKm < min.ratePerKm ? c : min), eligibleConfigs[0]);
+        nearestDealer = cheapest.dealerId;
+        dealerRatePerKm = cheapest.ratePerKm;
+      } else if (eligibleConfigs.length > 0) {
         const dealerDocs = eligibleConfigs.map((c) => c.dealerId);
         const result = await PincodeService.findNearestDealer(
           { latitude: finalLat, longitude: finalLng },
@@ -334,6 +370,7 @@ const createOrder = async (req, res) => {
         );
         nearestDealer = result.nearestDealer;
         distanceKm = result.distanceKm;
+        distanceSource = 'dealer_fallback_haversine';
         if (nearestDealer) {
           const matchedConfig = eligibleConfigs.find((c) => String(c.dealerId._id) === String(nearestDealer._id));
           dealerRatePerKm = matchedConfig ? matchedConfig.ratePerKm : null;
@@ -346,6 +383,7 @@ const createOrder = async (req, res) => {
         );
         nearestDealer = result.nearestDealer;
         distanceKm = result.distanceKm;
+        distanceSource = 'dealer_fallback_haversine';
       }
     }
 
@@ -386,6 +424,7 @@ const createOrder = async (req, res) => {
       assignedDealerId: nearestDealer ? nearestDealer._id : null,
       dealerDistanceKm: distanceKm,
       dealerRatePerKm,
+      dealerDistanceSource: distanceSource,
       orderAssignedAt: assignedAt,
       dealerResponseDeadline: deadline,
       dealerResponseStatus: 'PENDING',

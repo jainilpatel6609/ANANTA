@@ -1,6 +1,7 @@
 const DealerTransportConfig = require('../models/DealerTransportConfig');
 const Location = require('../models/Location');
 const PincodeService = require('../services/pincodeService');
+const RoadDistanceService = require('../services/roadDistanceService');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
 
 const MATERIALS = ['Sand', 'Aggregate'];
@@ -144,8 +145,13 @@ const deleteMyConfig = async (req, res) => {
 };
 
 // @desc    Customer-facing: list dealers eligible to deliver a given Material from a given
-//          sourcing Location, with live distance & transport cost computed via the existing
-//          Haversine distance service (no second/duplicate distance system).
+//          sourcing Location. Distance is calculated as the real ROAD distance (never
+//          straight-line) from the admin-configured coordinates of that sourcing Location
+//          (the fixed origin) to the customer's shipping coordinates (the destination) — so
+//          every dealer offering the same Material+Location quotes the same distance, and
+//          only their configured Rate/KM differs. If the admin hasn't saved coordinates for
+//          a given Location yet, this falls back to the original per-dealer distance (the
+//          dealer's own saved location vs the customer) so checkout keeps working meanwhile.
 // @route   GET /api/dealer-transport/eligible-dealers?material=&locationName=&lat=&lng=
 // @access  Public / Customer
 const getEligibleDealers = async (req, res) => {
@@ -173,32 +179,62 @@ const getEligibleDealers = async (req, res) => {
       path: 'dealerId',
       match: { role: 'DEALER', isActive: true, isDeleted: { $ne: true } }
     });
+    const validConfigs = configs.filter((cfg) => cfg.dealerId);
 
-    const dealers = configs
-      .filter((cfg) => cfg.dealerId && cfg.dealerId.latitude !== null && cfg.dealerId.latitude !== undefined)
-      .map((cfg) => {
-        const dealer = cfg.dealerId;
-        const distanceKm = PincodeService.calculateHaversineDistanceKm(
-          shipLat,
-          shipLng,
-          dealer.latitude,
-          dealer.longitude
-        );
-        return {
-          dealerId: dealer._id,
-          configId: cfg._id,
-          name: dealer.name,
-          companyName: dealer.companyName,
-          city: dealer.city,
-          material: cfg.material,
-          locationName: cfg.locationName,
-          ratePerKm: cfg.ratePerKm,
-          distanceKm,
-          transportCost: distanceKm !== null ? Math.round(cfg.ratePerKm * distanceKm * 100) / 100 : null
-        };
-      })
-      .filter((d) => d.distanceKm !== null)
-      .sort((a, b) => a.transportCost - b.transportCost);
+    // Resolve the admin-configured sourcing-Location road distance once per distinct
+    // locationName present (an external routing lookup), so it isn't repeated per dealer.
+    const locationDistanceCache = new Map();
+    const resolveLocationDistance = async (locName) => {
+      const key = locName.toLowerCase();
+      if (locationDistanceCache.has(key)) return locationDistanceCache.get(key);
+
+      const locationDoc = await Location.findOne({
+        name: { $regex: `^${locName}$`, $options: 'i' },
+        category: material,
+        isActive: true
+      });
+
+      let result = null;
+      if (locationDoc && locationDoc.latitude !== null && locationDoc.latitude !== undefined && locationDoc.longitude !== null && locationDoc.longitude !== undefined) {
+        result = await RoadDistanceService.calculateRoadDistanceKm(locationDoc.latitude, locationDoc.longitude, shipLat, shipLng);
+      }
+      locationDistanceCache.set(key, result);
+      return result;
+    };
+
+    const dealers = [];
+    for (const cfg of validConfigs) {
+      const dealer = cfg.dealerId;
+      const locationResult = await resolveLocationDistance(cfg.locationName);
+
+      let distanceKm = null;
+      let distanceSource = null;
+      if (locationResult) {
+        distanceKm = locationResult.distanceKm;
+        distanceSource = locationResult.source;
+      } else if (dealer.latitude !== null && dealer.latitude !== undefined) {
+        distanceKm = PincodeService.calculateHaversineDistanceKm(shipLat, shipLng, dealer.latitude, dealer.longitude);
+        distanceSource = 'dealer_fallback_haversine';
+      }
+
+      if (distanceKm === null) continue;
+
+      dealers.push({
+        dealerId: dealer._id,
+        configId: cfg._id,
+        name: dealer.name,
+        companyName: dealer.companyName,
+        city: dealer.city,
+        material: cfg.material,
+        locationName: cfg.locationName,
+        ratePerKm: cfg.ratePerKm,
+        distanceKm,
+        distanceSource,
+        transportCost: Math.round(cfg.ratePerKm * distanceKm * 100) / 100
+      });
+    }
+
+    dealers.sort((a, b) => a.transportCost - b.transportCost);
 
     return successResponse(res, 'Eligible dealers retrieved successfully.', { dealers });
   } catch (error) {

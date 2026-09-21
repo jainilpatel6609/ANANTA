@@ -1,6 +1,30 @@
 const Location = require('../models/Location');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
 
+// Parses & validates an optional lat/lng pair. Returns { latitude, longitude } (numbers
+// or null if omitted/blank), or throws a plain Error with a customer-facing message.
+const parseCoordinates = (latitude, longitude) => {
+  const latProvided = latitude !== undefined && latitude !== null && latitude !== '';
+  const lngProvided = longitude !== undefined && longitude !== null && longitude !== '';
+
+  if (!latProvided && !lngProvided) {
+    return { latitude: null, longitude: null };
+  }
+  if (latProvided !== lngProvided) {
+    throw new Error('Both Latitude and Longitude are required together.');
+  }
+
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+  if (Number.isNaN(lat) || lat < -90 || lat > 90) {
+    throw new Error('Latitude must be a valid number between -90 and 90.');
+  }
+  if (Number.isNaN(lng) || lng < -180 || lng > 180) {
+    throw new Error('Longitude must be a valid number between -180 and 180.');
+  }
+  return { latitude: lat, longitude: lng };
+};
+
 // @desc    Get active locations for customer ordering (Filtered strictly by vehicleType and optional category)
 // @route   GET /api/locations
 // @access  Public / Customer
@@ -77,6 +101,8 @@ const createLocation = async (req, res) => {
       state,
       description,
       displayOrder,
+      latitude,
+      longitude,
       singlePatiyaPrice,
       doublePatiyaPrice,
       dumperWheelConfigs,
@@ -91,6 +117,13 @@ const createLocation = async (req, res) => {
     } = req.body;
     if (!name || !name.trim()) {
       return errorResponse(res, 'Location name is required.', 400);
+    }
+
+    let coords;
+    try {
+      coords = parseCoordinates(latitude, longitude);
+    } catch (err) {
+      return errorResponse(res, err.message, 400);
     }
 
     const normalizedVehicleType = (vehicleType || 'DUMPER').toUpperCase();
@@ -139,6 +172,8 @@ const createLocation = async (req, res) => {
       state: state ? state.trim() : 'Gujarat',
       description: description ? description.trim() : '',
       displayOrder: Number(displayOrder) || 0,
+      latitude: coords.latitude,
+      longitude: coords.longitude,
       singlePatiyaPrice: singlePatiyaPrice !== undefined && singlePatiyaPrice !== null && singlePatiyaPrice !== '' ? Number(singlePatiyaPrice) : 2350,
       doublePatiyaPrice: doublePatiyaPrice !== undefined && doublePatiyaPrice !== null && doublePatiyaPrice !== '' ? Number(doublePatiyaPrice) : 4500,
       dumperWheelConfigs: finalDumperWheelConfigs,
@@ -171,6 +206,8 @@ const updateLocation = async (req, res) => {
       state,
       description,
       displayOrder,
+      latitude,
+      longitude,
       singlePatiyaPrice,
       doublePatiyaPrice,
       dumperWheelConfigs,
@@ -188,6 +225,13 @@ const updateLocation = async (req, res) => {
 
     if (!location) {
       return errorResponse(res, 'Location not found.', 404);
+    }
+
+    let coords;
+    try {
+      coords = parseCoordinates(latitude, longitude);
+    } catch (err) {
+      return errorResponse(res, err.message, 400);
     }
 
     // Cross-vehicle modification protection
@@ -220,6 +264,8 @@ const updateLocation = async (req, res) => {
     if (state !== undefined) location.state = state.trim();
     if (description !== undefined) location.description = description.trim();
     if (displayOrder !== undefined) location.displayOrder = Number(displayOrder) || 0;
+    if (latitude !== undefined) location.latitude = coords.latitude;
+    if (longitude !== undefined) location.longitude = coords.longitude;
     if (singlePatiyaPrice !== undefined && singlePatiyaPrice !== null && singlePatiyaPrice !== '') {
       location.singlePatiyaPrice = Number(singlePatiyaPrice) || 0;
     }
