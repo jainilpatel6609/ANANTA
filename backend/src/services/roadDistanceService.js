@@ -60,13 +60,16 @@ class RoadDistanceService {
   }
 
   static async tryGoogleRoutesApi(originLat, originLng, destLat, destLng) {
-    if (!process.env.GOOGLE_MAPS_API_KEY) return null;
+    // A dedicated, Routes-API-restricted key is preferred (falls back to the general Maps key
+    // if that's not set, in case a single unrestricted key is used instead).
+    const apiKey = process.env.GOOGLE_ROUTES_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) return null;
     try {
       const res = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Goog-Api-Key': process.env.GOOGLE_MAPS_API_KEY,
+          'X-Goog-Api-Key': apiKey,
           'X-Goog-FieldMask': 'routes.distanceMeters'
         },
         body: JSON.stringify({
