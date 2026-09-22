@@ -927,49 +927,49 @@ export default function CreateOrder() {
   const progressPercent = Math.round(((currentGroupIndex + 1) / stepGroups.length) * 100);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8 pb-16">
+    <div className="max-w-5xl mx-auto space-y-3 sm:space-y-6 lg:space-y-8 pb-8 sm:pb-16">
       {/* Top Header & Navigation Bar (Exact Match to Screenshot) */}
-      <div className="bg-white border border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-xs space-y-4">
+      <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-2.5 sm:p-5 shadow-xs space-y-2 sm:space-y-4">
         {/* Row 1: Back Button, Stage Info, Phone Action */}
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-2 sm:gap-3">
           <button
             type="button"
             onClick={() => (currentGroupIndex > 0 ? goToGroup(currentGroupIndex - 1) : navigate(-1))}
-            className="w-10 h-10 rounded-full bg-white border border-slate-200 shadow-xs flex items-center justify-center text-slate-700 hover:bg-slate-50 transition-all active:scale-95 shrink-0 cursor-pointer"
+            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white border border-slate-200 shadow-xs flex items-center justify-center text-slate-700 hover:bg-slate-50 transition-all active:scale-95 shrink-0 cursor-pointer"
             aria-label="Previous step"
           >
-            <ArrowLeft className="w-5 h-5 stroke-[2.2]" />
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
           </button>
 
           <div className="text-center min-w-0">
-            <div className="inline-flex items-center px-3 py-0.5 rounded-full bg-amber-50 border border-amber-200/60 text-amber-700 text-[11px] font-black uppercase tracking-wider">
+            <div className="inline-flex items-center px-2 py-0.5 sm:px-3 rounded-full bg-amber-50 border border-amber-200/60 text-amber-700 text-[9px] sm:text-[11px] font-black uppercase tracking-wider">
               STEP {currentGroupIndex + 1} OF {stepGroups.length}
             </div>
-            <h1 className="text-lg sm:text-xl font-black text-slate-900 font-display tracking-tight mt-0.5 truncate">
+            <h1 className="text-sm sm:text-xl font-black text-slate-900 font-display tracking-tight mt-0.5 truncate">
               {currentGroupIndex <= 1 ? 'Material & Logistics' : 'Delivery & Settlement'}
             </h1>
           </div>
 
           <a
             href="tel:9800001111"
-            className="w-10 h-10 rounded-full bg-white border border-slate-200 shadow-xs flex items-center justify-center text-slate-700 hover:bg-slate-50 transition-all active:scale-95 shrink-0 cursor-pointer"
+            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white border border-slate-200 shadow-xs flex items-center justify-center text-slate-700 hover:bg-slate-50 transition-all active:scale-95 shrink-0 cursor-pointer"
             aria-label="Call dispatch support"
           >
-            <Phone className="w-4 h-4 text-slate-600" />
+            <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-600" />
           </a>
         </div>
 
         {/* Row 2: Progress Status Line */}
-        <div className="space-y-1.5 pt-1">
-          <div className="flex items-center justify-between text-xs">
+        <div className="space-y-1 sm:space-y-1.5 pt-0.5 sm:pt-1">
+          <div className="flex items-center justify-between text-[10px] sm:text-xs">
             <span className="font-bold text-slate-600">
-              Progress (Stage {currentGroupIndex <= 1 ? '1 / 2' : '2 / 2'})
+              Stage {currentGroupIndex <= 1 ? '1 / 2' : '2 / 2'}
             </span>
-            <span className="px-3 py-0.5 rounded-full bg-amber-50 text-amber-800 text-xs font-black border border-amber-200/60">
+            <span className="px-2 py-0.5 sm:px-3 rounded-full bg-amber-50 text-amber-800 text-[10px] sm:text-xs font-black border border-amber-200/60">
               {progressPercent}% Completed
             </span>
           </div>
-          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-1 sm:h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
             <div
               className="h-full bg-amber-500 rounded-full transition-all duration-300 ease-out"
               style={{ width: `${progressPercent}%` }}
@@ -978,7 +978,7 @@ export default function CreateOrder() {
         </div>
 
         {/* Row 3: Horizontal Stepper Pills with Numbers & Chevrons */}
-        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar scroll-smooth">
+        <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-0.5 sm:pb-1 pt-0.5 sm:pt-1 no-scrollbar scroll-smooth">
           {stepGroups.map((g, idx) => {
             const isCompleted = idx < currentGroupIndex;
             const isCurrent = idx === currentGroupIndex;
@@ -992,14 +992,14 @@ export default function CreateOrder() {
                     if (idx < currentGroupIndex) goToGroup(idx);
                   }}
                   disabled={idx > currentGroupIndex}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all active:scale-95 ${
+                  className={`flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold shrink-0 transition-all active:scale-95 ${
                     isPassedOrCurrent
                       ? 'bg-amber-50 border border-amber-300/80 text-amber-900 shadow-2xs'
                       : 'bg-slate-50 border border-slate-200 text-slate-400 opacity-70 cursor-not-allowed'
                   }`}
                 >
                   <span
-                    className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
+                    className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-black shrink-0 ${
                       isPassedOrCurrent ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-500'
                     }`}
                   >
@@ -1008,7 +1008,7 @@ export default function CreateOrder() {
                   <span className="whitespace-nowrap">{g.title}</span>
                 </button>
                 {idx < stepGroups.length - 1 && (
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                  <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-300 shrink-0" />
                 )}
               </React.Fragment>
             );
@@ -1017,21 +1017,21 @@ export default function CreateOrder() {
       </div>
 
       {/* Wizard Step Content Card */}
-      <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-8 space-y-8 shadow-xs">
+      <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8 shadow-xs">
         
         {/* ================= STEP 1: MATERIAL SELECTION (Exact match to screenshot) ================= */}
         {showStep(1) && (
-          <div className="space-y-5">
+          <div className="space-y-3 sm:space-y-5">
             <div>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-0.5">
+              <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-0.5">
                 Select Construction Material
               </h2>
-              <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
+              <p className="text-[11px] sm:text-sm text-slate-500 font-medium mt-0.5">
                 Government-approved quarry aggregates & riverbed sands
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
               {materials.map((m) => {
                 const isSelected = m._id === selectedMaterialId;
                 const isSand = m.category === 'Sand';
@@ -1045,16 +1045,16 @@ export default function CreateOrder() {
                   <div
                     key={m._id}
                     onClick={() => setSelectedMaterialId(m._id)}
-                    className={`cursor-pointer rounded-3xl p-5 border-2 transition-all flex flex-col justify-between space-y-4 bg-white ${
+                    className={`cursor-pointer rounded-xl sm:rounded-3xl p-3 sm:p-5 border-2 transition-all flex flex-col justify-between space-y-2 sm:space-y-4 bg-white ${
                       isSelected
                         ? 'border-amber-500 shadow-sm ring-2 ring-amber-500/20'
                         : 'border-slate-200/80 hover:border-slate-300 shadow-xs'
                     }`}
                   >
                     <div>
-                      <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center justify-between mb-1.5 sm:mb-3">
                         <span
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-black tracking-wide border ${
+                          className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-[10px] sm:text-[11px] font-black tracking-wide border ${
                             isSelected
                               ? 'bg-amber-100/70 text-amber-900 border-amber-200/80'
                               : 'bg-slate-100 text-slate-600 border-slate-200/80'
@@ -1063,24 +1063,24 @@ export default function CreateOrder() {
                           {tagLabel}
                         </span>
                         {isSelected ? (
-                          <div className="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-black shadow-xs">
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-black shadow-xs">
+                            <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3]" />
                           </div>
                         ) : (
-                          <div className="w-6 h-6 rounded-full border-2 border-slate-200" />
+                          <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-slate-200" />
                         )}
                       </div>
 
-                      <h3 className="text-base font-black text-slate-900 font-display">
+                      <h3 className="text-sm sm:text-base font-black text-slate-900 font-display">
                         {m.name}
                       </h3>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 leading-snug sm:leading-relaxed">
                         {m.description || defaultDesc}
                       </p>
                     </div>
 
                     <div
-                      className={`pt-3 border-t border-slate-100 flex items-center gap-1.5 text-xs font-bold ${
+                      className={`pt-2 sm:pt-3 border-t border-slate-100 flex items-center gap-1.5 text-[11px] sm:text-xs font-bold ${
                         isSelected ? 'text-amber-700' : 'text-slate-400 font-medium'
                       }`}
                     >
@@ -1100,46 +1100,49 @@ export default function CreateOrder() {
 
         {/* ================= STEP 2: VEHICLE TYPE SELECTION (DUMPER VS TRACTOR) ================= */}
         {showStep(2) && (
-          <div className="space-y-6 pt-6 mt-1 border-t border-slate-200">
+          <div className="space-y-3 sm:space-y-6 pt-4 sm:pt-6 mt-1 border-t border-slate-200">
             <div>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">Select Delivery Vehicle Type</h2>
-              <p className="text-xs sm:text-sm text-slate-500">
+              <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">Select Delivery Vehicle Type</h2>
+              <p className="text-[11px] sm:text-sm text-slate-500">
                 Choose between heavy multi-wheel Dumper trucks or Tractor delivery for {selectedMaterial?.name || 'materials'}.
               </p>
             </div>
 
             {!vehicleSettings.dumperEnabled && !vehicleSettings.tractorEnabled ? (
-              <div className="p-8 rounded-2xl bg-rose-50 border border-rose-200 text-center space-y-2">
-                <XCircle className="w-8 h-8 text-rose-500 mx-auto" />
-                <h3 className="text-base font-bold text-rose-800">No delivery vehicle is currently available</h3>
+              <div className="p-5 sm:p-8 rounded-2xl bg-rose-50 border border-rose-200 text-center space-y-2">
+                <XCircle className="w-7 h-7 sm:w-8 sm:h-8 text-rose-500 mx-auto" />
+                <h3 className="text-sm sm:text-base font-bold text-rose-800">No delivery vehicle is currently available</h3>
                 <p className="text-xs text-rose-600">Please try again later or contact our dispatch team.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-6">
                 {vehicleSettings.dumperEnabled && (
                   <div
                     onClick={() => setSelectedVehicleType('DUMPER')}
-                    className={`cursor-pointer rounded-2xl p-5 sm:p-7 border-2 transition-all space-y-4 ${
+                    className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-7 border-2 transition-all space-y-2 sm:space-y-4 ${
                       selectedVehicleType === 'DUMPER'
                         ? 'border-amber-500 bg-amber-50/40 shadow-md ring-2 ring-amber-500/20'
                         : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-3xl">🚛</span>
-                      {selectedVehicleType === 'DUMPER' && <CheckCircle2 className="w-6 h-6 text-amber-600" />}
+                    <div className="flex items-center gap-2.5 sm:block">
+                      <span className="text-xl sm:text-3xl shrink-0">🚛</span>
+                      <div className="flex-1 sm:hidden">
+                        <h3 className="text-sm font-black text-slate-900 font-display leading-tight">Heavy Dumper Truck</h3>
+                      </div>
+                      {selectedVehicleType === 'DUMPER' && <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 shrink-0 sm:float-right" />}
                     </div>
 
-                    <div>
+                    <div className="hidden sm:block">
                       <h3 className="text-xl font-black text-slate-900 font-display">Heavy Dumper Truck</h3>
-                      <p className="text-xs text-slate-500 mt-1">
-                        {isAggregate
-                          ? 'Direct quarry dispatch from Vadagam & Sayala (10 to 18 Wheels / 25 to 50 Tons).'
-                          : 'Best suited for large bulk commercial sites (10 to 18 Wheels / 25 to 50 Tons capacity).'}
-                      </p>
                     </div>
+                    <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 leading-snug">
+                      {isAggregate
+                        ? 'Direct quarry dispatch from Vadagam & Sayala (10 to 18 Wheels / 25 to 50 Tons).'
+                        : 'Best suited for large bulk commercial sites (10 to 18 Wheels / 25 to 50 Tons capacity).'}
+                    </p>
 
-                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 font-semibold">
+                    <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200 text-[10px] sm:text-xs text-slate-700 font-semibold">
                       Available: 10W (25T) • 12W (35T) • 16W (45T) • 18W (50T)
                     </div>
                   </div>
@@ -1148,27 +1151,30 @@ export default function CreateOrder() {
                 {vehicleSettings.tractorEnabled && (
                   <div
                     onClick={() => setSelectedVehicleType('TRACTOR')}
-                    className={`cursor-pointer rounded-2xl p-5 sm:p-7 border-2 transition-all space-y-4 ${
+                    className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-7 border-2 transition-all space-y-2 sm:space-y-4 ${
                       selectedVehicleType === 'TRACTOR'
                         ? 'border-amber-500 bg-amber-50/40 shadow-md ring-2 ring-amber-500/20'
                         : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-3xl">🚜</span>
-                      {selectedVehicleType === 'TRACTOR' && <CheckCircle2 className="w-6 h-6 text-amber-600" />}
+                    <div className="flex items-center gap-2.5 sm:block">
+                      <span className="text-xl sm:text-3xl shrink-0">🚜</span>
+                      <div className="flex-1 sm:hidden">
+                        <h3 className="text-sm font-black text-slate-900 font-display leading-tight">Tractor Dispatch</h3>
+                      </div>
+                      {selectedVehicleType === 'TRACTOR' && <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 shrink-0 sm:float-right" />}
                     </div>
 
-                    <div>
+                    <div className="hidden sm:block">
                       <h3 className="text-xl font-black text-slate-900 font-display">Tractor Dispatch</h3>
-                      <p className="text-xs text-slate-500 mt-1">
-                        {isAggregate
-                          ? 'Direct grain size delivery for residential & local sites (Single & Double Patiya).'
-                          : 'Ideal for residential sites and narrow access roads (Single & Double Patiya).'}
-                      </p>
                     </div>
+                    <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 leading-snug">
+                      {isAggregate
+                        ? 'Direct grain size delivery for residential & local sites (Single & Double Patiya).'
+                        : 'Ideal for residential sites and narrow access roads (Single & Double Patiya).'}
+                    </p>
 
-                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 font-semibold">
+                    <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200 text-[10px] sm:text-xs text-slate-700 font-semibold">
                       Available: Single Patiya (3.5T) • Double Patiya (7.0T)
                     </div>
                   </div>
@@ -1182,13 +1188,13 @@ export default function CreateOrder() {
         {showStep(3) && (
           isAggregate && selectedVehicleType === 'TRACTOR' ? (
             /* AGGREGATE + TRACTOR: DIRECT GRAIN SIZE SELECTION (NO QUARRY LOCATION) */
-            <div className="space-y-6">
+            <div className="space-y-3 sm:space-y-6">
               <div>
-                <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">Select Aggregate Grain Size</h2>
-                <p className="text-xs sm:text-sm text-slate-500">Choose calibrated basalt aggregate grain size for local tractor delivery.</p>
+                <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">Select Aggregate Grain Size</h2>
+                <p className="text-[11px] sm:text-sm text-slate-500">Choose calibrated basalt aggregate grain size for local tractor delivery.</p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
                 {(selectedMaterial?.tractorGrainPricing && selectedMaterial.tractorGrainPricing.length > 0
                   ? selectedMaterial.tractorGrainPricing.map((g) => g.name)
                   : selectedMaterial?.tractorAggregateTypes && selectedMaterial.tractorAggregateTypes.length > 0
@@ -1205,25 +1211,25 @@ export default function CreateOrder() {
                     <div
                       key={grain}
                       onClick={() => setSelectedAggregateType(grain)}
-                      className={`cursor-pointer rounded-2xl p-5 border-2 transition-all space-y-2.5 ${
+                      className={`cursor-pointer rounded-lg sm:rounded-2xl p-2.5 sm:p-5 border-2 transition-all space-y-1.5 sm:space-y-2.5 ${
                         isSelected
                           ? 'border-amber-500 bg-amber-50/40 shadow-md ring-2 ring-amber-500/20'
                           : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-amber-700 font-mono">SPECIFICATION</span>
-                        {isSelected && <CheckCircle2 className="w-5 h-5 text-amber-600" />}
+                        <span className="text-[9px] sm:text-[10px] font-bold text-amber-700 font-mono">SPEC</span>
+                        {isSelected && <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />}
                       </div>
-                      <h3 className="text-xl font-black text-slate-900 font-display">{grain}</h3>
+                      <h3 className="text-sm sm:text-xl font-black text-slate-900 font-display">{grain}</h3>
 
                       {grainObj ? (
-                        <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-600 flex items-center justify-between font-mono">
-                          <span>Single: <strong className="text-emerald-700 font-bold">{formatINR(grainObj.priceSinglePatiya || 2800)}</strong></span>
-                          <span>Double: <strong className="text-emerald-700 font-bold">{formatINR(grainObj.priceDoublePatiya || 5400)}</strong></span>
+                        <div className="pt-1.5 sm:pt-2 border-t border-slate-100 text-[10px] sm:text-[11px] text-slate-600 flex items-center justify-between font-mono">
+                          <span>S: <strong className="text-emerald-700 font-bold">{formatINR(grainObj.priceSinglePatiya || 2800)}</strong></span>
+                          <span>D: <strong className="text-emerald-700 font-bold">{formatINR(grainObj.priceDoublePatiya || 5400)}</strong></span>
                         </div>
                       ) : (
-                        <p className="text-[11px] text-slate-500">Graded crushing standard</p>
+                        <p className="text-[10px] sm:text-[11px] text-slate-500">Graded crushing standard</p>
                       )}
                     </div>
                   );
@@ -1232,57 +1238,57 @@ export default function CreateOrder() {
             </div>
           ) : (
             /* DUMPER (ALL) OR SAND TRACTOR: LOCATION SELECTION */
-            <div className="space-y-6">
+            <div className="space-y-3 sm:space-y-6">
               <div>
-                <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">
+                <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">
                   {isAggregate ? 'Select Aggregate Quarry Location' : 'Select Sourcing Location'}
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500">
+                <p className="text-[11px] sm:text-sm text-slate-500">
                   {isAggregate
                     ? 'Choose certified basalt crushing plant origin in Gujarat for Dumper delivery.'
                     : `Choose verified regional riverbed sand source in Gujarat for ${selectedVehicleType === 'DUMPER' ? 'Dumper' : 'Tractor'} delivery.`}
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
                 {locations.map((loc) => {
                   const isSelected = loc._id === selectedLocationId;
                   return (
                     <div
                       key={loc._id}
                       onClick={() => setSelectedLocationId(loc._id)}
-                      className={`cursor-pointer rounded-2xl p-5 border-2 transition-all space-y-3 ${
+                      className={`cursor-pointer rounded-lg sm:rounded-2xl p-2.5 sm:p-5 border-2 transition-all space-y-1.5 sm:space-y-3 ${
                         isSelected
                           ? 'border-amber-500 bg-amber-50/40 shadow-md ring-2 ring-amber-500/20'
                           : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <MapPin className={`w-5 h-5 ${isSelected ? 'text-amber-600' : 'text-slate-400'}`} />
-                        {isSelected && <CheckCircle2 className="w-5 h-5 text-amber-600" />}
+                        <MapPin className={`w-4 h-4 sm:w-5 sm:h-5 ${isSelected ? 'text-amber-600' : 'text-slate-400'}`} />
+                        {isSelected && <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />}
                       </div>
 
                       <div>
-                        <h3 className="text-base font-black text-slate-900 font-display">{loc.name}</h3>
-                        <span className="text-xs text-slate-500 block mt-0.5">{loc.state || 'Gujarat'}</span>
+                        <h3 className="text-xs sm:text-base font-black text-slate-900 font-display">{loc.name}</h3>
+                        <span className="text-[10px] sm:text-xs text-slate-500 block mt-0.5">{loc.state || 'Gujarat'}</span>
                       </div>
 
                       {selectedVehicleType === 'TRACTOR' && (loc.singlePatiyaPrice || loc.doublePatiyaPrice) && (
-                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 pt-0.5 sm:pt-1">
                           {loc.singlePatiyaPrice && (
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              Single: ₹{loc.singlePatiyaPrice}
+                            <span className="text-[9px] sm:text-[10px] font-semibold px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              S: ₹{loc.singlePatiyaPrice}
                             </span>
                           )}
                           {loc.doublePatiyaPrice && (
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                              Double: ₹{loc.doublePatiyaPrice}
+                            <span className="text-[9px] sm:text-[10px] font-semibold px-1.5 sm:px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                              D: ₹{loc.doublePatiyaPrice}
                             </span>
                           )}
                         </div>
                       )}
 
-                      <p className="text-[11px] text-slate-500 border-t border-slate-100 pt-2">
+                      <p className="hidden sm:block text-[11px] text-slate-500 border-t border-slate-100 pt-2">
                         {loc.description || (isAggregate ? 'Certified heavy dumper aggregate processing plant' : 'Verified quarry & river source')}
                       </p>
                     </div>
@@ -1295,16 +1301,16 @@ export default function CreateOrder() {
 
         {/* ================= STEP 4: TROLLEY (FOR TRACTOR) OR GRAIN SIZE / QUALITY (FOR DUMPER) ================= */}
         {showStep(4) && (
-          <div className="space-y-6 pt-6 mt-1 border-t border-slate-200">
+          <div className="space-y-3 sm:space-y-6 pt-4 sm:pt-6 mt-1 border-t border-slate-200">
             <div>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">
+              <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">
                 {selectedVehicleType === 'TRACTOR'
                   ? 'Select Tractor Trolley Type'
                   : isAggregate
                   ? 'Select Aggregate Grain Size'
                   : 'Select Sand Processing Specification'}
               </h2>
-              <p className="text-xs sm:text-sm text-slate-500">
+              <p className="text-[11px] sm:text-sm text-slate-500">
                 {selectedVehicleType === 'TRACTOR'
                   ? 'Choose tractor trailer specification and view dynamic price per vehicle.'
                   : isAggregate
@@ -1315,7 +1321,7 @@ export default function CreateOrder() {
 
             {selectedVehicleType === 'TRACTOR' ? (
               /* TRACTOR TROLLEY TYPE CARDS (BOTH AGGREGATE & SAND) */
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-6">
                 {activeVehicleConfigs.map((cfg) => {
                   const isSelected = cfg._id === selectedCapacityId || cfg.optionName === selectedOptionName;
                   const isDouble = cfg.optionName === 'Double Patiya';
@@ -1344,40 +1350,40 @@ export default function CreateOrder() {
                         setSelectedOptionName(cfg.optionName);
                         setSelectedCapacityId(cfg._id);
                       }}
-                      className={`cursor-pointer rounded-2xl p-5 sm:p-6 border-2 transition-all space-y-4 ${
+                      className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-6 border-2 transition-all space-y-2 sm:space-y-4 ${
                         isSelected
                           ? 'border-amber-500 bg-amber-50/40 shadow-md ring-2 ring-amber-500/20'
                           : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="px-2.5 py-1 rounded-full bg-slate-100 text-xs font-black text-slate-700 border border-slate-200 tracking-wider uppercase">
+                        <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-slate-100 text-[10px] sm:text-xs font-black text-slate-700 border border-slate-200 tracking-wider uppercase">
                           🚜 TRACTOR
                         </span>
-                        {isSelected && <CheckCircle2 className="w-6 h-6 text-amber-600" />}
+                        {isSelected && <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" />}
                       </div>
 
                       <div>
-                        <h3 className="text-xl font-black text-slate-900 font-display">{cfg.optionName}</h3>
-                        <p className="text-xs text-slate-500 mt-1">
+                        <h3 className="text-base sm:text-xl font-black text-slate-900 font-display">{cfg.optionName}</h3>
+                        <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1">
                           {cfg.optionName === 'Single Patiya'
                             ? 'Standard single trailer tractor trolley'
                             : 'Heavy double trailer tractor trolley'}
                         </p>
                       </div>
 
-                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-0.5">
-                        <span className="text-lg font-black font-mono text-amber-700 block">
+                      <div className="p-2.5 sm:p-3.5 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200 space-y-0.5">
+                        <span className="text-base sm:text-lg font-black font-mono text-amber-700 block">
                           ~{cfg.approximateTon} Tons
                         </span>
-                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                          APPROXIMATE LOAD CAPACITY
+                        <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                          APPROX LOAD CAPACITY
                         </span>
                       </div>
 
-                      <div className="flex items-baseline justify-between pt-3 border-t border-slate-100 text-xs">
+                      <div className="flex items-baseline justify-between pt-2 sm:pt-3 border-t border-slate-100 text-[11px] sm:text-xs">
                         <span className="text-slate-600 font-bold">Price / Vehicle:</span>
-                        <span className="text-lg font-black font-mono text-emerald-700">
+                        <span className="text-base sm:text-lg font-black font-mono text-emerald-700">
                           {formatINR(itemUnitPrice)}
                         </span>
                       </div>
@@ -1387,8 +1393,8 @@ export default function CreateOrder() {
               </div>
             ) : isAggregate ? (
               /* DUMPER AGGREGATE: GRAIN SIZE CARDS (ONLY FOR DUMPER) */
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-2.5 sm:space-y-4">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
                   {(selectedMaterial?.dumperAggregateTypes && selectedMaterial.dumperAggregateTypes.length > 0
                     ? selectedMaterial.dumperAggregateTypes
                     : selectedMaterial?.aggregateTypes && selectedMaterial.aggregateTypes.length > 0
@@ -1405,7 +1411,7 @@ export default function CreateOrder() {
                       <div
                         key={grain}
                         onClick={() => setSelectedAggregateType(grain)}
-                        className={`cursor-pointer rounded-3xl p-5 border-2 transition-all space-y-3 bg-white ${
+                        className={`cursor-pointer rounded-xl sm:rounded-3xl p-2.5 sm:p-5 border-2 transition-all space-y-1.5 sm:space-y-3 bg-white ${
                           isSelected
                             ? 'border-amber-500 shadow-sm ring-2 ring-amber-500/20'
                             : 'border-slate-200/80 hover:border-slate-300 shadow-xs'
@@ -1413,26 +1419,26 @@ export default function CreateOrder() {
                       >
                         <div className="flex items-center justify-between">
                           <span
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-black uppercase tracking-wider border ${
+                            className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-[9px] sm:text-[11px] font-black uppercase tracking-wider border ${
                               isSelected
                                 ? 'bg-amber-100/70 text-amber-900 border-amber-200/80'
                                 : 'bg-slate-100 text-slate-700 border-slate-200/80'
                             }`}
                           >
-                            BASALT CRUSHED
+                            BASALT
                           </span>
                           {isSelected ? (
-                            <div className="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-black shadow-xs">
-                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-black shadow-xs">
+                              <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3]" />
                             </div>
                           ) : (
-                            <div className="w-6 h-6 rounded-full border-2 border-slate-200" />
+                            <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-slate-200" />
                           )}
                         </div>
 
                         <div>
-                          <h3 className="text-xl font-black text-slate-900 font-display">{grain}</h3>
-                          <p className="text-xs text-slate-500 mt-1">
+                          <h3 className="text-sm sm:text-xl font-black text-slate-900 font-display">{grain}</h3>
+                          <p className="hidden sm:block text-xs text-slate-500 mt-1">
                             {grain === '20mm'
                               ? 'Coarse aggregate for RCC, foundation, slabs, and columns'
                               : grain === '10mm'
@@ -1447,9 +1453,9 @@ export default function CreateOrder() {
                           </p>
                         </div>
 
-                        <div className="pt-3 border-t border-slate-100 flex items-baseline justify-between text-xs">
-                          <span className="text-slate-500 font-medium">Base Price:</span>
-                          <span className="text-base font-black font-mono text-emerald-700">
+                        <div className="pt-1.5 sm:pt-3 border-t border-slate-100 flex items-baseline justify-between text-[11px] sm:text-xs">
+                          <span className="text-slate-500 font-medium">Base:</span>
+                          <span className="text-sm sm:text-base font-black font-mono text-emerald-700">
                             {formatINR(grainPrice)}/Ton
                           </span>
                         </div>
@@ -1460,29 +1466,29 @@ export default function CreateOrder() {
               </div>
             ) : (
               /* DUMPER SAND: PROCESSING QUALITY OPTIONS */
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-5">
                 {availableOptions.map((opt) => {
                   const isSelected = opt === selectedOptionName;
                   return (
                     <div
                       key={opt}
                       onClick={() => setSelectedOptionName(opt)}
-                      className={`cursor-pointer rounded-2xl p-5 sm:p-6 border-2 transition-all space-y-3 ${
+                      className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-6 border-2 transition-all space-y-1.5 sm:space-y-3 ${
                         isSelected
                           ? 'border-amber-500 bg-amber-50/40 shadow-md ring-2 ring-amber-500/20'
                           : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="px-2.5 py-1 rounded-full bg-slate-100 text-xs font-bold text-slate-700 border border-slate-200">
+                        <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-slate-100 text-[10px] sm:text-xs font-bold text-slate-700 border border-slate-200">
                           DUMPER
                         </span>
                         {isSelected && <CheckCircle2 className="w-5 h-5 text-amber-600" />}
                       </div>
 
                       <div>
-                        <h3 className="text-lg font-black text-slate-900 font-display">{opt}</h3>
-                        <p className="text-xs text-slate-500 mt-1">
+                        <h3 className="text-sm sm:text-lg font-black text-slate-900 font-display">{opt}</h3>
+                        <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1">
                           {opt === 'Filter Sand'
                             ? 'Washed fine sand free of silt'
                             : opt === 'Without Filter'
@@ -1500,12 +1506,12 @@ export default function CreateOrder() {
 
         {/* ================= STEP 5: QUANTITY & UNITS ================= */}
         {showStep(5) && (
-          <div className="space-y-6 pt-6 mt-1 border-t border-slate-200">
+          <div className="space-y-3 sm:space-y-6 pt-4 sm:pt-6 mt-1 border-t border-slate-200">
             <div>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">
+              <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">
                 {selectedVehicleType === 'DUMPER' ? 'Select Vehicle Capacity & Units' : 'Tractor Dispatch Capacity & Units'}
               </h2>
-              <p className="text-xs sm:text-sm text-slate-500">
+              <p className="text-[11px] sm:text-sm text-slate-500">
                 {selectedVehicleType === 'DUMPER'
                   ? 'Confirm wheel count tonnage and number of dispatch vehicles required.'
                   : 'Review tractor load capacity and confirmed dispatch vehicle units.'}
@@ -1514,45 +1520,45 @@ export default function CreateOrder() {
 
             {selectedVehicleType === 'TRACTOR' ? (
               /* TRACTOR STEP 5 REVIEW & QUANTITY ADJUSTMENT */
-              <div className="space-y-4">
-                <div className="p-5 sm:p-6 rounded-2xl bg-amber-50/50 border border-amber-200 space-y-4 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="px-3 py-1 rounded-full bg-white text-xs font-black text-amber-800 border border-amber-200 shadow-sm">
+              <div className="space-y-2.5 sm:space-y-4">
+                <div className="p-3 sm:p-6 rounded-xl sm:rounded-2xl bg-amber-50/50 border border-amber-200 space-y-2.5 sm:space-y-4 shadow-sm">
+                  <div className="flex items-center justify-between flex-wrap gap-1.5">
+                    <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-white text-[11px] sm:text-xs font-black text-amber-800 border border-amber-200 shadow-sm">
                       🚜 {selectedOptionName} {isAggregate ? `(${selectedAggregateType})` : ''}
                     </span>
-                    <span className="text-sm font-bold text-emerald-700 font-mono">
+                    <span className="text-xs sm:text-sm font-bold text-emerald-700 font-mono">
                       {formatINR(unitPrice)} / Vehicle
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-4 text-xs">
                     <div>
-                      <span className="text-slate-500 block text-[10px] font-bold uppercase tracking-wider">Approx Load Capacity</span>
-                      <strong className="text-slate-900 text-base font-mono font-bold">~{selectedCapacity?.approximateTon} Tons</strong>
+                      <span className="text-slate-500 block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">Capacity</span>
+                      <strong className="text-slate-900 text-sm sm:text-base font-mono font-bold">~{selectedCapacity?.approximateTon}T</strong>
                     </div>
                     <div>
-                      <span className="text-slate-500 block text-[10px] font-bold uppercase tracking-wider">Dispatch Units</span>
-                      <strong className="text-amber-700 text-base font-mono font-black">{tractorQuantity} Vehicle(s)</strong>
+                      <span className="text-slate-500 block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">Units</span>
+                      <strong className="text-amber-700 text-sm sm:text-base font-mono font-black">{tractorQuantity}</strong>
                     </div>
                     <div>
-                      <span className="text-slate-500 block text-[10px] font-bold uppercase tracking-wider">Total Calculated</span>
-                      <strong className="text-emerald-700 text-base font-mono font-black">{formatINR(subtotal)}</strong>
+                      <span className="text-slate-500 block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">Total</span>
+                      <strong className="text-emerald-700 text-sm sm:text-base font-mono font-black">{formatINR(subtotal)}</strong>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                <div className="p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 flex flex-row items-center justify-between gap-3 shadow-sm">
                   <div>
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Number of Vehicles:</span>
-                    <span className="text-sm font-bold text-slate-800">Adjust Tractor dispatch quantity:</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block">Vehicles</span>
+                    <span className="hidden sm:inline text-sm font-bold text-slate-800">Adjust Tractor dispatch quantity</span>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <button
                       type="button"
                       disabled={tractorQuantity <= 1}
                       onClick={() => setTractorQuantity((prev) => Math.max(1, prev - 1))}
-                      className={`p-2.5 rounded-xl border font-bold transition-all ${
+                      className={`p-2 sm:p-2.5 rounded-lg sm:rounded-xl border font-bold transition-all ${
                         tractorQuantity <= 1
                           ? 'opacity-40 cursor-not-allowed bg-slate-100 border-slate-200 text-slate-400'
                           : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-800 shadow-sm active:scale-95'
@@ -1561,14 +1567,14 @@ export default function CreateOrder() {
                       <Minus className="w-4 h-4" />
                     </button>
 
-                    <span className="text-2xl font-black font-mono text-amber-700 w-12 text-center">
+                    <span className="text-xl sm:text-2xl font-black font-mono text-amber-700 w-9 sm:w-12 text-center">
                       {tractorQuantity}
                     </span>
 
                     <button
                       type="button"
                       onClick={() => setTractorQuantity((prev) => prev + 1)}
-                      className="p-2.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 font-bold shadow-sm active:scale-95"
+                      className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 font-bold shadow-sm active:scale-95"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
@@ -1578,7 +1584,7 @@ export default function CreateOrder() {
             ) : (
               /* DUMPER STEP 5 CAPACITY GRID & QUANTITY */
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
                   {(isAggregate
                     ? Array.from(new Map(activeVehicleConfigs.map((c) => [c.wheelCount || c.approximateTon || c._id, c])).values())
                     : capacitiesForOption
@@ -1598,25 +1604,25 @@ export default function CreateOrder() {
                           setSelectedCapacityId(cap._id);
                           if (cap.optionName) setSelectedOptionName(cap.optionName);
                         }}
-                        className={`cursor-pointer rounded-2xl p-5 border-2 transition-all space-y-3 ${
+                        className={`cursor-pointer rounded-lg sm:rounded-2xl p-2.5 sm:p-5 border-2 transition-all space-y-1.5 sm:space-y-3 ${
                           isSelected
                             ? 'border-amber-500 bg-amber-50/40 shadow-md ring-2 ring-amber-500/20'
                             : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-amber-700 font-mono">
+                          <span className="text-[10px] sm:text-xs font-bold text-amber-700 font-mono">
                             {cap.wheelCount ? `${cap.wheelCount} Wheels` : cap.optionName}
                           </span>
-                          {isSelected && <CheckCircle2 className="w-5 h-5 text-amber-600" />}
+                          {isSelected && <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />}
                         </div>
 
                         <div>
-                          <h3 className="text-2xl font-black text-slate-900 font-display">~{displayTon} Tons</h3>
-                          <span className="text-xs text-slate-500 block mt-0.5">Approximate Load Capacity</span>
+                          <h3 className="text-base sm:text-2xl font-black text-slate-900 font-display">~{displayTon} Tons</h3>
+                          <span className="hidden sm:block text-xs text-slate-500 mt-0.5">Approximate Load Capacity</span>
                         </div>
 
-                        <div className="border-t border-slate-100 pt-2 text-xs text-slate-600 font-medium">
+                        <div className="border-t border-slate-100 pt-1.5 sm:pt-2 text-[11px] sm:text-xs text-slate-600 font-medium">
                           {isAggregate
                             ? `${formatINR(unitPrice)}/Ton`
                             : cap.flatPrice ? formatINR(cap.flatPrice) : `${formatINR(displayRate)}/Ton`}
@@ -1626,18 +1632,18 @@ export default function CreateOrder() {
                   })}
                 </div>
 
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                <div className="p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 flex flex-row items-center justify-between gap-3 shadow-sm">
                   <div>
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Number of Vehicles:</span>
-                    <span className="text-sm font-bold text-slate-800">How many DUMPER dispatches are required?</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block">Vehicles</span>
+                    <span className="hidden sm:inline text-sm font-bold text-slate-800">How many DUMPER dispatches are required?</span>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <button
                       type="button"
                       disabled={dumperQuantity <= 1}
                       onClick={() => setDumperQuantity((prev) => Math.max(1, prev - 1))}
-                      className={`p-2.5 rounded-xl border font-bold transition-all ${
+                      className={`p-2 sm:p-2.5 rounded-lg sm:rounded-xl border font-bold transition-all ${
                         dumperQuantity <= 1
                           ? 'opacity-40 cursor-not-allowed bg-slate-100 border-slate-200 text-slate-400'
                           : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-800 shadow-sm active:scale-95'
@@ -1646,14 +1652,14 @@ export default function CreateOrder() {
                       <Minus className="w-4 h-4" />
                     </button>
 
-                    <span className="text-2xl font-black font-mono text-amber-700 w-12 text-center">
+                    <span className="text-xl sm:text-2xl font-black font-mono text-amber-700 w-9 sm:w-12 text-center">
                       {dumperQuantity}
                     </span>
 
                     <button
                       type="button"
                       onClick={() => setDumperQuantity((prev) => prev + 1)}
-                      className="p-2.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 font-bold shadow-sm active:scale-95"
+                      className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 font-bold shadow-sm active:scale-95"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
@@ -1666,13 +1672,13 @@ export default function CreateOrder() {
 
         {/* ================= STEP 6: SHIPPING & DELIVERY DETAILS ================= */}
         {showStep(6) && (
-          <div className="space-y-6">
+          <div className="space-y-3 sm:space-y-6">
             <div>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">Delivery Site Details & Schedule</h2>
-              <p className="text-xs sm:text-sm text-slate-500">Specify drop-off coordinates, schedule date, and recipient contact info.</p>
+              <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">Delivery Site Details & Schedule</h2>
+              <p className="text-[11px] sm:text-sm text-slate-500">Specify drop-off coordinates, schedule date, and recipient contact info.</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
               {/* Customer Name */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700">Recipient Full Name *</label>
@@ -1745,7 +1751,7 @@ export default function CreateOrder() {
             </div>
 
             {/* Address Lines */}
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700">Site / Building Address Line 1 *</label>
                 <input
@@ -1758,7 +1764,7 @@ export default function CreateOrder() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700">Area / Highway</label>
                   <input
@@ -1822,22 +1828,22 @@ export default function CreateOrder() {
 
         {/* ================= STEP 7: SELECT DEALER ================= */}
         {showStep(7) && (
-          <div className="space-y-6">
+          <div className="space-y-3 sm:space-y-6">
             <div>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">Select Dealer</h2>
-              <p className="text-xs sm:text-sm text-slate-500">
+              <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">Select Dealer</h2>
+              <p className="text-[11px] sm:text-sm text-slate-500">
                 {selectedVehicleType === 'DUMPER' ? 'Rate Per Ton' : 'Transport cost'} = dealer&apos;s rate per KM for {selectedMaterial?.category}
                 {selectedLocation?.name && !(isAggregate && selectedVehicleType === 'TRACTOR') ? ` (${selectedLocation.name})` : ''} &times; road distance to your shipping address.
               </p>
             </div>
 
             {loadingDealers ? (
-              <div className="flex items-center justify-center py-12 text-slate-500 text-sm gap-2">
+              <div className="flex items-center justify-center py-8 sm:py-12 text-slate-500 text-sm gap-2">
                 <Loader2 className="w-5 h-5 animate-spin" />
                 <span>Finding dealers near your delivery address...</span>
               </div>
             ) : dealers.length === 0 ? (
-              <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center text-sm text-slate-500">
+              <div className="p-4 sm:p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center text-xs sm:text-sm text-slate-500">
                 No dealers currently offer transport for {selectedMaterial?.category}
                 {selectedLocation?.name ? ` from ${selectedLocation.name}` : ''}.{' '}
                 {selectedVehicleType === 'DUMPER'
@@ -1845,7 +1851,7 @@ export default function CreateOrder() {
                   : 'A nearby dealer will be auto-assigned, or please contact support.'}
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {dealers.map((dealer) => {
                   const isSelected = selectedDealerId === dealer.dealerId;
                   return (
@@ -1853,38 +1859,38 @@ export default function CreateOrder() {
                       key={dealer.dealerId}
                       type="button"
                       onClick={() => setSelectedDealerId(dealer.dealerId)}
-                      className={`w-full text-left p-4 sm:p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 cursor-pointer ${
+                      className={`w-full text-left p-2.5 sm:p-5 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-between gap-2.5 sm:gap-4 cursor-pointer ${
                         isSelected
                           ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-500/20'
                           : 'border-slate-200 bg-white hover:border-amber-300'
                       }`}
                     >
-                      <div className="min-w-0 flex items-center gap-3">
+                      <div className="min-w-0 flex items-center gap-2 sm:gap-3">
                         <div
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
                             isSelected ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500'
                           }`}
                         >
-                          <Building2 className="w-5 h-5" />
+                          <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
                         <div className="min-w-0">
-                          <div className="text-sm font-black text-slate-900 truncate">
+                          <div className="text-xs sm:text-sm font-black text-slate-900 truncate">
                             {dealer.companyName || dealer.name}
                           </div>
-                          <div className="text-[11px] text-slate-500 font-mono">
+                          <div className="text-[10px] sm:text-[11px] text-slate-500 font-mono">
                             {dealer.distanceKm != null ? `${dealer.distanceKm} km away` : 'Distance unavailable'}
                           </div>
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <div className="text-base sm:text-lg font-black text-amber-700 font-mono">
+                        <div className="text-sm sm:text-lg font-black text-amber-700 font-mono">
                           {formatINR(dealer.transportCost)}
                         </div>
-                        <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">
-                          {selectedVehicleType === 'DUMPER' ? 'Rate Per Ton' : 'Transport Cost'}
+                        <div className="text-[9px] sm:text-[10px] text-slate-500 uppercase tracking-wider font-bold">
+                          {selectedVehicleType === 'DUMPER' ? 'Rate/Ton' : 'Transport'}
                         </div>
                       </div>
-                      {isSelected && <Check className="w-5 h-5 text-amber-600 shrink-0" />}
+                      {isSelected && <Check className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 shrink-0" />}
                     </button>
                   );
                 })}
@@ -1895,15 +1901,15 @@ export default function CreateOrder() {
 
         {/* ================= STEP 8: ORDER SUMMARY & REVIEW ================= */}
         {showStep(8) && (
-          <div className="space-y-6">
+          <div className="space-y-3 sm:space-y-6">
             <div>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">Review Order Summary</h2>
-              <p className="text-xs sm:text-sm text-slate-500">Verify all material specifications and delivery coordinates before payment.</p>
+              <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">Review Order Summary</h2>
+              <p className="text-[11px] sm:text-sm text-slate-500">Verify all material specifications and delivery coordinates before payment.</p>
             </div>
 
             {/* Detailed Spec Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs shadow-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4">
+              <div className="p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 sm:space-y-2 text-xs shadow-sm">
                 <span className="text-slate-500 block uppercase font-bold text-[10px] tracking-wider">
                   Material & Source
                 </span>
@@ -1918,7 +1924,7 @@ export default function CreateOrder() {
 
               {selectedVehicleType === 'TRACTOR' ? (
                 /* TRACTOR ORDER SUMMARY CARD */
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5 text-xs shadow-sm">
+                <div className="p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 sm:space-y-2.5 text-xs shadow-sm">
                   <span className="text-slate-500 block uppercase font-bold text-[10px] tracking-wider">
                     Tractor Dispatch Specification
                   </span>
@@ -1952,7 +1958,7 @@ export default function CreateOrder() {
                 </div>
               ) : (
                 /* DUMPER ORDER SUMMARY CARD */
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs shadow-sm">
+                <div className="p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 sm:space-y-2 text-xs shadow-sm">
                   <span className="text-slate-500 block uppercase font-bold text-[10px] tracking-wider">
                     Fleet & Capacity Specification
                   </span>
@@ -1968,7 +1974,7 @@ export default function CreateOrder() {
             </div>
 
             {/* Destination Info */}
-            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs shadow-sm">
+            <div className="p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 sm:space-y-2 text-xs shadow-sm">
               <span className="text-slate-500 block uppercase font-bold text-[10px] tracking-wider">
                 Recipient & Destination Address
               </span>
@@ -1986,7 +1992,7 @@ export default function CreateOrder() {
 
             {/* Selected Dealer Info */}
             {selectedDealerForSummary && (
-              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs shadow-sm">
+              <div className="p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 sm:space-y-2 text-xs shadow-sm">
                 <span className="text-slate-500 block uppercase font-bold text-[10px] tracking-wider">
                   Assigned Dealer
                 </span>
@@ -2006,9 +2012,9 @@ export default function CreateOrder() {
             {selectedVehicleType === 'DUMPER' ? (
               /* DUMPER: no material subtotal / grand total any more -- the customer sees only
                  the calculated Rate Per Ton (Distance x Dealer Rate/KM). */
-              <div className="p-6 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50/80 border border-amber-200 shadow-sm text-center space-y-1.5">
+              <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50/80 border border-amber-200 shadow-sm text-center space-y-1.5">
                 <span className="text-[11px] font-bold text-amber-700 uppercase tracking-widest">Rate Per Ton</span>
-                <div className="font-black font-mono text-3xl text-amber-700">
+                <div className="font-black font-mono text-2xl sm:text-3xl text-amber-700">
                   {dumperRatePerTon !== null ? formatINR(dumperRatePerTon) : '—'}
                 </div>
                 {selectedDealerForSummary && (
@@ -2018,7 +2024,7 @@ export default function CreateOrder() {
                 )}
               </div>
             ) : (
-              <div className="p-6 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50/80 border border-amber-200 space-y-3 text-xs shadow-sm">
+              <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50/80 border border-amber-200 space-y-2 sm:space-y-3 text-xs shadow-sm">
                 <div className="flex items-center justify-between text-slate-600">
                   <span>Material Subtotal ({approxTotalTonnage} Tons):</span>
                   <span className="font-mono font-bold text-slate-900">{formatINR(subtotal)}</span>
@@ -2035,7 +2041,7 @@ export default function CreateOrder() {
                 </div>
                 <div className="border-t border-amber-200 pt-3 flex items-center justify-between text-sm">
                   <span className="font-black text-slate-900 uppercase tracking-wider">Grand Total Amount:</span>
-                  <span className="font-black font-mono text-2xl text-amber-700">
+                  <span className="font-black font-mono text-xl sm:text-2xl text-amber-700">
                     {formatINR(subtotal + (selectedDealerForSummary?.transportCost || 0))}
                   </span>
                 </div>
@@ -2045,7 +2051,7 @@ export default function CreateOrder() {
         )}
 
         {/* Wizard Controls */}
-        <div className="flex items-center justify-between pt-5 border-t border-slate-200 gap-3">
+        <div className="flex items-center justify-between pt-3 sm:pt-5 border-t border-slate-200 gap-2.5 sm:gap-3">
           {currentGroupIndex > 0 ? (
             <button
               type="button"

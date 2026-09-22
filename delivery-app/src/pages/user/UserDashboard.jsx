@@ -103,9 +103,9 @@ export default function UserDashboard() {
   const firstName = user?.name ? user.name.split(' ')[0] : 'Partner';
 
   return (
-    <div className="space-y-5 sm:space-y-6 select-none max-w-5xl mx-auto">
+    <div className="space-y-3 sm:space-y-6 select-none max-w-5xl mx-auto">
       {/* 1. HERO BANNER CARD (Exact Dark Navy Card matching screenshot) */}
-      <div className="bg-slate-950 text-white rounded-3xl p-5 sm:p-7 relative overflow-hidden shadow-xl border border-amber-500/30">
+      <div className="bg-slate-950 text-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-7 relative overflow-hidden shadow-xl border border-amber-500/30">
         {/* Glow & subtle truck background watermark */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-16 -right-16 w-72 h-72 bg-amber-600/15 rounded-full blur-3xl pointer-events-none" />
@@ -114,14 +114,14 @@ export default function UserDashboard() {
         </div>
 
         {/* Top Badges Row */}
-        <div className="flex items-center justify-between gap-2 mb-3.5 relative z-10">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-slate-300 text-[11px] font-medium backdrop-blur-sm shadow-xs">
+        <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3.5 relative z-10">
+          <div className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-slate-300 text-[9px] sm:text-[11px] font-medium backdrop-blur-sm shadow-xs">
             <span className="text-amber-400">👷</span>
             <span>Site Verified Partner</span>
           </div>
           <a
             href="tel:9800001111"
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-slate-300 text-[11px] font-medium backdrop-blur-sm hover:text-amber-400 transition-colors shadow-xs"
+            className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-slate-300 text-[9px] sm:text-[11px] font-medium backdrop-blur-sm hover:text-amber-400 transition-colors shadow-xs"
           >
             <span>📞</span>
             <span className="font-mono">{user?.mobile ? `+91 ${user.mobile}` : '+91 9800001111'}</span>
@@ -129,20 +129,20 @@ export default function UserDashboard() {
         </div>
 
         {/* Greeting Title */}
-        <div className="relative z-10 mb-5">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight font-display">
+        <div className="relative z-10 mb-3 sm:mb-5">
+          <h1 className="text-lg sm:text-3xl font-extrabold text-white tracking-tight font-display">
             Welcome back, <span className="text-amber-400">{firstName}!</span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1 font-medium">
+          <p className="text-[11px] sm:text-sm text-slate-400 mt-0.5 sm:mt-1 font-medium">
             Site deliveries & weighbridge slips update live
           </p>
         </div>
 
         {/* Action Buttons: New Order + OTP */}
-        <div className="flex items-center gap-2.5 relative z-10">
+        <div className="flex items-center gap-2 sm:gap-2.5 relative z-10">
           <Link
             to="/user/create-order"
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/25 active:scale-[0.98] transition-all tracking-wide uppercase"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2.5 sm:px-4 sm:py-3 rounded-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-[11px] sm:text-sm shadow-lg shadow-amber-500/25 active:scale-[0.98] transition-all tracking-wide uppercase min-h-[44px]"
           >
             <PlusCircle className="w-4 h-4 stroke-[2.5]" />
             <span>NEW MATERIAL ORDER</span>
@@ -150,7 +150,7 @@ export default function UserDashboard() {
           <button
             type="button"
             onClick={() => setShowOtpModal(true)}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-full bg-slate-800/90 hover:bg-slate-700 text-white font-bold text-xs sm:text-sm border border-amber-500/40 shadow-md active:scale-[0.98] transition-all shrink-0"
+            className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-3 py-2.5 sm:px-4 sm:py-3 rounded-full bg-slate-800/90 hover:bg-slate-700 text-white font-bold text-[11px] sm:text-sm border border-amber-500/40 shadow-md active:scale-[0.98] transition-all shrink-0 min-h-[44px]"
           >
             <span className="font-mono font-black text-amber-400 tracking-wider">123</span>
             <span>OTP</span>
@@ -167,9 +167,9 @@ export default function UserDashboard() {
           {/* 1. Order Material */}
           <Link
             to="/user/create-order"
-            className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-amber-400/80 hover:shadow-md transition-all shrink-0 min-w-[170px]"
+            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-amber-400/80 hover:shadow-md transition-all shrink-0 min-w-[150px] sm:min-w-[170px]"
           >
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold shrink-0">
               <ShoppingCart className="w-5 h-5" />
             </div>
             <div>
@@ -182,9 +182,9 @@ export default function UserDashboard() {
           <button
             type="button"
             onClick={() => setShowOtpModal(true)}
-            className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-emerald-400/80 hover:shadow-md transition-all shrink-0 min-w-[175px] text-left"
+            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-emerald-400/80 hover:shadow-md transition-all shrink-0 min-w-[155px] sm:min-w-[175px] text-left"
           >
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">
               <CheckCircle className="w-5 h-5" />
             </div>
             <div>
@@ -196,9 +196,9 @@ export default function UserDashboard() {
           {/* 3. Track Vehicle */}
           <Link
             to="/user/orders"
-            className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-sky-400/80 hover:shadow-md transition-all shrink-0 min-w-[165px]"
+            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-sky-400/80 hover:shadow-md transition-all shrink-0 min-w-[145px] sm:min-w-[165px]"
           >
-            <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold shrink-0">
               <Target className="w-5 h-5" />
             </div>
             <div>
@@ -210,9 +210,9 @@ export default function UserDashboard() {
           {/* 4. Challan Slips */}
           <Link
             to="/user/orders"
-            className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-purple-400/80 hover:shadow-md transition-all shrink-0 min-w-[165px]"
+            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-purple-400/80 hover:shadow-md transition-all shrink-0 min-w-[145px] sm:min-w-[165px]"
           >
-            <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold shrink-0">
               <FileText className="w-5 h-5" />
             </div>
             <div>
@@ -224,9 +224,9 @@ export default function UserDashboard() {
           {/* 5. Dispatch Support */}
           <a
             href="tel:9800001111"
-            className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-rose-400/80 hover:shadow-md transition-all shrink-0 min-w-[165px]"
+            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-rose-400/80 hover:shadow-md transition-all shrink-0 min-w-[145px] sm:min-w-[165px]"
           >
-            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold shrink-0">
               <PhoneCall className="w-5 h-5" />
             </div>
             <div>
@@ -248,9 +248,9 @@ export default function UserDashboard() {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
           {/* Card 1: TOTAL SUPPLY VALUE */}
-          <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div className="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
             <div className="flex items-start justify-between gap-1 mb-2">
               <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
                 TOTAL SUPPLY VALUE
@@ -270,7 +270,7 @@ export default function UserDashboard() {
           </div>
 
           {/* Card 2: IN TRANSIT */}
-          <div className="bg-white rounded-3xl p-4 sm:p-5 border border-sky-100 shadow-xs flex flex-col justify-between">
+          <div className="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-5 border border-sky-100 shadow-xs flex flex-col justify-between">
             <div className="flex items-start justify-between gap-1 mb-2">
               <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
                 IN TRANSIT
@@ -291,7 +291,7 @@ export default function UserDashboard() {
           </div>
 
           {/* Card 3: TOTAL ORDERS */}
-          <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div className="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
             <div className="flex items-start justify-between gap-1 mb-2">
               <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
                 TOTAL ORDERS
@@ -311,7 +311,7 @@ export default function UserDashboard() {
           </div>
 
           {/* Card 4: DELIVERED */}
-          <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div className="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
             <div className="flex items-start justify-between gap-1 mb-2">
               <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
                 DELIVERED

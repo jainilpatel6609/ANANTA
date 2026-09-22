@@ -254,7 +254,7 @@ export default function AcceptedOrders() {
           icon={CheckCircle}
         />
       ) : (
-        <div className="grid grid-cols-1 gap-5">
+        <div className="grid grid-cols-1 gap-2.5 sm:gap-5">
           {orders.map((order) => {
             const googleMapUrl =
               order.latitude && order.longitude
@@ -264,31 +264,31 @@ export default function AcceptedOrders() {
             return (
               <div
                 key={order._id}
-                className="bg-slate-900 border border-slate-800 hover:border-slate-700 transition-all rounded-3xl p-6 sm:p-7 space-y-6 shadow-xl relative overflow-hidden"
+                className="bg-slate-900 border border-slate-800 hover:border-slate-700 transition-all rounded-2xl sm:rounded-3xl p-3 sm:p-7 space-y-3 sm:space-y-6 shadow-xl relative overflow-hidden"
               >
                 {/* Header */}
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg font-black text-white font-mono">#{order.orderNumber}</span>
+                <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 border-b border-slate-800 pb-2.5 sm:pb-4">
+                  <div className="space-y-0.5 sm:space-y-1">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <span className="text-sm sm:text-lg font-black text-white font-mono">#{order.orderNumber}</span>
                       <StatusBadge status={order.orderStatus} />
                     </div>
-                    <span className="text-xs text-slate-400 block">Accepted: {formatDate(order.acceptedAt || order.updatedAt)}</span>
+                    <span className="hidden sm:block text-xs text-slate-400">Accepted: {formatDate(order.acceptedAt || order.updatedAt)}</span>
                   </div>
 
                   <div className="text-right">
-                    <span className="text-xs text-slate-400 block uppercase font-bold text-[10px] tracking-wider">
+                    <span className="text-slate-400 block uppercase font-bold text-[9px] sm:text-[10px] tracking-wider">
                       Order Value
                     </span>
-                    <span className="text-lg font-black text-amber-400 font-mono">{formatINR(order.totalAmount)}</span>
+                    <span className="text-sm sm:text-lg font-black text-amber-400 font-mono">{formatINR(order.totalAmount)}</span>
                   </div>
                 </div>
 
                 {/* Grid Details */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4 text-xs">
                   {/* Material & Fleet */}
-                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/80 space-y-2">
-                    <span className="text-slate-400 font-bold block uppercase text-[10px] tracking-wider">
+                  <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-950 border border-slate-800/80 space-y-1 sm:space-y-2">
+                    <span className="text-slate-400 font-bold block uppercase text-[9px] sm:text-[10px] tracking-wider">
                       Material Specification
                     </span>
                     <div className="font-bold text-white text-sm">{order.productNameSnapshot}</div>
@@ -301,8 +301,8 @@ export default function AcceptedOrders() {
                   </div>
 
                   {/* Customer Info */}
-                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/80 space-y-2">
-                    <span className="text-slate-400 font-bold block uppercase text-[10px] tracking-wider">
+                  <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-950 border border-slate-800/80 space-y-1 sm:space-y-2">
+                    <span className="text-slate-400 font-bold block uppercase text-[9px] sm:text-[10px] tracking-wider">
                       Customer & Site Contact
                     </span>
                     <div className="font-bold text-white flex items-center gap-1.5">
@@ -316,8 +316,8 @@ export default function AcceptedOrders() {
                   </div>
 
                   {/* Destination & Live Google Map Link */}
-                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/80 space-y-2">
-                    <span className="text-slate-400 font-bold block uppercase text-[10px] tracking-wider flex items-center justify-between">
+                  <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-950 border border-slate-800/80 space-y-1 sm:space-y-2">
+                    <span className="text-slate-400 font-bold block uppercase text-[9px] sm:text-[10px] tracking-wider flex items-center justify-between">
                       <span>Delivery Site</span>
                       <a
                         href={googleMapUrl}
@@ -339,7 +339,7 @@ export default function AcceptedOrders() {
 
                 {/* Driver Status Banner if Assigned */}
                 {order.driverName && (
-                  <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div className="p-2.5 sm:p-3.5 rounded-lg sm:rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex flex-wrap items-center justify-between gap-2 sm:gap-3 text-xs">
                     <div className="flex items-center gap-2">
                       <Truck className="w-4 h-4 text-emerald-400 shrink-0" />
                       <span className="text-slate-200">
@@ -351,7 +351,7 @@ export default function AcceptedOrders() {
                       href={getDriverWhatsAppUrl(order, order.driverMobile, order.driverName)}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black text-xs transition-colors shadow-sm"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black text-xs transition-colors shadow-sm min-h-[36px]"
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
                       <span>Share on WhatsApp</span>
@@ -362,22 +362,22 @@ export default function AcceptedOrders() {
                 {/* Action Area: differs for Tractor (dispatch modal, unchanged) vs Dumper
                     (assign driver only -- then track fulfillment progress here) */}
                 {isTractorOrder(order) ? (
-                  <div className="flex items-center justify-end gap-3 pt-2">
+                  <div className="flex items-center justify-end gap-2 sm:gap-3 pt-1 sm:pt-2">
                     <button
                       type="button"
                       onClick={() => openDispatchModal(order)}
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 sm:px-6 rounded-xl sm:rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95 min-h-[44px]"
                     >
                       <Truck className="w-4 h-4" />
                       <span>Assign Driver & Dispatch Material</span>
                     </button>
                   </div>
                 ) : !order.driverName ? (
-                  <div className="flex items-center justify-end gap-3 pt-2">
+                  <div className="flex items-center justify-end gap-2 sm:gap-3 pt-1 sm:pt-2">
                     <button
                       type="button"
                       onClick={() => openDispatchModal(order)}
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 sm:px-6 rounded-xl sm:rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95 min-h-[44px]"
                     >
                       <Truck className="w-4 h-4" />
                       <span>Assign Driver</span>

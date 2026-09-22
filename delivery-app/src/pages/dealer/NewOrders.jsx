@@ -220,7 +220,7 @@ export default function NewOrders() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-6">
       {/* Browser Notification Permissions Banner */}
       <NotificationPermissionPrompt />
 
@@ -236,16 +236,16 @@ export default function NewOrders() {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-display">New Available Orders</h1>
-          <p className="text-xs text-slate-400">
+          <h1 className="text-lg sm:text-3xl font-extrabold text-white font-display">New Available Orders</h1>
+          <p className="hidden sm:block text-xs text-slate-400">
             Open pool of confirmed customer orders. Nearest depot assignments include a mandatory 15-minute response SLA.
           </p>
         </div>
         <button
           onClick={loadData}
-          className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-brand-400 border border-slate-800 cursor-pointer"
+          className="px-2.5 py-1.5 sm:px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-[11px] sm:text-xs font-semibold text-brand-400 border border-slate-800 cursor-pointer shrink-0"
         >
           Refresh Pool
         </button>
@@ -258,7 +258,7 @@ export default function NewOrders() {
           icon={Inbox}
         />
       ) : (
-        <div className="grid grid-cols-1 gap-5">
+        <div className="grid grid-cols-1 gap-2.5 sm:gap-5">
           {orders.map((order) => {
             const timeInfo = getRemainingTime(order);
             const isAssignedToMe = !!order.assignedDealerId;
@@ -266,30 +266,30 @@ export default function NewOrders() {
             return (
               <div
                 key={order._id}
-                className={`bg-slate-900 border rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl transition-all ${
+                className={`bg-slate-900 border rounded-2xl sm:rounded-3xl p-3 sm:p-8 space-y-3 sm:space-y-6 shadow-xl transition-all ${
                   isAssignedToMe
                     ? 'border-amber-500/50 bg-gradient-to-b from-slate-900 to-slate-950 shadow-amber-500/5'
                     : 'border-slate-800 hover:border-slate-700'
                 }`}
               >
-                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg font-black font-mono text-white">#{order.orderNumber}</span>
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 border-b border-slate-800 pb-2.5 sm:pb-4">
+                  <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                    <span className="text-sm sm:text-lg font-black font-mono text-white">#{order.orderNumber}</span>
+                    <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
                       Payment Verified & Placed
                     </span>
                     {isAssignedToMe && (
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wide">
+                      <span className="px-2 py-0.5 sm:px-2.5 rounded-full text-[10px] sm:text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wide">
                         Nearest Depot
                       </span>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     {/* Live 15-Minute Response SLA Countdown */}
                     {timeInfo && (
                       <div
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold ${
+                        className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-mono font-bold ${
                           timeInfo.diffSec <= 180
                             ? 'bg-red-950/40 text-red-300 border border-red-800/50'
                             : timeInfo.diffSec <= 600
@@ -297,14 +297,14 @@ export default function NewOrders() {
                             : 'bg-emerald-950/40 text-emerald-300 border border-emerald-800/50'
                         }`}
                       >
-                        <Clock className="w-3.5 h-3.5" />
+                        <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         <span>
-                          {timeInfo.isExpired ? '15-Min SLA Expired' : `SLA: ${timeInfo.formatted} left`}
+                          {timeInfo.isExpired ? 'SLA Expired' : `${timeInfo.formatted} left`}
                         </span>
                       </div>
                     )}
 
-                    <div className="text-xs text-slate-400 flex items-center gap-1.5">
+                    <div className="hidden sm:flex text-xs text-slate-400 items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5" />
                       {formatDate(order.createdAt)}
                     </div>
@@ -312,12 +312,12 @@ export default function NewOrders() {
                 </div>
 
                 {/* Order Specs */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/80 space-y-1">
-                    <span className="text-slate-400 block uppercase tracking-wider text-[10px] font-bold">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-xs">
+                  <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-950 border border-slate-800/80 space-y-0.5 sm:space-y-1">
+                    <span className="text-slate-400 block uppercase tracking-wider text-[9px] sm:text-[10px] font-bold">
                       Material Specification
                     </span>
-                    <div className="text-base font-bold text-white">{order.productNameSnapshot}</div>
+                    <div className="text-sm sm:text-base font-bold text-white">{order.productNameSnapshot}</div>
                     <div className="text-brand-400 font-semibold">
                       {order.category}{' '}
                       {order.sandLocation ? `• Origin: ${order.sandLocation}` : ''}
@@ -325,25 +325,25 @@ export default function NewOrders() {
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/80 space-y-1">
-                    <span className="text-slate-400 block uppercase tracking-wider text-[10px] font-bold">
+                  <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-950 border border-slate-800/80 space-y-0.5 sm:space-y-1">
+                    <span className="text-slate-400 block uppercase tracking-wider text-[9px] sm:text-[10px] font-bold">
                       Required Tractors / Quantity
                     </span>
-                    <div className="text-base font-bold text-brand-400 font-mono">{formatOrderQuantity(order)}</div>
+                    <div className="text-sm sm:text-base font-bold text-brand-400 font-mono">{formatOrderQuantity(order)}</div>
                     <div className="text-slate-300 font-medium">{formatOrderTransport(order)}</div>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/80 space-y-1">
-                    <span className="text-slate-400 block uppercase tracking-wider text-[10px] font-bold">
+                  <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-950 border border-slate-800/80 space-y-0.5 sm:space-y-1">
+                    <span className="text-slate-400 block uppercase tracking-wider text-[9px] sm:text-[10px] font-bold">
                       Order Value (Paid)
                     </span>
-                    <div className="text-base font-bold text-white font-mono">{formatINR(order.totalAmount)}</div>
-                    <div className="text-slate-400 text-[11px]">Direct Razorpay Settlement</div>
+                    <div className="text-sm sm:text-base font-bold text-white font-mono">{formatINR(order.totalAmount)}</div>
+                    <div className="hidden sm:block text-slate-400 text-[11px]">Direct Razorpay Settlement</div>
                   </div>
                 </div>
 
                 {/* Shipping Drop-off & Nearest Dealer Distance */}
-                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
+                <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5 sm:space-y-2 text-xs">
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-900 pb-2">
                     <div className="flex items-center gap-1.5 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
                       <MapPin className="w-3.5 h-3.5 text-brand-400" />
@@ -391,23 +391,23 @@ export default function NewOrders() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center justify-end gap-3 pt-2">
+                <div className="flex items-center justify-end gap-2 sm:gap-3 pt-1 sm:pt-2">
                   <button
                     type="button"
                     onClick={() => openRejectModal(order)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-950 hover:bg-red-950/40 border border-slate-800 hover:border-red-500/40 text-slate-400 hover:text-red-300 text-xs font-bold transition-all cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-2.5 sm:px-4 rounded-xl bg-slate-950 hover:bg-red-950/40 border border-slate-800 hover:border-red-500/40 text-slate-400 hover:text-red-300 text-xs font-bold transition-all cursor-pointer min-h-[44px]"
                   >
                     <XCircle className="w-4 h-4 text-red-400" />
-                    <span>Decline Order</span>
+                    <span className="hidden sm:inline">Decline Order</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => openAcceptModal(order)}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs sm:text-sm transition-all shadow-sm cursor-pointer active:scale-95"
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-3 sm:px-6 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs sm:text-sm transition-all shadow-sm cursor-pointer active:scale-95 min-h-[44px]"
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>Accept Order & Claim Dispatch</span>
+                    <span>Accept & Claim Dispatch</span>
                   </button>
                 </div>
               </div>
