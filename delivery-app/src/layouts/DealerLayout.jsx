@@ -42,7 +42,7 @@ export default function DealerLayout() {
   const isRootPage = location.pathname === '/dealer/dashboard';
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col md:flex-row text-slate-100 selection:bg-slate-900 selection:text-white pb-20 md:pb-0">
+    <div className="min-h-screen bg-slate-950 flex flex-col md:flex-row text-slate-100 selection:bg-brand-500 selection:text-slate-950 pb-20 md:pb-0">
       {/* Mobile Sticky Top App Bar */}
       <div className="md:hidden sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
@@ -102,7 +102,7 @@ export default function DealerLayout() {
         <div>
           {/* Brand header */}
           <div className="p-6 border-b border-slate-800/80 hidden md:flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 flex items-center justify-center text-white font-black shadow-lg shadow-slate-900/20">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-400 to-amber-600 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-brand-500/20">
               <Truck className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
@@ -148,14 +148,14 @@ export default function DealerLayout() {
                   onClick={() => setSidebarOpen(false)}
                   className={`flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-200 active:scale-95 ${
                     isActive
-                      ? 'bg-gradient-to-r from-slate-900 to-slate-950 text-white shadow-lg shadow-slate-900/25 font-black'
+                      ? 'bg-gradient-to-r from-amber-500 to-brand-500 text-slate-950 shadow-lg shadow-amber-500/25 font-black'
                       : item.alert
                       ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/30'
                       : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-amber-400'}`} />
+                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-slate-950' : 'text-amber-400'}`} />
                     <span>{item.name}</span>
                   </div>
                 </Link>

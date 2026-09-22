@@ -89,7 +89,7 @@ export default function Contact() {
               <button
                 type="button"
                 onClick={() => setSubmitted(false)}
-                className="mt-4 px-6 py-3 rounded-2xl bg-slate-900 text-white font-black text-xs active:scale-95 transition-all shadow-md shadow-slate-900/20"
+                className="mt-4 px-6 py-3 rounded-2xl bg-brand-500 text-slate-950 font-black text-xs active:scale-95 transition-all shadow-md shadow-brand-500/20"
               >
                 Send Another Inquiry
               </button>
@@ -179,7 +179,7 @@ export default function Contact() {
 
               <button
                 type="submit"
-                className="w-full inline-flex items-center justify-center gap-2 py-4 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-950 hover:from-slate-800 hover:to-slate-900 text-white font-black text-sm transition-all shadow-xl shadow-slate-900/25 active:scale-95"
+                className="w-full inline-flex items-center justify-center gap-2 py-4 rounded-2xl bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-400 hover:to-amber-400 text-slate-950 font-black text-sm transition-all shadow-xl shadow-brand-500/25 active:scale-95"
               >
                 <Send className="w-4 h-4 stroke-[2.5]" />
                 <span>Submit Supply Enquiry</span>

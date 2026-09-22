@@ -141,7 +141,7 @@ export default function UserDashboard() {
         <div className="flex items-center gap-2.5 relative z-10">
           <Link
             to="/user/create-order"
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-gradient-to-r from-slate-800 via-slate-800 to-slate-950 hover:from-slate-900 hover:to-slate-950 text-white font-black text-xs sm:text-sm shadow-lg shadow-slate-900/25 active:scale-[0.98] transition-all tracking-wide uppercase"
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/25 active:scale-[0.98] transition-all tracking-wide uppercase"
           >
             <PlusCircle className="w-4 h-4 stroke-[2.5]" />
             <span>NEW MATERIAL ORDER</span>
@@ -416,7 +416,7 @@ export default function UserDashboard() {
                 <div className="flex items-center gap-2 pt-1">
                   <Link
                     to={orderLink}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs shadow-xs active:scale-95 transition-all"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-xs active:scale-95 transition-all"
                   >
                     <Navigation className="w-3.5 h-3.5 fill-slate-950" />
                     <span>Track Fleet GPS</span>

@@ -199,7 +199,7 @@ export default function DealerLocationEnforcer({ children }) {
               type="button"
               onClick={requestLiveLocation}
               disabled={isSyncing}
-              className="w-full py-3.5 px-6 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm transition-all shadow-lg shadow-slate-900/20 active:scale-95 flex items-center justify-center gap-2"
+              className="w-full py-3.5 px-6 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm transition-all shadow-lg shadow-amber-500/20 active:scale-95 flex items-center justify-center gap-2"
             >
               {isSyncing ? (
                 <>

@@ -50,7 +50,7 @@ export default function UserProfile() {
     <div className="max-w-3xl mx-auto space-y-6 pb-16 select-none">
       {/* Profile Header Avatar Card */}
       <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-5 shadow-xs relative overflow-hidden">
-        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-br from-slate-800 to-slate-950 text-white flex items-center justify-center font-black text-3xl shadow-lg shadow-slate-900/20 shrink-0">
+        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 flex items-center justify-center font-black text-3xl shadow-lg shadow-amber-500/20 shrink-0">
           {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
         </div>
 
@@ -233,7 +233,7 @@ export default function UserProfile() {
           <button
             type="submit"
             disabled={saving}
-            className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-950 hover:from-slate-800 hover:to-slate-900 active:scale-98 text-white font-black text-sm transition-all shadow-md shadow-slate-900/25 disabled:opacity-50 cursor-pointer"
+            className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 active:scale-98 text-slate-950 font-black text-sm transition-all shadow-md shadow-amber-500/25 disabled:opacity-50 cursor-pointer"
           >
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5 stroke-[2.5]" />}
             <span>Save Account & Profile Changes</span>

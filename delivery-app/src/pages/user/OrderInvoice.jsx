@@ -148,7 +148,7 @@ export default function OrderInvoice() {
           <p className="text-xs text-slate-400">The requested invoice could not be located or access is restricted.</p>
           <button
             onClick={() => navigate('/user/orders')}
-            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs cursor-pointer"
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs cursor-pointer"
           >
             Back to My Orders
           </button>
@@ -213,7 +213,7 @@ export default function OrderInvoice() {
   const amountInWords = numberToWordsIndian(totalAmount);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 py-6 px-3 sm:px-6 selection:bg-slate-900 selection:text-white">
+    <div className="min-h-screen bg-slate-950 text-slate-100 py-6 px-3 sm:px-6 selection:bg-amber-500 selection:text-slate-950">
       {/* Dynamic Print Stylesheet to enforce A4, Vector Crispness & Hide Chrome Controls */}
       <style>{`
         @media print {
@@ -322,16 +322,16 @@ export default function OrderInvoice() {
               type="button"
               disabled={isDownloading}
               onClick={handleDownloadPDF}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-800 text-white text-xs font-black shadow-lg shadow-slate-900/25 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/25 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
             >
               {isDownloading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
                   <span>Downloading PDF...</span>
                 </>
               ) : (
                 <>
-                  <Download className="w-4 h-4 text-white stroke-[2.5]" />
+                  <Download className="w-4 h-4 text-slate-950 stroke-[2.5]" />
                   <span>Direct Download PDF</span>
                 </>
               )}

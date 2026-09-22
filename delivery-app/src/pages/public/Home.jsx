@@ -78,7 +78,7 @@ export default function Home() {
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
                 to="/register"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-950 hover:from-slate-800 hover:to-slate-900 text-white font-black text-sm sm:text-base transition-all shadow-xl shadow-slate-900/25 active:scale-95"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-400 hover:to-amber-400 text-slate-950 font-black text-sm sm:text-base transition-all shadow-xl shadow-brand-500/25 active:scale-95"
               >
                 <span>Order Material Now</span>
                 <ArrowRight className="w-5 h-5 stroke-[2.5]" />
@@ -166,7 +166,7 @@ export default function Home() {
               </div>
               <Link
                 to="/register"
-                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-black transition-all shadow-md shadow-slate-900/20 active:scale-95"
+                className="px-5 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 text-xs font-black transition-all shadow-md shadow-brand-500/20 active:scale-95"
               >
                 Order Sand
               </Link>
@@ -205,7 +205,7 @@ export default function Home() {
               </div>
               <Link
                 to="/register"
-                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-black transition-all shadow-md shadow-slate-900/20 active:scale-95"
+                className="px-5 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 text-xs font-black transition-all shadow-md shadow-brand-500/20 active:scale-95"
               >
                 Order Aggregate
               </Link>
@@ -242,7 +242,7 @@ export default function Home() {
               </div>
               <Link
                 to="/register"
-                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-black transition-all shadow-md shadow-slate-900/20 active:scale-95"
+                className="px-5 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 text-xs font-black transition-all shadow-md shadow-brand-500/20 active:scale-95"
               >
                 Order Grit
               </Link>
@@ -347,7 +347,7 @@ export default function Home() {
 
               <Link
                 to="/register"
-                className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm transition-all shadow-lg shadow-slate-900/25 active:scale-95"
+                className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-brand-500 hover:bg-brand-400 text-slate-950 font-black text-sm transition-all shadow-lg shadow-brand-500/25 active:scale-95"
               >
                 <span>Proceed with Order</span>
                 <ArrowRight className="w-4 h-4 stroke-[2.5]" />
@@ -359,7 +359,7 @@ export default function Home() {
 
       {/* 4. Ready to Order Bottom Banner */}
       <section className="max-w-7xl mx-auto px-4 sm:px-8">
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-950 rounded-3xl p-8 sm:p-12 text-white text-center space-y-6 shadow-2xl">
+        <div className="bg-gradient-to-r from-brand-500 via-amber-500 to-orange-500 rounded-3xl p-8 sm:p-12 text-slate-950 text-center space-y-6 shadow-2xl">
           <h3 className="text-3xl sm:text-4xl font-black font-display max-w-2xl mx-auto tracking-tight">
             Ready to Supply Your Construction Site?
           </h3>

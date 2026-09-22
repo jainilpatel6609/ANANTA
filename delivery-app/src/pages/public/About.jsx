@@ -96,7 +96,7 @@ export default function About() {
         </div>
         <Link
           to="/register"
-          className="px-8 py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs transition-all shadow-lg shadow-slate-900/25 active:scale-95 shrink-0"
+          className="px-8 py-3.5 rounded-2xl bg-brand-500 hover:bg-brand-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-brand-500/25 active:scale-95 shrink-0"
         >
           <span>Get Started</span>
         </Link>

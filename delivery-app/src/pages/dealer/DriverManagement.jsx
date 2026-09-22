@@ -384,7 +384,7 @@ export default function DriverManagement() {
         <button
           type="button"
           onClick={openAddModal}
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs transition-all shadow-lg shadow-slate-900/20 active:scale-95 shrink-0 cursor-pointer"
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95 shrink-0 cursor-pointer"
         >
           <UserPlus className="w-4 h-4" />
           <span>Add New Driver</span>
@@ -435,7 +435,7 @@ export default function DriverManagement() {
               onClick={() => setFilterStatus(st)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 filterStatus === st
-                  ? 'bg-slate-900 text-white shadow-md shadow-slate-900/10'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
                   : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
               }`}
             >
@@ -627,7 +627,7 @@ export default function DriverManagement() {
             onClick={() => setActiveTab('BASIC')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
               activeTab === 'BASIC'
-                ? 'bg-slate-900 text-white shadow-md'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -638,7 +638,7 @@ export default function DriverManagement() {
             onClick={() => setActiveTab('KYC')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
               activeTab === 'KYC'
-                ? 'bg-slate-900 text-white shadow-md'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -649,7 +649,7 @@ export default function DriverManagement() {
             onClick={() => setActiveTab('SECURITY')}
             className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
               activeTab === 'SECURITY'
-                ? 'bg-slate-900 text-white shadow-md'
+                ? 'bg-amber-500 text-slate-950 shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -852,7 +852,7 @@ export default function DriverManagement() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('KYC')}
-                  className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs inline-flex items-center gap-2 shadow-md shadow-slate-900/20 cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs inline-flex items-center gap-2 shadow-md shadow-amber-500/20 cursor-pointer"
                 >
                   <span>Next: License & KYC</span>
                   <ArrowRight className="w-4 h-4" />
@@ -1039,7 +1039,7 @@ export default function DriverManagement() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('SECURITY')}
-                  className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs inline-flex items-center gap-2 shadow-md shadow-slate-900/20 cursor-pointer transition-colors"
+                  className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs inline-flex items-center gap-2 shadow-md shadow-amber-500/20 cursor-pointer transition-colors"
                 >
                   <span>Next: Login Password</span>
                   <ArrowRight className="w-4 h-4" />
@@ -1121,7 +1121,7 @@ export default function DriverManagement() {
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs transition-all shadow-md shadow-slate-900/20 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+              className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-amber-500/20 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
               <span>{editingDriver ? 'Save Changes' : 'Complete Driver Onboarding'}</span>

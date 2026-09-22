@@ -143,7 +143,7 @@ export default function OrderDetails() {
         <p className="text-xs text-slate-500">The requested order could not be located in your account.</p>
         <Link
           to="/user/orders"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-900 text-white font-bold text-xs shadow-xs hover:bg-slate-800"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-amber-500 text-slate-950 font-bold text-xs shadow-xs hover:bg-amber-400"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to My Orders</span>
@@ -231,7 +231,7 @@ export default function OrderDetails() {
                 <button
                   type="button"
                   onClick={() => copyOtpToClipboard(order.deliveryOtpDisplay)}
-                  className="p-3 rounded-2xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-bold transition-all shadow-xs shrink-0 cursor-pointer"
+                  className="p-3 rounded-2xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold transition-all shadow-xs shrink-0 cursor-pointer"
                   title="Copy OTP"
                 >
                   {copiedOtp ? <Check className="w-5 h-5 stroke-[2.5]" /> : <Copy className="w-5 h-5" />}
@@ -296,7 +296,7 @@ export default function OrderDetails() {
                 {order.driverMobile && (
                   <a
                     href={`tel:${order.driverMobile}`}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-black text-xs shadow-xs transition-all"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-xs shadow-xs transition-all"
                   >
                     <Phone className="w-4 h-4" />
                     <span>Call Driver ({order.driverMobile})</span>

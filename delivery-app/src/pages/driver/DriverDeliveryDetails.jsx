@@ -323,7 +323,7 @@ export default function DriverDeliveryDetails() {
               <button
                 onClick={handleBroadcastGps}
                 disabled={broadcastingGps}
-                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-xl text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
               >
                 <Radio className={`w-4 h-4 ${broadcastingGps ? 'animate-pulse' : ''}`} />
                 <span>{broadcastingGps ? 'Sharing...' : 'Share Live Location'}</span>
@@ -338,7 +338,7 @@ export default function DriverDeliveryDetails() {
               <button
                 onClick={() => setActiveCameraTarget('riverRoyalty')}
                 disabled={uploadingStage}
-                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-xl text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
               >
                 <Camera className="w-4 h-4" />
                 <span>Capture River Royalty Photo</span>
@@ -355,7 +355,7 @@ export default function DriverDeliveryDetails() {
                 <button
                   onClick={() => setActiveCameraTarget('stockYard')}
                   disabled={uploadingStage}
-                  className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-xl text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                  className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
                 >
                   <Camera className="w-4 h-4" />
                   <span>Capture Photo</span>

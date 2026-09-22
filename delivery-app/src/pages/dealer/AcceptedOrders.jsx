@@ -366,7 +366,7 @@ export default function AcceptedOrders() {
                     <button
                       type="button"
                       onClick={() => openDispatchModal(order)}
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs transition-all shadow-lg shadow-slate-900/20 active:scale-95"
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95"
                     >
                       <Truck className="w-4 h-4" />
                       <span>Assign Driver & Dispatch Material</span>
@@ -377,7 +377,7 @@ export default function AcceptedOrders() {
                     <button
                       type="button"
                       onClick={() => openDispatchModal(order)}
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs transition-all shadow-lg shadow-slate-900/20 active:scale-95"
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95"
                     >
                       <Truck className="w-4 h-4" />
                       <span>Assign Driver</span>
@@ -414,7 +414,7 @@ export default function AcceptedOrders() {
                         type="button"
                         onClick={() => handleEnterWeight(order)}
                         disabled={enteringWeightOrderId === order._id}
-                        className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs transition-all shadow-md shadow-slate-900/20 disabled:opacity-50"
+                        className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-amber-500/20 disabled:opacity-50"
                       >
                         {enteringWeightOrderId === order._id ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -646,7 +646,7 @@ export default function AcceptedOrders() {
                 <button
                   type="submit"
                   disabled={dispatching}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs transition-all shadow-md shadow-slate-900/20 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-amber-500/20 disabled:opacity-50"
                 >
                   {dispatching ? (
                     <>
