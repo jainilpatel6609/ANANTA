@@ -167,7 +167,12 @@ export default function ActiveDeliveries() {
                   >
                     +91 {order.shippingDetails?.mobile || order.userId?.mobile}
                   </a>
-                  <div className="text-[11px] text-slate-400">Order Total: <strong className="text-white font-mono">{formatINR(order.totalAmount)}</strong></div>
+                  <div className="text-[11px] text-slate-400">
+                    {order.finalPaymentStatus === 'PAID' ? 'Order Total (Final)' : 'Order Total'}:{' '}
+                    <strong className="text-white font-mono">
+                      {formatINR(order.finalPaymentStatus === 'PAID' ? order.finalPaymentAmount : order.totalAmount)}
+                    </strong>
+                  </div>
                 </div>
               </div>
 

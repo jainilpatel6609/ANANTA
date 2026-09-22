@@ -112,9 +112,11 @@ export default function CompletedDeliveries() {
                 </div>
 
                 <div className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-1 text-left sm:text-right flex flex-col justify-center">
-                  <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Order Value</span>
+                  <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">
+                    {order.finalPaymentStatus === 'PAID' ? 'Order Value (Final)' : 'Order Value'}
+                  </span>
                   <span className="font-black text-brand-400 font-mono text-lg block">
-                    {formatINR(order.totalAmount)}
+                    {formatINR(order.finalPaymentStatus === 'PAID' ? order.finalPaymentAmount : order.totalAmount)}
                   </span>
                 </div>
               </div>
