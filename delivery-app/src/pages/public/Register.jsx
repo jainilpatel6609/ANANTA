@@ -838,7 +838,7 @@ export default function Register() {
                       required
                       value={formData.gender}
                       onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-blue-500"
+                      className="app-select w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-blue-500"
                     >
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
@@ -1060,7 +1060,7 @@ export default function Register() {
                   <select
                     value={formData.userType}
                     onChange={(e) => setFormData({ ...formData, userType: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500"
+                    className="app-select w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500"
                   >
                     <option value="Contractor">Contractor</option>
                     <option value="Builder">Builder</option>

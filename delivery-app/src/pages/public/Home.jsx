@@ -290,7 +290,7 @@ export default function Home() {
                 <select
                   value={calcMaterial}
                   onChange={(e) => setCalcMaterial(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-brand-500 font-medium"
+                  className="app-select w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-brand-500 font-medium"
                 >
                   {products.map((p) => (
                     <option key={p._id} value={p._id}>
@@ -305,7 +305,7 @@ export default function Home() {
                 <select
                   value={calcTractorType}
                   onChange={(e) => setCalcTractorType(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-brand-500 font-medium"
+                  className="app-select w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-brand-500 font-medium"
                 >
                   {TRACTOR_TYPES.map((t) => (
                     <option key={t.id} value={t.id}>

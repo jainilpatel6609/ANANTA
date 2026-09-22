@@ -187,7 +187,7 @@ export default function DealerLayout() {
       {/* Main Content Area with Mandatory Location Enforcement */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <DealerLocationEnforcer>
-          <main className="flex-1 p-4 sm:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
+          <main key={location.pathname} className="flex-1 p-4 sm:p-8 overflow-y-auto max-w-7xl mx-auto w-full animate-page-in">
             <Outlet />
           </main>
         </DealerLocationEnforcer>

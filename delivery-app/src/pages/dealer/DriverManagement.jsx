@@ -838,7 +838,7 @@ export default function DriverManagement() {
                   <select
                     value={formData.vehicleType}
                     onChange={(e) => setFormData({ ...formData, vehicleType: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500"
+                    className="app-select w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500"
                   >
                     <option value="Tractor">Tractor (Single / Double Patiya)</option>
                     <option value="Dumper">Dumper (10 / 12 / 16 Wheel)</option>

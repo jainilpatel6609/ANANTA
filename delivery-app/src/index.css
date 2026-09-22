@@ -21,6 +21,42 @@
   * {
     -webkit-overflow-scrolling: touch;
   }
+
+  html {
+    /* Stop the rubber-band/bounce-back effect at the edges of the page so the
+       app doesn't reveal the browser chrome behind it -- feels native, not web. */
+    overscroll-behavior-y: none;
+  }
+}
+
+/* Per-screen entrance animation, applied (keyed by route) in every layout's
+   <main> wrapper so navigating between screens feels like a native app
+   transition instead of an instant web-page swap. */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page-in {
+  animation: page-in 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Native-feeling select dropdowns: native <select> renders as a jarring OS
+   control against our rounded card UI, so give it the same look as inputs. */
+select.app-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  background-size: 1rem;
+  padding-right: 2.75rem;
 }
 
 /* Android / iOS Safe Area Utility Classes */

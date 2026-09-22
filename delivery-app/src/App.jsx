@@ -12,7 +12,8 @@ export default function App() {
         <NotificationProvider>
           <AppRoutes />
           <Toaster
-            position="top-right"
+            position="top-center"
+            containerStyle={{ top: 'max(1rem, env(safe-area-inset-top))' }}
             toastOptions={{
               duration: 4000,
               style: {
@@ -20,7 +21,8 @@ export default function App() {
                 color: '#f8fafc',
                 border: '1px solid #334155',
                 borderRadius: '0.75rem',
-                fontSize: '0.875rem'
+                fontSize: '0.875rem',
+                maxWidth: '92vw'
               },
               success: {
                 iconTheme: {

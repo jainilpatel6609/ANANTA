@@ -25,7 +25,7 @@ export default function PublicLayout() {
 
   if (isRoleSelectionPage) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-brand-500 selection:text-slate-950">
+      <div key={location.pathname} className="min-h-screen bg-slate-950 text-slate-100 selection:bg-brand-500 selection:text-slate-950 animate-page-in">
         <Outlet />
       </div>
     );
@@ -210,7 +210,7 @@ export default function PublicLayout() {
       </header>
 
       {/* Main Page Body */}
-      <main className="flex-1">
+      <main key={location.pathname} className="flex-1 animate-page-in">
         <Outlet />
       </main>
 

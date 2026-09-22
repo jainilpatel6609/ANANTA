@@ -48,7 +48,7 @@ export default function DriverLayout() {
       </header>
 
       {/* Main Content Viewport */}
-      <main className="max-w-5xl mx-auto w-full p-4 md:p-6 flex-1">
+      <main key={location.pathname} className="max-w-5xl mx-auto w-full p-4 md:p-6 flex-1 animate-page-in">
         <Outlet />
       </main>
 

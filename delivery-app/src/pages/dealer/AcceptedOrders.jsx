@@ -467,7 +467,7 @@ export default function AcceptedOrders() {
                 <select
                   value={selectedDriverId}
                   onChange={handleDriverSelect}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-500"
+                  className="app-select w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-500"
                 >
                   <option value="">-- Choose a driver or type manually below --</option>
                   {drivers.map((d) => (

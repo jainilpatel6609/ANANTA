@@ -140,7 +140,7 @@ export default function Contact() {
                   <select
                     value={formData.userType}
                     onChange={(e) => setFormData({ ...formData, userType: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500 font-medium"
+                    className="app-select w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-brand-500 font-medium"
                   >
                     <option value="Contractor">Infrastructure Contractor</option>
                     <option value="Builder">Residential / Commercial Builder</option>

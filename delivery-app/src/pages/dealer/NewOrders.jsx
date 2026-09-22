@@ -457,7 +457,7 @@ export default function NewOrders() {
                   <select
                     value={selectedDriverId}
                     onChange={handleDriverSelect}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-500 font-medium"
+                    className="app-select w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-500 font-medium"
                   >
                     <option value="">-- Select saved driver or type details below --</option>
                     {drivers.map((d) => (
