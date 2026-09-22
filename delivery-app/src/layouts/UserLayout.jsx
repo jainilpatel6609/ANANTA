@@ -105,7 +105,7 @@ export default function UserLayout() {
           {/* Brand header */}
           <div className="p-6 border-b border-slate-800/80 hidden md:flex items-center gap-3">
             <Link to="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-400 to-amber-600 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-brand-500/20 group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 flex items-center justify-center text-white font-black shadow-lg shadow-slate-900/20 group-hover:scale-105 transition-transform">
                 <Truck className="w-5 h-5 stroke-[2.5]" />
               </div>
               <div>
@@ -151,18 +151,18 @@ export default function UserLayout() {
                   onClick={() => setSidebarOpen(false)}
                   className={`flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all duration-200 active:scale-95 ${
                     isActive
-                      ? 'bg-gradient-to-r from-brand-500 to-amber-500 text-slate-950 shadow-lg shadow-brand-500/25 font-black'
+                      ? 'bg-gradient-to-r from-slate-900 to-slate-950 text-white shadow-lg shadow-slate-900/25 font-black'
                       : item.highlight
                       ? 'bg-brand-500/10 text-brand-400 hover:bg-brand-500/20 border border-brand-500/30 shadow-sm'
                       : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-slate-950' : 'text-brand-400'}`} />
+                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-brand-400'}`} />
                     <span>{item.name}</span>
                   </div>
                   {item.badge > 0 && (
-                    <span className="px-2 py-0.5 text-[10px] rounded-full bg-brand-500 text-slate-950 font-black">
+                    <span className="px-2 py-0.5 text-[10px] rounded-full bg-slate-900 text-white font-black">
                       {item.badge}
                     </span>
                   )}
@@ -205,7 +205,7 @@ export default function UserLayout() {
           className="flex flex-col items-center justify-center py-1 px-3 rounded-2xl min-w-[64px] transition-all active:scale-95"
         >
           {location.pathname === '/user/dashboard' ? (
-            <div className="w-10 h-10 rounded-full bg-slate-800 border border-amber-500/30 text-amber-500 flex items-center justify-center shadow-xs">
+            <div className="w-10 h-10 rounded-full bg-slate-800 border border-amber-500/30 text-amber-400 flex items-center justify-center shadow-xs">
               <LayoutGrid className="w-5 h-5 text-amber-400" />
             </div>
           ) : (
@@ -227,8 +227,8 @@ export default function UserLayout() {
           to="/user/create-order"
           className="flex flex-col items-center justify-center -mt-8 transition-all active:scale-95 px-2"
         >
-          <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-500 via-amber-400 to-amber-500 text-slate-950 font-black shadow-xl shadow-amber-500/60 border-4 border-white flex items-center justify-center">
-            <Plus className="w-7 h-7 stroke-[3] text-slate-950" />
+          <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-slate-900 via-slate-700 to-slate-950 text-white font-black shadow-xl shadow-slate-900/60 border-4 border-white flex items-center justify-center">
+            <Plus className="w-7 h-7 stroke-[3] text-white" />
           </div>
           <span className="text-[11px] font-black text-white tracking-tight mt-1">
             Create Order
@@ -241,7 +241,7 @@ export default function UserLayout() {
           className="flex flex-col items-center justify-center py-1 px-3 rounded-2xl min-w-[64px] transition-all active:scale-95"
         >
           {location.pathname.startsWith('/user/orders') ? (
-            <div className="w-10 h-10 rounded-full bg-slate-800 border border-amber-500/30 text-amber-500 flex items-center justify-center shadow-xs">
+            <div className="w-10 h-10 rounded-full bg-slate-800 border border-amber-500/30 text-amber-400 flex items-center justify-center shadow-xs">
               <Truck className="w-5 h-5 text-amber-400" />
             </div>
           ) : (

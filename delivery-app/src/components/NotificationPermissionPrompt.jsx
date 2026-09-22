@@ -72,13 +72,13 @@ export default function NotificationPermissionPrompt({ role = 'DEALER' }) {
     <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500/15 via-slate-900 to-slate-950 border-2 border-amber-500/30 p-5 text-white shadow-xl">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-start gap-3.5">
-          <div className="p-3 rounded-2xl bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 animate-bounce">
+          <div className="p-3 rounded-2xl bg-slate-900 text-white shadow-lg shadow-slate-900/20 animate-bounce">
             <Smartphone className="w-6 h-6" />
           </div>
 
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider">
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-900 text-white text-[10px] font-black uppercase tracking-wider">
                 📱 Real Mobile Device Push Alarm
               </span>
               <span className="text-xs font-bold text-amber-300">
@@ -106,7 +106,7 @@ export default function NotificationPermissionPrompt({ role = 'DEALER' }) {
             type="button"
             disabled={registering}
             onClick={handleEnablePush}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs transition-all shadow-lg shadow-slate-900/20 disabled:opacity-50"
           >
             <BellRing className="w-4 h-4" />
             {registering ? 'Activating...' : 'Enable Device Push Alarm'}

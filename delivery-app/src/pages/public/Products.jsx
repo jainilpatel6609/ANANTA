@@ -145,7 +145,7 @@ export default function Products() {
               <div className="pt-2">
                 <Link
                   to="/register"
-                  className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-400 hover:to-amber-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-brand-500/25 active:scale-95"
+                  className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-950 hover:from-slate-800 hover:to-slate-900 text-white font-black text-xs transition-all shadow-lg shadow-slate-900/25 active:scale-95"
                 >
                   <span>Order Material</span>
                   <ArrowRight className="w-4 h-4 stroke-[2.5]" />

@@ -147,7 +147,7 @@ export default function TransportConfig() {
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-3xl p-6 sm:p-8 flex items-center gap-4 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center shadow-lg shadow-amber-500/20 shrink-0">
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 text-white flex items-center justify-center shadow-lg shadow-slate-900/20 shrink-0">
           <Truck className="w-7 h-7 stroke-[2.5]" />
         </div>
         <div>
@@ -276,7 +276,7 @@ export default function TransportConfig() {
           type="button"
           disabled={saving}
           onClick={handleSave}
-          className="w-full inline-flex items-center justify-center gap-2 py-4 rounded-2xl bg-brand-500 hover:bg-brand-400 active:scale-98 text-slate-950 font-black text-sm transition-all shadow-xl shadow-brand-500/20 disabled:opacity-50 min-h-[48px] cursor-pointer"
+          className="w-full inline-flex items-center justify-center gap-2 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 active:scale-98 text-white font-black text-sm transition-all shadow-xl shadow-slate-900/20 disabled:opacity-50 min-h-[48px] cursor-pointer"
         >
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
           Save Transport Configuration

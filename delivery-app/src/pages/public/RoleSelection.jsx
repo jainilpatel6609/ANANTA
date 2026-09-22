@@ -59,7 +59,7 @@ export default function RoleSelection({ onSelectRole }) {
       borderClass: 'border-amber-500/30 hover:border-amber-400 hover:shadow-amber-500/20',
       iconBg: 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
       badgeClass: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-      btnClass: 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/25',
+      btnClass: 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/25',
       features: [
         { icon: Clock, text: 'Live Order Pool & 15-min Alarms' },
         { icon: KeyRound, text: 'Customer Delivery OTP Verification' },

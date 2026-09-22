@@ -479,7 +479,7 @@ export default function Register() {
           title: 'Super Admin Registration',
           badge: 'Executive Authorization Required',
           badgeBg: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-          btnBg: 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20',
+          btnBg: 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20',
           icon: ShieldAlert
         };
       case 'DEALER':
@@ -495,7 +495,7 @@ export default function Register() {
           title: 'Customer / Builder Registration',
           badge: 'Direct Factory Sand & Aggregates',
           badgeBg: 'bg-brand-500/10 text-brand-400 border-brand-500/20',
-          btnBg: 'bg-brand-500 hover:bg-brand-400 text-slate-950 shadow-brand-500/20',
+          btnBg: 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20',
           icon: HardHat
         };
     }
@@ -1114,7 +1114,7 @@ export default function Register() {
                   Super Admin Secret Key *
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-amber-500">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-amber-400">
                     <KeyRound className="w-4 h-4" />
                   </div>
                   <input

@@ -43,7 +43,7 @@ export default function AdminLayout() {
       {/* Mobile Top Navbar */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800 sticky top-0 z-40">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center text-slate-950 font-black">
+          <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white font-black">
             <ShieldAlert className="w-4 h-4" />
           </div>
           <span className="font-bold text-base font-display text-white">ADMIN <span className="text-brand-400">HQ</span></span>
@@ -66,7 +66,7 @@ export default function AdminLayout() {
         <div>
           {/* Brand header */}
           <div className="p-6 border-b border-slate-800/80 hidden md:flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-black shadow-md shadow-amber-500/20">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-800 to-slate-950 flex items-center justify-center text-white font-black shadow-md shadow-slate-900/20">
               <ShieldAlert className="w-5 h-5" />
             </div>
             <div>
@@ -110,14 +110,14 @@ export default function AdminLayout() {
                   onClick={() => setSidebarOpen(false)}
                   className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
                     isActive
-                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-bold'
+                      ? 'bg-slate-900 text-white shadow-md shadow-slate-900/20 font-bold'
                       : item.highlight
                       ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20'
                       : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-slate-950' : 'text-amber-400'}`} />
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-amber-400'}`} />
                     <span>{item.name}</span>
                   </div>
                 </Link>

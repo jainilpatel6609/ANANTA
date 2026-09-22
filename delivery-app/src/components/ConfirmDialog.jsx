@@ -47,7 +47,7 @@ export default function ConfirmDialog({
             className={`w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-extrabold transition-all shadow-lg active:scale-95 text-center ${
               isDestructive
                 ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-900/40'
-                : 'bg-brand-500 hover:bg-brand-400 text-slate-950 shadow-brand-500/25'
+                : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/25'
             }`}
           >
             {confirmText}

@@ -218,7 +218,7 @@ export default function Login() {
           badge: 'Super Admin Portal',
           badgeStyle: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
           borderColor: 'focus:border-amber-500',
-          btnBg: 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20'
+          btnBg: 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20'
         };
       case 'DEALER':
         return {
@@ -424,7 +424,7 @@ export default function Login() {
                   <button
                     type="submit"
                     disabled={sendingOtp || !forgotMobile || forgotMobile.length !== 10}
-                    className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm transition-all shadow-lg shadow-amber-500/20 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm transition-all shadow-lg shadow-slate-900/20 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {sendingOtp ? (
                       <>
@@ -590,7 +590,7 @@ export default function Login() {
                   <button
                     type="submit"
                     disabled={resettingPass || !newPassword || !confirmNewPassword || newPassword !== confirmNewPassword}
-                    className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm transition-all shadow-lg shadow-amber-500/20 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm transition-all shadow-lg shadow-slate-900/20 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {resettingPass ? (
                       <>

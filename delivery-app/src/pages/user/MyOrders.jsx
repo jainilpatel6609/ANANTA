@@ -63,7 +63,7 @@ export default function MyOrders() {
 
         <Link
           to="/user/create-order"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs transition-all shadow-md shadow-amber-500/25 active:scale-95 self-start"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-slate-900 to-slate-950 hover:from-slate-800 hover:to-slate-900 text-white font-black text-xs transition-all shadow-md shadow-slate-900/25 active:scale-95 self-start"
         >
           <PlusCircle className="w-4 h-4 stroke-[2.5]" />
           <span>New Order</span>
@@ -107,7 +107,7 @@ export default function MyOrders() {
               onClick={() => setStatusFilter(tab.id)}
               className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all active:scale-95 cursor-pointer ${
                 statusFilter === tab.id
-                  ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
+                  ? 'bg-slate-900 text-white shadow-xs font-black'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200/60'
               }`}
             >
@@ -186,7 +186,7 @@ export default function MyOrders() {
                   </Link>
                   <Link
                     to={`/user/orders/${order._id}`}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-xs font-black text-slate-950 transition-all active:scale-95 shadow-xs"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-black text-white transition-all active:scale-95 shadow-xs"
                   >
                     <span>Track & OTP</span>
                     <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />

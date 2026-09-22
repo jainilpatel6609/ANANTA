@@ -25,14 +25,14 @@ export default function PublicLayout() {
 
   if (isRoleSelectionPage) {
     return (
-      <div key={location.pathname} className="min-h-screen bg-slate-950 text-slate-100 selection:bg-brand-500 selection:text-slate-950 animate-page-in">
+      <div key={location.pathname} className="min-h-screen bg-slate-950 text-slate-100 selection:bg-slate-900 selection:text-white animate-page-in">
         <Outlet />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-brand-500 selection:text-slate-950">
+    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-slate-900 selection:text-white">
       {/* Mobile-Friendly Top Industrial Ribbon */}
       <div className="bg-slate-900/90 border-b border-slate-800/80 text-xs py-2 px-4 sm:px-8 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2.5">
@@ -71,7 +71,7 @@ export default function PublicLayout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-8 h-18 sm:h-20 flex items-center justify-between">
           {/* Brand Logo */}
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-brand-400 to-amber-600 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-brand-500/25 group-hover:scale-105 active:scale-95 transition-all">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 flex items-center justify-center text-white font-black shadow-lg shadow-slate-900/25 group-hover:scale-105 active:scale-95 transition-all">
               <Truck className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
             </div>
             <div>
@@ -108,7 +108,7 @@ export default function PublicLayout() {
               <div className="flex items-center gap-3">
                 <Link
                   to={getDashboardLink()}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-400 hover:to-amber-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-brand-500/25 active:scale-95"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-950 hover:from-slate-800 hover:to-slate-900 text-white font-black text-xs transition-all shadow-lg shadow-slate-900/25 active:scale-95"
                 >
                   <LayoutDashboard className="w-4 h-4" />
                   <span>Dashboard ({user?.role})</span>
@@ -132,7 +132,7 @@ export default function PublicLayout() {
                 </Link>
                 <Link
                   to="/register"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-400 hover:to-amber-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-brand-500/25 active:scale-95"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-950 hover:from-slate-800 hover:to-slate-900 text-white font-black text-xs transition-all shadow-lg shadow-slate-900/25 active:scale-95"
                 >
                   <span>Order Materials</span>
                   <ArrowRight className="w-4 h-4 stroke-[2.5]" />
@@ -171,7 +171,7 @@ export default function PublicLayout() {
                   <Link
                     to={getDashboardLink()}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="w-full text-center py-3.5 rounded-2xl bg-gradient-to-r from-brand-500 to-amber-500 text-slate-950 font-black text-sm shadow-lg shadow-brand-500/20 active:scale-95"
+                    className="w-full text-center py-3.5 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-950 text-white font-black text-sm shadow-lg shadow-slate-900/20 active:scale-95"
                   >
                     Go to {user?.role} Dashboard
                   </Link>
@@ -198,7 +198,7 @@ export default function PublicLayout() {
                   <Link
                     to="/register"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="w-full text-center py-3.5 rounded-2xl bg-gradient-to-r from-brand-500 to-amber-500 text-slate-950 font-black text-sm shadow-lg shadow-brand-500/25 active:scale-95"
+                    className="w-full text-center py-3.5 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-950 text-white font-black text-sm shadow-lg shadow-slate-900/25 active:scale-95"
                   >
                     Register / Place Order
                   </Link>
@@ -219,7 +219,7 @@ export default function PublicLayout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-8 grid grid-cols-1 md:grid-cols-4 gap-10">
           <div className="space-y-4 md:col-span-1">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-400 to-amber-600 flex items-center justify-center text-slate-950 font-black shadow-md shadow-brand-500/20">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 flex items-center justify-center text-white font-black shadow-md shadow-slate-900/20">
                 <Truck className="w-5 h-5 stroke-[2.5]" />
               </div>
               <span className="text-lg font-black text-white font-display">

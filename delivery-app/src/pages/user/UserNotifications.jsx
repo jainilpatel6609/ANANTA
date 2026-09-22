@@ -31,7 +31,7 @@ export default function UserNotifications() {
           <div className="flex items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 font-display">Notifications</h1>
             {unreadCount > 0 && (
-              <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-xs">
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-900 text-white font-black text-xs">
                 {unreadCount} new
               </span>
             )}
