@@ -100,10 +100,10 @@ select.app-select {
 }
 
 .glass-surface-warm {
-  background: rgba(250, 250, 250, 0.92);
+  background: rgba(253, 248, 236, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(154, 154, 159, 0.25);
+  border: 1px solid rgba(201, 162, 39, 0.25);
 }
 
 /* Skeleton shimmer animation */
@@ -145,8 +145,8 @@ select.app-select {
 }
 
 .pac-item:hover, .pac-item-selected {
-  background-color: #f2f2f3 !important;
-  color: #18181b !important;
+  background-color: #faedc7 !important;
+  color: #5c4712 !important;
 }
 
 .pac-item-query {
@@ -156,7 +156,7 @@ select.app-select {
 }
 
 .pac-matched {
-  color: #18181b !important;
+  color: #a9841e !important;
   font-weight: 700 !important;
 }
 

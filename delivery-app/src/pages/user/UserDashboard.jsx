@@ -105,9 +105,10 @@ export default function UserDashboard() {
   return (
     <div className="space-y-5 sm:space-y-6 select-none max-w-5xl mx-auto">
       {/* 1. HERO BANNER CARD (Exact Dark Navy Card matching screenshot) */}
-      <div className="bg-slate-950 text-white rounded-3xl p-5 sm:p-7 relative overflow-hidden shadow-xl border border-slate-800/80">
+      <div className="bg-slate-950 text-white rounded-3xl p-5 sm:p-7 relative overflow-hidden shadow-xl border border-amber-500/30">
         {/* Glow & subtle truck background watermark */}
-        <div className="absolute top-0 right-0 w-56 h-56 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 -right-16 w-72 h-72 bg-amber-600/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-8 -right-8 opacity-5 pointer-events-none text-white">
           <Truck className="w-56 h-56" />
         </div>
@@ -149,7 +150,7 @@ export default function UserDashboard() {
           <button
             type="button"
             onClick={() => setShowOtpModal(true)}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-full bg-slate-800/90 hover:bg-slate-700 text-white font-bold text-xs sm:text-sm border border-slate-700/80 shadow-md active:scale-[0.98] transition-all shrink-0"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-full bg-slate-800/90 hover:bg-slate-700 text-white font-bold text-xs sm:text-sm border border-amber-500/40 shadow-md active:scale-[0.98] transition-all shrink-0"
           >
             <span className="font-mono font-black text-amber-400 tracking-wider">123</span>
             <span>OTP</span>

@@ -7,38 +7,37 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Charcoal Black & White Brand Palette -- true neutral monochrome, no blue/navy tint
-        // NOTE: this scale is intentionally LIGHT-anchored at 500 (a refined silver-steel),
-        // not dark. Dozens of primary CTA buttons app-wide use `bg-amber-500 text-slate-950`
-        // (near-black text on top of this color) -- so 500 must stay light enough for that
-        // text to read clearly. The genuinely dark charcoal/black tones live at 700-950,
-        // used for hover/gradient-deepening, not as text-bearing surfaces.
+        // Black & Gold Luxury Brand Palette -- solid near-black surfaces (see `slate`)
+        // paired with a rich, warm gold accent. Unlike a neutral gray, a saturated gold
+        // hue at moderate lightness reads clearly both as light-on-dark accent text
+        // (sidebars, badges) AND as a button/hero-banner background with dark text on
+        // top -- so, unlike the earlier monochrome pass, one scale can serve both roles.
         amber: {
-          50: '#fafafa',
-          100: '#f2f2f3',
-          200: '#e2e2e4',
-          300: '#cbcbce',
-          400: '#b3b3b7',
-          500: '#9a9a9f', // Refined Silver -- primary accent, used sparingly for CTAs
-          600: '#6b6b70',
-          700: '#4a4a4e',
-          800: '#2c2c2f',
-          900: '#18181b',
-          950: '#0a0a0b'
+          50: '#fdf8ec',
+          100: '#faedc7',
+          200: '#f3da8e',
+          300: '#eac15a',
+          400: '#dca83a',
+          500: '#c9a227', // Rich Gold -- primary accent
+          600: '#a9841e',
+          700: '#816417',
+          800: '#5c4712',
+          900: '#3a2c0c',
+          950: '#211904'
         },
         brand: {
-          50: '#fafafa',
-          100: '#f2f2f3',
-          200: '#e2e2e4',
-          300: '#cbcbce',
-          400: '#b3b3b7',
-          500: '#9a9a9f',
-          600: '#6b6b70',
-          700: '#4a4a4e',
-          800: '#2c2c2f',
-          900: '#18181b',
-          dark: '#18181b', // Primary Charcoal Black
-          accent: '#18181b'
+          50: '#fdf8ec',
+          100: '#faedc7',
+          200: '#f3da8e',
+          300: '#eac15a',
+          400: '#dca83a',
+          500: '#c9a227',
+          600: '#a9841e',
+          700: '#816417',
+          800: '#5c4712',
+          900: '#3a2c0c',
+          dark: '#0a0a0a', // Primary Black
+          accent: '#0a0a0a'
         },
         slate: {
           50: '#fafafa',
@@ -63,7 +62,7 @@ export default {
         'card': '0 10px 25px -5px rgba(15, 23, 42, 0.06), 0 4px 6px -2px rgba(15, 23, 42, 0.03)',
         'classic': '0 4px 20px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04)',
         'classic-card': '0 10px 30px -5px rgba(0, 0, 0, 0.08)',
-        'classic-gold': '0 4px 14px 0 rgba(154, 154, 159, 0.25)'
+        'classic-gold': '0 4px 14px 0 rgba(201, 162, 39, 0.25)'
       }
     },
   },

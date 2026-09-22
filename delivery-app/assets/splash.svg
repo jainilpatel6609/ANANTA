@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="2732" height="2732" viewBox="0 0 2732 2732">
   <rect width="2732" height="2732" fill="#ffffff"/>
-  <rect x="1126" y="990" width="480" height="480" rx="100" fill="#18181b"/>
-  <g transform="translate(1162,1026) scale(17)" fill="none" stroke="#ffffff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="1126" y="990" width="480" height="480" rx="100" fill="#0a0a0a"/>
+  <g transform="translate(1162,1026) scale(17)" fill="none" stroke="#dca83a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
     <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/>
     <path d="M15 18H9"/>
     <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/>
     <circle cx="17" cy="18" r="2"/>
     <circle cx="7" cy="18" r="2"/>
   </g>
-  <text x="1366" y="1600" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="92" font-weight="900" letter-spacing="4" fill="#18181b">ANANTA TRADERS</text>
-  <text x="1366" y="1672" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="700" letter-spacing="6" fill="#6b6b70">SAND · AGGREGATE · GRIT DELIVERY</text>
+  <text x="1366" y="1600" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="92" font-weight="900" letter-spacing="4" fill="#0a0a0a">ANANTA TRADERS</text>
+  <text x="1366" y="1672" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="700" letter-spacing="6" fill="#a9841e">SAND · AGGREGATE · GRIT DELIVERY</text>
 </svg>

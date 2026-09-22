@@ -97,7 +97,7 @@ export default function OrderDetails() {
         contact: order.shippingDetails?.mobile || user?.mobile,
         email: user?.email || 'sales@anantatraders.com'
       },
-      theme: { color: '#18181b' },
+      theme: { color: '#c9a227' },
       handler: async function (response) {
         try {
           toast.loading('Verifying secure transaction...', { id: 'final-pay' });
