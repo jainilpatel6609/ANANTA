@@ -7,46 +7,51 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Professional Navy + Refined Gold Brand Palette (Industrial / Heavy-Equipment Grade)
+        // Charcoal Black & White Brand Palette -- true neutral monochrome, no blue/navy tint
+        // NOTE: this scale is intentionally LIGHT-anchored at 500 (a refined silver-steel),
+        // not dark. Dozens of primary CTA buttons app-wide use `bg-amber-500 text-slate-950`
+        // (near-black text on top of this color) -- so 500 must stay light enough for that
+        // text to read clearly. The genuinely dark charcoal/black tones live at 700-950,
+        // used for hover/gradient-deepening, not as text-bearing surfaces.
         amber: {
-          50: '#fdf6ec',
-          100: '#f9e8cc',
-          200: '#f1cf94',
-          300: '#e6b05c',
-          400: '#d5953a',
-          500: '#b45309', // Refined Deep Gold -- primary accent, used sparingly for CTAs
-          600: '#92400e',
-          700: '#78350f',
-          800: '#5c2a0c',
-          900: '#451a03',
-          950: '#2c1002'
+          50: '#fafafa',
+          100: '#f2f2f3',
+          200: '#e2e2e4',
+          300: '#cbcbce',
+          400: '#b3b3b7',
+          500: '#9a9a9f', // Refined Silver -- primary accent, used sparingly for CTAs
+          600: '#6b6b70',
+          700: '#4a4a4e',
+          800: '#2c2c2f',
+          900: '#18181b',
+          950: '#0a0a0b'
         },
         brand: {
-          50: '#fdf6ec',
-          100: '#f9e8cc',
-          200: '#f1cf94',
-          300: '#e6b05c',
-          400: '#d5953a',
-          500: '#b45309',
-          600: '#92400e',
-          700: '#78350f',
-          800: '#5c2a0c',
-          900: '#451a03',
-          dark: '#0f172a', // Primary Navy
-          accent: '#0f172a'
+          50: '#fafafa',
+          100: '#f2f2f3',
+          200: '#e2e2e4',
+          300: '#cbcbce',
+          400: '#b3b3b7',
+          500: '#9a9a9f',
+          600: '#6b6b70',
+          700: '#4a4a4e',
+          800: '#2c2c2f',
+          900: '#18181b',
+          dark: '#18181b', // Primary Charcoal Black
+          accent: '#18181b'
         },
         slate: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
-          950: '#020617'
+          50: '#fafafa',
+          100: '#f4f4f5',
+          200: '#e4e4e7',
+          300: '#d4d4d8',
+          400: '#a1a1aa',
+          500: '#71717a',
+          600: '#52525b',
+          700: '#3f3f46',
+          800: '#27272a',
+          900: '#18181b',
+          950: '#09090b'
         }
       },
       fontFamily: {
@@ -58,7 +63,7 @@ export default {
         'card': '0 10px 25px -5px rgba(15, 23, 42, 0.06), 0 4px 6px -2px rgba(15, 23, 42, 0.03)',
         'classic': '0 4px 20px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04)',
         'classic-card': '0 10px 30px -5px rgba(0, 0, 0, 0.08)',
-        'classic-gold': '0 4px 14px 0 rgba(180, 83, 9, 0.25)'
+        'classic-gold': '0 4px 14px 0 rgba(154, 154, 159, 0.25)'
       }
     },
   },

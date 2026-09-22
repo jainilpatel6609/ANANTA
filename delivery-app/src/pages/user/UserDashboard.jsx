@@ -105,7 +105,7 @@ export default function UserDashboard() {
   return (
     <div className="space-y-5 sm:space-y-6 select-none max-w-5xl mx-auto">
       {/* 1. HERO BANNER CARD (Exact Dark Navy Card matching screenshot) */}
-      <div className="bg-[#0c1427] text-white rounded-3xl p-5 sm:p-7 relative overflow-hidden shadow-xl border border-slate-800/80">
+      <div className="bg-slate-950 text-white rounded-3xl p-5 sm:p-7 relative overflow-hidden shadow-xl border border-slate-800/80">
         {/* Glow & subtle truck background watermark */}
         <div className="absolute top-0 right-0 w-56 h-56 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-8 -right-8 opacity-5 pointer-events-none text-white">

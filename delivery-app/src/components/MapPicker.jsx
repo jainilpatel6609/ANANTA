@@ -832,9 +832,9 @@ export default function MapPicker({
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
             {isSearching || isReverseGeocoding || isSearchingSuggestions ? (
-              <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+              <Loader2 className="w-4 h-4 animate-spin text-slate-500" />
             ) : (
-              <Search className="w-4 h-4 text-amber-500" />
+              <Search className="w-4 h-4 text-slate-500" />
             )}
           </div>
           <input
@@ -923,7 +923,7 @@ export default function MapPicker({
         {/* Loading Spinner overlay before Google Maps mounts */}
         {!mapLoaded && !mapError && (
           <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center gap-3 text-slate-500">
-            <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+            <Loader2 className="w-8 h-8 animate-spin text-slate-500" />
             <span className="text-xs font-bold text-slate-700">Loading Google Maps Platform...</span>
           </div>
         )}

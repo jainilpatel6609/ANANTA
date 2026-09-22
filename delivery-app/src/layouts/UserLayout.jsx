@@ -198,14 +198,14 @@ export default function UserLayout() {
       </main>
 
       {/* Mobile Android Floating Dark Navy Bottom Dock (Portal, Create Order with +, Orders) */}
-      <nav className="md:hidden fixed bottom-3 inset-x-4 z-50 bg-[#0c1427] text-white rounded-full p-2 px-6 flex items-center justify-around shadow-2xl border border-slate-800/80 max-w-sm mx-auto">
+      <nav className="md:hidden fixed bottom-3 inset-x-4 z-50 bg-slate-950 text-white rounded-full p-2 px-6 flex items-center justify-around shadow-2xl border border-slate-800/80 max-w-sm mx-auto">
         {/* 1. Portal */}
         <Link
           to="/user/dashboard"
           className="flex flex-col items-center justify-center py-1 px-3 rounded-2xl min-w-[64px] transition-all active:scale-95"
         >
           {location.pathname === '/user/dashboard' ? (
-            <div className="w-10 h-10 rounded-full bg-[#201a0e] border border-amber-500/30 text-amber-500 flex items-center justify-center shadow-xs">
+            <div className="w-10 h-10 rounded-full bg-slate-800 border border-amber-500/30 text-amber-500 flex items-center justify-center shadow-xs">
               <LayoutGrid className="w-5 h-5 text-amber-400" />
             </div>
           ) : (
@@ -241,7 +241,7 @@ export default function UserLayout() {
           className="flex flex-col items-center justify-center py-1 px-3 rounded-2xl min-w-[64px] transition-all active:scale-95"
         >
           {location.pathname.startsWith('/user/orders') ? (
-            <div className="w-10 h-10 rounded-full bg-[#201a0e] border border-amber-500/30 text-amber-500 flex items-center justify-center shadow-xs">
+            <div className="w-10 h-10 rounded-full bg-slate-800 border border-amber-500/30 text-amber-500 flex items-center justify-center shadow-xs">
               <Truck className="w-5 h-5 text-amber-400" />
             </div>
           ) : (

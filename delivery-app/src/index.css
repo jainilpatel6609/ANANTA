@@ -79,16 +79,16 @@ select.app-select {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #f4f4f5;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #d4d4d8;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #a1a1aa;
 }
 
 /* Modern subtle card surfaces */
@@ -96,14 +96,14 @@ select.app-select {
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  border: 1px solid rgba(228, 228, 231, 0.8);
 }
 
 .glass-surface-warm {
-  background: rgba(253, 246, 236, 0.92);
+  background: rgba(250, 250, 250, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(180, 83, 9, 0.25);
+  border: 1px solid rgba(154, 154, 159, 0.25);
 }
 
 /* Skeleton shimmer animation */
@@ -117,7 +117,7 @@ select.app-select {
 }
 
 .skeleton-shimmer {
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background: linear-gradient(90deg, #f4f4f5 25%, #e4e4e7 50%, #f4f4f5 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
@@ -125,7 +125,7 @@ select.app-select {
 /* Google Places Autocomplete Light Theme Styling */
 .pac-container {
   background-color: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
+  border: 1px solid #e4e4e7 !important;
   border-radius: 1rem !important;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
   font-family: inherit !important;
@@ -135,8 +135,8 @@ select.app-select {
 }
 
 .pac-item {
-  border-top: 1px solid #f1f5f9 !important;
-  color: #475569 !important;
+  border-top: 1px solid #f4f4f5 !important;
+  color: #52525b !important;
   cursor: pointer !important;
   font-size: 13px !important;
   padding: 11px 16px !important;
@@ -145,18 +145,18 @@ select.app-select {
 }
 
 .pac-item:hover, .pac-item-selected {
-  background-color: #f9e8cc !important;
-  color: #78350f !important;
+  background-color: #f2f2f3 !important;
+  color: #18181b !important;
 }
 
 .pac-item-query {
-  color: #0f172a !important;
+  color: #18181b !important;
   font-size: 13px !important;
   font-weight: 600 !important;
 }
 
 .pac-matched {
-  color: #92400e !important;
+  color: #18181b !important;
   font-weight: 700 !important;
 }
 

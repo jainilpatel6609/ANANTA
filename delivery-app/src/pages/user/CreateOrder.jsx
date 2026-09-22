@@ -855,7 +855,7 @@ export default function CreateOrder() {
         email: user?.email || 'sales@anantatraders.com'
       },
       theme: {
-        color: '#b45309'
+        color: '#18181b'
       },
       handler: async function (response) {
         try {

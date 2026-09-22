@@ -112,71 +112,71 @@ export default function AuthSuccessAnimation() {
               {/* TROLLEY (Double Patiya Loaded with Sand/Aggregate) */}
               <svg width="120" height="70" viewBox="0 0 120 70" className="drop-shadow-md">
                 {/* Trolley Body */}
-                <path d="M 10 25 L 110 25 L 105 52 L 15 52 Z" fill="#b45309" stroke="#78350f" strokeWidth="2" />
+                <path d="M 10 25 L 110 25 L 105 52 L 15 52 Z" fill="#4a4a4e" stroke="#2c2c2f" strokeWidth="2" />
                 {/* Sand / Aggregate Load Mound */}
-                <path d="M 14 25 Q 60 8 106 25 Z" fill="#d5953a" />
+                <path d="M 14 25 Q 60 8 106 25 Z" fill="#b3b3b7" />
                 {/* Trolley Side Rail Ribs */}
-                <line x1="35" y1="25" x2="35" y2="52" stroke="#78350f" strokeWidth="2" />
-                <line x1="60" y1="25" x2="60" y2="52" stroke="#78350f" strokeWidth="2" />
-                <line x1="85" y1="25" x2="85" y2="52" stroke="#78350f" strokeWidth="2" />
+                <line x1="35" y1="25" x2="35" y2="52" stroke="#2c2c2f" strokeWidth="2" />
+                <line x1="60" y1="25" x2="60" y2="52" stroke="#2c2c2f" strokeWidth="2" />
+                <line x1="85" y1="25" x2="85" y2="52" stroke="#2c2c2f" strokeWidth="2" />
                 {/* Hitch Bar to Tractor */}
-                <rect x="105" y="44" width="18" height="4" fill="#334155" />
+                <rect x="105" y="44" width="18" height="4" fill="#3f3f46" />
                 {/* Rear Heavy Wheels */}
                 <g className="animate-spin" style={{ transformOrigin: '35px 54px', animationDuration: '0.6s' }}>
-                  <circle cx="35" cy="54" r="14" fill="#0f172a" stroke="#475569" strokeWidth="3" />
-                  <circle cx="35" cy="54" r="6" fill="#b45309" />
-                  <line x1="35" y1="40" x2="35" y2="68" stroke="#cbd5e1" strokeWidth="2" />
-                  <line x1="21" y1="54" x2="49" y2="54" stroke="#cbd5e1" strokeWidth="2" />
+                  <circle cx="35" cy="54" r="14" fill="#18181b" stroke="#52525b" strokeWidth="3" />
+                  <circle cx="35" cy="54" r="6" fill="#9a9a9f" />
+                  <line x1="35" y1="40" x2="35" y2="68" stroke="#d4d4d8" strokeWidth="2" />
+                  <line x1="21" y1="54" x2="49" y2="54" stroke="#d4d4d8" strokeWidth="2" />
                 </g>
                 <g className="animate-spin" style={{ transformOrigin: '85px 54px', animationDuration: '0.6s' }}>
-                  <circle cx="85" cy="54" r="14" fill="#0f172a" stroke="#475569" strokeWidth="3" />
-                  <circle cx="85" cy="54" r="6" fill="#b45309" />
-                  <line x1="85" y1="40" x2="85" y2="68" stroke="#cbd5e1" strokeWidth="2" />
-                  <line x1="71" y1="54" x2="99" y2="54" stroke="#cbd5e1" strokeWidth="2" />
+                  <circle cx="85" cy="54" r="14" fill="#18181b" stroke="#52525b" strokeWidth="3" />
+                  <circle cx="85" cy="54" r="6" fill="#9a9a9f" />
+                  <line x1="85" y1="40" x2="85" y2="68" stroke="#d4d4d8" strokeWidth="2" />
+                  <line x1="71" y1="54" x2="99" y2="54" stroke="#d4d4d8" strokeWidth="2" />
                 </g>
               </svg>
 
               {/* HEAVY TRACTOR */}
               <svg width="130" height="85" viewBox="0 0 130 85" className="-ml-3 drop-shadow-lg">
                 {/* Headlamp beam */}
-                <polygon points="120,48 180,35 180,65 120,54" fill="rgba(213, 149, 58, 0.25)" className="animate-pulse" />
+                <polygon points="120,48 180,35 180,65 120,54" fill="rgba(179, 179, 183, 0.25)" className="animate-pulse" />
                 
                 {/* Exhaust Pipe & Smoke Puffs */}
-                <rect x="78" y="10" width="4" height="24" fill="#1e293b" />
-                <path d="M 76 10 L 84 10 L 80 6 Z" fill="#475569" />
-                <circle cx="80" cy="4" r="3" fill="#94a3b8" className="animate-ping opacity-60" />
+                <rect x="78" y="10" width="4" height="24" fill="#27272a" />
+                <path d="M 76 10 L 84 10 L 80 6 Z" fill="#52525b" />
+                <circle cx="80" cy="4" r="3" fill="#a1a1aa" className="animate-ping opacity-60" />
 
                 {/* Engine Hood / Bonnet */}
-                <path d="M 52 34 L 118 36 L 120 54 L 52 54 Z" fill="#92400e" stroke="#5c2a0c" strokeWidth="2" />
+                <path d="M 52 34 L 118 36 L 120 54 L 52 54 Z" fill="#2c2c2f" stroke="#18181b" strokeWidth="2" />
                 {/* Grille */}
-                <rect x="112" y="38" width="6" height="14" fill="#1e293b" rx="1" />
+                <rect x="112" y="38" width="6" height="14" fill="#27272a" rx="1" />
                 {/* Headlight */}
-                <circle cx="118" cy="48" r="3.5" fill="#fef08a" stroke="#92400e" strokeWidth="1" />
+                <circle cx="118" cy="48" r="3.5" fill="#fef08a" stroke="#2c2c2f" strokeWidth="1" />
 
                 {/* Driver Cabin / Roll Cage */}
-                <path d="M 22 20 L 52 20 L 52 54 L 20 54 Z" fill="#d5953a" stroke="#b45309" strokeWidth="2" />
+                <path d="M 22 20 L 52 20 L 52 54 L 20 54 Z" fill="#b3b3b7" stroke="#6b6b70" strokeWidth="2" />
                 {/* Cabin Glass */}
                 <path d="M 26 24 L 48 24 L 48 40 L 26 40 Z" fill="#38bdf8" opacity="0.8" />
                 {/* Steering wheel */}
-                <line x1="45" y1="36" x2="38" y2="30" stroke="#0f172a" strokeWidth="2" />
+                <line x1="45" y1="36" x2="38" y2="30" stroke="#18181b" strokeWidth="2" />
                 
                 {/* Rear Big Wheel (Rotates) */}
                 <g className="animate-spin" style={{ transformOrigin: '32px 58px', animationDuration: '0.6s' }}>
-                  <circle cx="32" cy="58" r="22" fill="#020617" stroke="#334155" strokeWidth="4" />
-                  <circle cx="32" cy="58" r="10" fill="#b45309" stroke="#78350f" strokeWidth="2" />
+                  <circle cx="32" cy="58" r="22" fill="#09090b" stroke="#3f3f46" strokeWidth="4" />
+                  <circle cx="32" cy="58" r="10" fill="#9a9a9f" stroke="#4a4a4e" strokeWidth="2" />
                   {/* Wheel Spoke Lines */}
-                  <line x1="32" y1="36" x2="32" y2="80" stroke="#e2e8f0" strokeWidth="2" />
-                  <line x1="10" y1="58" x2="54" y2="58" stroke="#e2e8f0" strokeWidth="2" />
-                  <line x1="16" y1="42" x2="48" y2="74" stroke="#e2e8f0" strokeWidth="2" />
-                  <line x1="16" y1="74" x2="48" y2="42" stroke="#e2e8f0" strokeWidth="2" />
+                  <line x1="32" y1="36" x2="32" y2="80" stroke="#e4e4e7" strokeWidth="2" />
+                  <line x1="10" y1="58" x2="54" y2="58" stroke="#e4e4e7" strokeWidth="2" />
+                  <line x1="16" y1="42" x2="48" y2="74" stroke="#e4e4e7" strokeWidth="2" />
+                  <line x1="16" y1="74" x2="48" y2="42" stroke="#e4e4e7" strokeWidth="2" />
                 </g>
 
                 {/* Front Smaller Wheel (Rotates) */}
                 <g className="animate-spin" style={{ transformOrigin: '106px 64px', animationDuration: '0.6s' }}>
-                  <circle cx="106" cy="64" r="14" fill="#020617" stroke="#334155" strokeWidth="3" />
-                  <circle cx="106" cy="64" r="6" fill="#b45309" />
-                  <line x1="106" y1="50" x2="106" y2="78" stroke="#e2e8f0" strokeWidth="2" />
-                  <line x1="92" y1="64" x2="120" y2="64" stroke="#e2e8f0" strokeWidth="2" />
+                  <circle cx="106" cy="64" r="14" fill="#09090b" stroke="#3f3f46" strokeWidth="3" />
+                  <circle cx="106" cy="64" r="6" fill="#9a9a9f" />
+                  <line x1="106" y1="50" x2="106" y2="78" stroke="#e4e4e7" strokeWidth="2" />
+                  <line x1="92" y1="64" x2="120" y2="64" stroke="#e4e4e7" strokeWidth="2" />
                 </g>
               </svg>
             </div>
