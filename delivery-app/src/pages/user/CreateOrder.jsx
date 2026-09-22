@@ -1230,15 +1230,25 @@ export default function CreateOrder() {
                     <div
                       key={grain}
                       onClick={() => setSelectedAggregateType(grain)}
-                      className={`cursor-pointer rounded-lg sm:rounded-2xl p-2.5 sm:p-5 border-2 transition-all space-y-1.5 sm:space-y-2.5 ${
+                      className={`cursor-pointer rounded-lg sm:rounded-2xl p-2.5 sm:p-5 border transition-all space-y-1.5 sm:space-y-2.5 ${
                         isSelected
-                          ? 'border-amber-500 bg-amber-50/40 shadow-md ring-2 ring-amber-500/20'
+                          ? 'border-amber-300 bg-amber-50/30 shadow-sm ring-2 ring-amber-500/15'
                           : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="text-[9px] sm:text-[10px] font-bold text-amber-700 font-mono">SPEC</span>
-                        {isSelected && <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />}
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider">Basalt Grade</span>
+                        <div
+                          className={`w-6 h-6 sm:w-9 sm:h-9 rounded-md sm:rounded-xl flex items-center justify-center shrink-0 ${
+                            isSelected ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-600'
+                          }`}
+                        >
+                          {isSelected ? (
+                            <Check className="w-3 h-3 sm:w-4 sm:h-4 stroke-[3]" />
+                          ) : (
+                            <Package className="w-3 h-3 sm:w-4 sm:h-4" />
+                          )}
+                        </div>
                       </div>
                       <h3 className="text-sm sm:text-xl font-black text-slate-900 font-display">{grain}</h3>
 
@@ -1381,17 +1391,27 @@ export default function CreateOrder() {
                         setSelectedOptionName(cfg.optionName);
                         setSelectedCapacityId(cfg._id);
                       }}
-                      className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-6 border-2 transition-all space-y-2 sm:space-y-4 ${
+                      className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-6 border transition-all space-y-2 sm:space-y-4 ${
                         isSelected
-                          ? 'border-amber-500 bg-amber-50/40 shadow-md ring-2 ring-amber-500/20'
+                          ? 'border-amber-300 bg-amber-50/30 shadow-sm ring-2 ring-amber-500/15'
                           : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-slate-100 text-[10px] sm:text-xs font-black text-slate-700 border border-slate-200 tracking-wider uppercase">
-                          🚜 TRACTOR
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                          Trailer
                         </span>
-                        {isSelected && <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" />}
+                        <div
+                          className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
+                            isSelected ? 'bg-amber-500 text-white' : 'bg-emerald-50 text-emerald-600'
+                          }`}
+                        >
+                          {isSelected ? (
+                            <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
+                          ) : (
+                            <Tractor className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          )}
+                        </div>
                       </div>
 
                       <div>
@@ -1442,29 +1462,27 @@ export default function CreateOrder() {
                       <div
                         key={grain}
                         onClick={() => setSelectedAggregateType(grain)}
-                        className={`cursor-pointer rounded-xl sm:rounded-3xl p-2.5 sm:p-5 border-2 transition-all space-y-1.5 sm:space-y-3 bg-white ${
+                        className={`cursor-pointer rounded-xl sm:rounded-3xl p-2.5 sm:p-5 border transition-all space-y-1.5 sm:space-y-3 bg-white ${
                           isSelected
-                            ? 'border-amber-500 shadow-sm ring-2 ring-amber-500/20'
+                            ? 'border-amber-300 shadow-sm ring-2 ring-amber-500/15'
                             : 'border-slate-200/80 hover:border-slate-300 shadow-xs'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <span
-                            className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-[9px] sm:text-[11px] font-black uppercase tracking-wider border ${
-                              isSelected
-                                ? 'bg-amber-100/70 text-amber-900 border-amber-200/80'
-                                : 'bg-slate-100 text-slate-700 border-slate-200/80'
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                            Basalt Grade
+                          </span>
+                          <div
+                            className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
+                              isSelected ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-600'
                             }`}
                           >
-                            BASALT
-                          </span>
-                          {isSelected ? (
-                            <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-black shadow-xs">
-                              <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3]" />
-                            </div>
-                          ) : (
-                            <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-slate-200" />
-                          )}
+                            {isSelected ? (
+                              <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
+                            ) : (
+                              <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            )}
+                          </div>
                         </div>
 
                         <div>
@@ -1504,17 +1522,27 @@ export default function CreateOrder() {
                     <div
                       key={opt}
                       onClick={() => setSelectedOptionName(opt)}
-                      className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-6 border-2 transition-all space-y-1.5 sm:space-y-3 ${
+                      className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-6 border transition-all space-y-1.5 sm:space-y-3 ${
                         isSelected
-                          ? 'border-amber-500 bg-amber-50/40 shadow-md ring-2 ring-amber-500/20'
+                          ? 'border-amber-300 bg-amber-50/30 shadow-sm ring-2 ring-amber-500/15'
                           : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-slate-100 text-[10px] sm:text-xs font-bold text-slate-700 border border-slate-200">
-                          DUMPER
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                          Dumper Spec
                         </span>
-                        {isSelected && <CheckCircle2 className="w-5 h-5 text-amber-600" />}
+                        <div
+                          className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
+                            isSelected ? 'bg-amber-500 text-white' : 'bg-sky-50 text-sky-600'
+                          }`}
+                        >
+                          {isSelected ? (
+                            <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
+                          ) : (
+                            <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          )}
+                        </div>
                       </div>
 
                       <div>
@@ -1635,17 +1663,27 @@ export default function CreateOrder() {
                           setSelectedCapacityId(cap._id);
                           if (cap.optionName) setSelectedOptionName(cap.optionName);
                         }}
-                        className={`cursor-pointer rounded-lg sm:rounded-2xl p-2.5 sm:p-5 border-2 transition-all space-y-1.5 sm:space-y-3 ${
+                        className={`cursor-pointer rounded-lg sm:rounded-2xl p-2.5 sm:p-5 border transition-all space-y-1.5 sm:space-y-3 ${
                           isSelected
-                            ? 'border-amber-500 bg-amber-50/40 shadow-md ring-2 ring-amber-500/20'
+                            ? 'border-amber-300 bg-amber-50/30 shadow-sm ring-2 ring-amber-500/15'
                             : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] sm:text-xs font-bold text-amber-700 font-mono">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                             {cap.wheelCount ? `${cap.wheelCount} Wheels` : cap.optionName}
                           </span>
-                          {isSelected && <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />}
+                          <div
+                            className={`w-6 h-6 sm:w-9 sm:h-9 rounded-md sm:rounded-xl flex items-center justify-center shrink-0 ${
+                              isSelected ? 'bg-amber-500 text-white' : 'bg-blue-50 text-blue-600'
+                            }`}
+                          >
+                            {isSelected ? (
+                              <Check className="w-3 h-3 sm:w-4 sm:h-4 stroke-[3]" />
+                            ) : (
+                              <Truck className="w-3 h-3 sm:w-4 sm:h-4" />
+                            )}
+                          </div>
                         </div>
 
                         <div>
