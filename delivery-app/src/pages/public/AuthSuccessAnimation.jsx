@@ -114,7 +114,7 @@ export default function AuthSuccessAnimation() {
                 {/* Trolley Body */}
                 <path d="M 10 25 L 110 25 L 105 52 L 15 52 Z" fill="#b45309" stroke="#78350f" strokeWidth="2" />
                 {/* Sand / Aggregate Load Mound */}
-                <path d="M 14 25 Q 60 8 106 25 Z" fill="#f59e0b" />
+                <path d="M 14 25 Q 60 8 106 25 Z" fill="#d5953a" />
                 {/* Trolley Side Rail Ribs */}
                 <line x1="35" y1="25" x2="35" y2="52" stroke="#78350f" strokeWidth="2" />
                 <line x1="60" y1="25" x2="60" y2="52" stroke="#78350f" strokeWidth="2" />
@@ -124,13 +124,13 @@ export default function AuthSuccessAnimation() {
                 {/* Rear Heavy Wheels */}
                 <g className="animate-spin" style={{ transformOrigin: '35px 54px', animationDuration: '0.6s' }}>
                   <circle cx="35" cy="54" r="14" fill="#0f172a" stroke="#475569" strokeWidth="3" />
-                  <circle cx="35" cy="54" r="6" fill="#f59e0b" />
+                  <circle cx="35" cy="54" r="6" fill="#b45309" />
                   <line x1="35" y1="40" x2="35" y2="68" stroke="#cbd5e1" strokeWidth="2" />
                   <line x1="21" y1="54" x2="49" y2="54" stroke="#cbd5e1" strokeWidth="2" />
                 </g>
                 <g className="animate-spin" style={{ transformOrigin: '85px 54px', animationDuration: '0.6s' }}>
                   <circle cx="85" cy="54" r="14" fill="#0f172a" stroke="#475569" strokeWidth="3" />
-                  <circle cx="85" cy="54" r="6" fill="#f59e0b" />
+                  <circle cx="85" cy="54" r="6" fill="#b45309" />
                   <line x1="85" y1="40" x2="85" y2="68" stroke="#cbd5e1" strokeWidth="2" />
                   <line x1="71" y1="54" x2="99" y2="54" stroke="#cbd5e1" strokeWidth="2" />
                 </g>
@@ -139,7 +139,7 @@ export default function AuthSuccessAnimation() {
               {/* HEAVY TRACTOR */}
               <svg width="130" height="85" viewBox="0 0 130 85" className="-ml-3 drop-shadow-lg">
                 {/* Headlamp beam */}
-                <polygon points="120,48 180,35 180,65 120,54" fill="rgba(251, 191, 36, 0.25)" className="animate-pulse" />
+                <polygon points="120,48 180,35 180,65 120,54" fill="rgba(213, 149, 58, 0.25)" className="animate-pulse" />
                 
                 {/* Exhaust Pipe & Smoke Puffs */}
                 <rect x="78" y="10" width="4" height="24" fill="#1e293b" />
@@ -147,14 +147,14 @@ export default function AuthSuccessAnimation() {
                 <circle cx="80" cy="4" r="3" fill="#94a3b8" className="animate-ping opacity-60" />
 
                 {/* Engine Hood / Bonnet */}
-                <path d="M 52 34 L 118 36 L 120 54 L 52 54 Z" fill="#d97706" stroke="#92400e" strokeWidth="2" />
+                <path d="M 52 34 L 118 36 L 120 54 L 52 54 Z" fill="#92400e" stroke="#5c2a0c" strokeWidth="2" />
                 {/* Grille */}
                 <rect x="112" y="38" width="6" height="14" fill="#1e293b" rx="1" />
                 {/* Headlight */}
-                <circle cx="118" cy="48" r="3.5" fill="#fef08a" stroke="#d97706" strokeWidth="1" />
+                <circle cx="118" cy="48" r="3.5" fill="#fef08a" stroke="#92400e" strokeWidth="1" />
 
                 {/* Driver Cabin / Roll Cage */}
-                <path d="M 22 20 L 52 20 L 52 54 L 20 54 Z" fill="#f59e0b" stroke="#b45309" strokeWidth="2" />
+                <path d="M 22 20 L 52 20 L 52 54 L 20 54 Z" fill="#d5953a" stroke="#b45309" strokeWidth="2" />
                 {/* Cabin Glass */}
                 <path d="M 26 24 L 48 24 L 48 40 L 26 40 Z" fill="#38bdf8" opacity="0.8" />
                 {/* Steering wheel */}
@@ -163,7 +163,7 @@ export default function AuthSuccessAnimation() {
                 {/* Rear Big Wheel (Rotates) */}
                 <g className="animate-spin" style={{ transformOrigin: '32px 58px', animationDuration: '0.6s' }}>
                   <circle cx="32" cy="58" r="22" fill="#020617" stroke="#334155" strokeWidth="4" />
-                  <circle cx="32" cy="58" r="10" fill="#f59e0b" stroke="#78350f" strokeWidth="2" />
+                  <circle cx="32" cy="58" r="10" fill="#b45309" stroke="#78350f" strokeWidth="2" />
                   {/* Wheel Spoke Lines */}
                   <line x1="32" y1="36" x2="32" y2="80" stroke="#e2e8f0" strokeWidth="2" />
                   <line x1="10" y1="58" x2="54" y2="58" stroke="#e2e8f0" strokeWidth="2" />
@@ -174,7 +174,7 @@ export default function AuthSuccessAnimation() {
                 {/* Front Smaller Wheel (Rotates) */}
                 <g className="animate-spin" style={{ transformOrigin: '106px 64px', animationDuration: '0.6s' }}>
                   <circle cx="106" cy="64" r="14" fill="#020617" stroke="#334155" strokeWidth="3" />
-                  <circle cx="106" cy="64" r="6" fill="#f59e0b" />
+                  <circle cx="106" cy="64" r="6" fill="#b45309" />
                   <line x1="106" y1="50" x2="106" y2="78" stroke="#e2e8f0" strokeWidth="2" />
                   <line x1="92" y1="64" x2="120" y2="64" stroke="#e2e8f0" strokeWidth="2" />
                 </g>

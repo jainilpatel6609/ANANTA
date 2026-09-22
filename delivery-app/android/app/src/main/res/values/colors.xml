@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Professional Navy + Refined Gold theme, matching the web app's Tailwind tokens -->
+    <color name="colorPrimary">#0f172a</color>
+    <color name="colorPrimaryDark">#020617</color>
+    <color name="colorAccent">#b45309</color>
+</resources>

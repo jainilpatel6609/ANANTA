@@ -1,5 +1,5 @@
-/** @type {import('tailwindcss').Config} */
 export default {
+  /** @type {import('tailwindcss').Config} */
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -7,33 +7,33 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Vibrant Warm Amber / Orange Brand Palette (Porter / Swiggy / Construction Logistics)
+        // Professional Navy + Refined Gold Brand Palette (Industrial / Heavy-Equipment Grade)
         amber: {
-          50: '#fffbeb',
-          100: '#fef3c7',
-          200: '#fde68a',
-          300: '#fcd34d',
-          400: '#fbbf24',
-          500: '#f59e0b', // Vibrant Warm Amber
-          600: '#d97706', // Rich Deep Amber
-          700: '#b45309',
-          800: '#92400e',
-          900: '#78350f',
-          950: '#451a03'
+          50: '#fdf6ec',
+          100: '#f9e8cc',
+          200: '#f1cf94',
+          300: '#e6b05c',
+          400: '#d5953a',
+          500: '#b45309', // Refined Deep Gold -- primary accent, used sparingly for CTAs
+          600: '#92400e',
+          700: '#78350f',
+          800: '#5c2a0c',
+          900: '#451a03',
+          950: '#2c1002'
         },
         brand: {
-          50: '#fffbeb',
-          100: '#fef3c7',
-          200: '#fde68a',
-          300: '#fcd34d',
-          400: '#fbbf24',
-          500: '#f59e0b',
-          600: '#ea580c', // Vibrant Orange
-          700: '#c2410c',
-          800: '#9a3412',
-          900: '#7c2d12',
-          dark: '#0f172a', // Premium Dark Navy
-          accent: '#1e3a8a'
+          50: '#fdf6ec',
+          100: '#f9e8cc',
+          200: '#f1cf94',
+          300: '#e6b05c',
+          400: '#d5953a',
+          500: '#b45309',
+          600: '#92400e',
+          700: '#78350f',
+          800: '#5c2a0c',
+          900: '#451a03',
+          dark: '#0f172a', // Primary Navy
+          accent: '#0f172a'
         },
         slate: {
           50: '#f8fafc',
@@ -58,7 +58,7 @@ export default {
         'card': '0 10px 25px -5px rgba(15, 23, 42, 0.06), 0 4px 6px -2px rgba(15, 23, 42, 0.03)',
         'classic': '0 4px 20px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04)',
         'classic-card': '0 10px 30px -5px rgba(0, 0, 0, 0.08)',
-        'classic-gold': '0 4px 14px 0 rgba(245, 158, 11, 0.25)'
+        'classic-gold': '0 4px 14px 0 rgba(180, 83, 9, 0.25)'
       }
     },
   },
