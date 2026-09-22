@@ -8,6 +8,7 @@ const Driver = require('../models/Driver');
 const DealerTransportConfig = require('../models/DealerTransportConfig');
 const { generateOrderNumber } = require('../utils/orderNumber');
 const { generateDealerCode } = require('../utils/dealerCode');
+const { findConflictingActiveOrder } = require('../utils/driverAvailability');
 const RazorpayService = require('../services/razorpayService');
 const NotificationService = require('../services/notificationService');
 const PincodeService = require('../services/pincodeService');
@@ -829,6 +830,21 @@ const acceptOrder = async (req, res) => {
 
     if (finalDriverName && finalDriverMobile && finalVehicleNumber) {
       const cleanDriverMobile = String(finalDriverMobile).replace(/\D/g, '').slice(-10);
+
+      // A driver can only be on one active (not-yet-delivered) delivery at a time.
+      const conflict = await findConflictingActiveOrder({
+        driverId: driverDoc ? driverDoc._id : null,
+        mobile: cleanDriverMobile,
+        excludeOrderId: order._id
+      });
+      if (conflict) {
+        return errorResponse(
+          res,
+          `This driver is already on an active delivery (Order #${conflict.orderNumber}). They'll be available again once that delivery is completed.`,
+          409
+        );
+      }
+
       order.driverId = driverDoc ? driverDoc._id : null;
       order.driverName = finalDriverName;
       order.driverMobile = cleanDriverMobile;

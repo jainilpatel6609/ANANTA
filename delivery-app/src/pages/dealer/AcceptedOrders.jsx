@@ -455,10 +455,17 @@ export default function AcceptedOrders() {
             : `Assign Driver: Order #${selectedOrder?.orderNumber}`
         }
       >
-        {selectedOrder && (
+        {selectedOrder && (() => {
+          // Only offer drivers not already out on another active delivery -- except the
+          // driver already on THIS order (reopening the modal to review/redispatch must
+          // still show them). Backend enforces this regardless of what's shown here.
+          const assignableDrivers = drivers.filter(
+            (d) => d.status === 'AVAILABLE' || d._id === selectedOrder.driverId
+          );
+          return (
           <form onSubmit={handleDispatchSubmit} className="space-y-5">
             {/* Quick Driver Fleet Selector */}
-            {drivers.length > 0 && (
+            {assignableDrivers.length > 0 ? (
               <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-1.5">
                 <label className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
                   <Zap className="w-3.5 h-3.5 text-amber-400" />
@@ -470,12 +477,19 @@ export default function AcceptedOrders() {
                   className="app-select w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-500"
                 >
                   <option value="">-- Choose a driver or type manually below --</option>
-                  {drivers.map((d) => (
+                  {assignableDrivers.map((d) => (
                     <option key={d._id} value={d._id}>
                       {d.name} (+91 {d.mobile}) — {d.vehicleNumber} ({d.vehicleType})
+                      {d._id === selectedOrder.driverId ? ' — currently on this order' : ''}
                     </option>
                   ))}
                 </select>
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400">
+                No available drivers in your fleet right now -- they may all be out on
+                active deliveries. Type driver details manually below, or check{' '}
+                <strong className="text-slate-200">Driver Fleet</strong>.
               </div>
             )}
 
@@ -663,7 +677,8 @@ export default function AcceptedOrders() {
               </div>
             </div>
           </form>
-        )}
+          );
+        })()}
       </Modal>
     </div>
   );

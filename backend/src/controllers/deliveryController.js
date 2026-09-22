@@ -6,6 +6,7 @@ const NotificationService = require('../services/notificationService');
 const { processUploadedFile } = require('../middleware/upload');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
 const { emitOrderStatusUpdate } = require('../sockets/socket');
+const { findConflictingActiveOrder } = require('../utils/driverAvailability');
 
 // @desc    Dealer assigns a Driver to an accepted order & dispatches SMS + Live Google Maps Link to Driver's phone
 // @route   POST /api/deliveries/:id/assign-driver
@@ -45,6 +46,20 @@ const assignDriverToOrder = async (req, res) => {
     const cleanDriverMobile = String(finalDriverMobile).replace(/\D/g, '').slice(-10);
     if (!/^[6-9]\d{9}$/.test(cleanDriverMobile)) {
       return errorResponse(res, 'Invalid 10-digit Indian mobile number for driver.', 400);
+    }
+
+    // A driver can only be on one active (not-yet-delivered) delivery at a time.
+    const conflict = await findConflictingActiveOrder({
+      driverId: driverDoc ? driverDoc._id : null,
+      mobile: cleanDriverMobile,
+      excludeOrderId: order._id
+    });
+    if (conflict) {
+      return errorResponse(
+        res,
+        `This driver is already on an active delivery (Order #${conflict.orderNumber}). They'll be available again once that delivery is completed.`,
+        409
+      );
     }
 
     // Save assignment details in Order
@@ -256,6 +271,22 @@ const dispatchOrder = async (req, res) => {
     }
 
     const cleanDriverMobile = String(finalDriverMobile).replace(/\D/g, '').slice(-10);
+
+    // A driver can only be on one active (not-yet-delivered) delivery at a time.
+    // Excluding this order itself so re-dispatching/re-confirming the same order with
+    // its own already-assigned driver is never blocked.
+    const conflict = await findConflictingActiveOrder({
+      driverId: driverDoc ? driverDoc._id : null,
+      mobile: cleanDriverMobile,
+      excludeOrderId: order._id
+    });
+    if (conflict) {
+      return errorResponse(
+        res,
+        `This driver is already on an active delivery (Order #${conflict.orderNumber}). They'll be available again once that delivery is completed.`,
+        409
+      );
+    }
 
     // Process file uploads if present in files
     let riverRoyaltyUrl = order.riverRoyaltyUrl;

@@ -60,7 +60,9 @@ export default function NewOrders() {
     try {
       const [ordersRes, driversRes] = await Promise.all([
         orderService.getDealerAvailable(),
-        driverService.getDrivers().catch(() => ({ data: { drivers: [] } }))
+        // Only offer drivers who aren't already out on another active delivery --
+        // backend also enforces this on submit, this just keeps the picker honest.
+        driverService.getDrivers({ status: 'AVAILABLE' }).catch(() => ({ data: { drivers: [] } }))
       ]);
 
       if (ordersRes.data?.orders) {
@@ -463,8 +465,9 @@ export default function NewOrders() {
                 <span className="text-[10px] text-slate-400">SMS with GPS Link sent on submit</span>
               </div>
 
-              {/* Saved Fleet Dropdown */}
-              {drivers.length > 0 && (
+              {/* Saved Fleet Dropdown -- only drivers not already out on another active
+                  delivery are offered here (the backend enforces this regardless). */}
+              {drivers.length > 0 ? (
                 <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-1">
                   <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1">
                     <Zap className="w-3.5 h-3.5" />
@@ -482,6 +485,12 @@ export default function NewOrders() {
                       </option>
                     ))}
                   </select>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400">
+                  No available drivers in your fleet right now -- they may all be out on
+                  active deliveries. Type driver details manually below, or check{' '}
+                  <strong className="text-slate-200">Driver Fleet</strong>.
                 </div>
               )}
 
