@@ -2,6 +2,7 @@ const DealerTransportConfig = require('../models/DealerTransportConfig');
 const Location = require('../models/Location');
 const PincodeService = require('../services/pincodeService');
 const RoadDistanceService = require('../services/roadDistanceService');
+const { generateDealerCode } = require('../utils/dealerCode');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
 
 const MATERIALS = ['Sand', 'Aggregate'];
@@ -229,9 +230,19 @@ const getEligibleDealers = async (req, res) => {
 
       if (distanceKm === null) continue;
 
+      // The customer picks a dealer by code only, never by name/city (dealer identity
+      // stays hidden until after they accept) -- so every dealer shown here needs a
+      // permanent code. It's normally assigned lazily on first order acceptance; if this
+      // dealer has never accepted one yet, assign it now instead of leaving it blank.
+      if (!dealer.dealerCode) {
+        dealer.dealerCode = await generateDealerCode();
+        await dealer.save();
+      }
+
       dealers.push({
         dealerId: dealer._id,
         configId: cfg._id,
+        dealerCode: dealer.dealerCode,
         name: dealer.name,
         companyName: dealer.companyName,
         city: dealer.city,

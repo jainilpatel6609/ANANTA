@@ -1943,8 +1943,8 @@ export default function CreateOrder() {
                           <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
                         <div className="min-w-0">
-                          <div className="text-xs sm:text-sm font-black text-slate-900 truncate">
-                            {dealer.companyName || dealer.name}
+                          <div className="text-xs sm:text-sm font-black text-slate-900 truncate font-mono">
+                            {dealer.dealerCode || 'Dealer'}
                           </div>
                           <div className="text-[10px] sm:text-[11px] text-slate-500 font-mono">
                             {dealer.distanceKm != null ? `${dealer.distanceKm} km away` : 'Distance unavailable'}
@@ -2067,7 +2067,7 @@ export default function CreateOrder() {
                 </span>
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm font-bold text-slate-900">{selectedDealerForSummary.companyName || selectedDealerForSummary.name}</div>
+                    <div className="text-sm font-bold text-slate-900 font-mono">{selectedDealerForSummary.dealerCode || 'Dealer'}</div>
                     <div className="text-slate-500 font-mono text-[11px]">{selectedDealerForSummary.distanceKm} km away</div>
                   </div>
                   <div className="text-amber-700 font-mono font-black text-sm">
@@ -2088,7 +2088,7 @@ export default function CreateOrder() {
                 </div>
                 {selectedDealerForSummary && (
                   <div className="text-[11px] text-slate-500">
-                    {selectedDealerForSummary.distanceKm} km &times; {formatINR(selectedDealerForSummary.ratePerKm)}/km ({selectedDealerForSummary.companyName || selectedDealerForSummary.name})
+                    {selectedDealerForSummary.distanceKm} km &times; {formatINR(selectedDealerForSummary.ratePerKm)}/km ({selectedDealerForSummary.dealerCode || 'Dealer'})
                   </div>
                 )}
               </div>
