@@ -7,7 +7,7 @@ import OrderAlarmBanner from '../../components/OrderAlarmBanner';
 import NotificationPermissionPrompt from '../../components/NotificationPermissionPrompt';
 import Modal from '../../components/Modal';
 import { useAlarm } from '../../hooks/useAlarm';
-import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport } from '../../utils/formatters';
+import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport, isTractorOrder } from '../../utils/formatters';
 import {
   Inbox,
   CheckCircle2,
@@ -421,7 +421,11 @@ export default function NewOrders() {
         <Modal
           isOpen={!!acceptingOrder}
           onClose={() => setAcceptingOrder(null)}
-          title={`Accept & Claim Dispatch: Order #${acceptingOrder.orderNumber}`}
+          title={
+            isTractorOrder(acceptingOrder)
+              ? `Accept & Claim Dispatch: Order #${acceptingOrder.orderNumber}`
+              : `Accept Order: #${acceptingOrder.orderNumber}`
+          }
         >
           <div className="space-y-5">
             {/* Order Brief */}
@@ -437,7 +441,19 @@ export default function NewOrders() {
               </div>
             </div>
 
-            {/* Driver Selection Section */}
+            {/* Driver Selection Section -- Tractor only. Dumper orders keep Accept and
+                Driver Assignment as two separate steps: after accepting here, the dealer
+                assigns a driver from the Accepted Orders screen instead. */}
+            {!isTractorOrder(acceptingOrder) ? (
+              <div className="p-3.5 rounded-2xl bg-amber-500/5 border border-amber-500/30 flex items-start gap-2.5 text-xs text-slate-300">
+                <Truck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <span>
+                  Driver assignment happens after you accept -- you'll find an{' '}
+                  <strong className="text-white">Assign Driver</strong> action for this order on the{' '}
+                  <strong className="text-white">Accepted Orders</strong> screen.
+                </span>
+              </div>
+            ) : (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -520,36 +536,60 @@ export default function NewOrders() {
                 </div>
               </div>
             </div>
+            )}
 
             {/* Modal Actions */}
             <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
-              <button
-                type="button"
-                disabled={isSubmittingAccept}
-                onClick={(e) => handleConfirmAccept(e, false)}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-bold transition-all cursor-pointer"
-              >
-                Accept Order (Assign Driver Later)
-              </button>
+              {isTractorOrder(acceptingOrder) ? (
+                <>
+                  <button
+                    type="button"
+                    disabled={isSubmittingAccept}
+                    onClick={(e) => handleConfirmAccept(e, false)}
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+                  >
+                    Accept Order (Assign Driver Later)
+                  </button>
 
-              <button
-                type="button"
-                disabled={isSubmittingAccept}
-                onClick={(e) => handleConfirmAccept(e, true)}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-brand-500/20 cursor-pointer active:scale-95 disabled:opacity-50"
-              >
-                {isSubmittingAccept ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Assigning Driver & Accepting...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Confirm & Assign Driver for Dispatch</span>
-                  </>
-                )}
-              </button>
+                  <button
+                    type="button"
+                    disabled={isSubmittingAccept}
+                    onClick={(e) => handleConfirmAccept(e, true)}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-brand-500/20 cursor-pointer active:scale-95 disabled:opacity-50"
+                  >
+                    {isSubmittingAccept ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Assigning Driver & Accepting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Confirm & Assign Driver for Dispatch</span>
+                      </>
+                    )}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isSubmittingAccept}
+                  onClick={(e) => handleConfirmAccept(e, false)}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-brand-500/20 cursor-pointer active:scale-95 disabled:opacity-50"
+                >
+                  {isSubmittingAccept ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Accepting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Accept Order</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </Modal>
