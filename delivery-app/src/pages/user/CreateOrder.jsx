@@ -1033,7 +1033,7 @@ export default function CreateOrder() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
               {materials.map((m) => {
                 const isSelected = m._id === selectedMaterialId;
                 const isSand = m.category === 'Sand';
@@ -1120,7 +1120,7 @@ export default function CreateOrder() {
                 <p className="text-xs text-rose-600">Please try again later or contact our dispatch team.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-6">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-6">
                 {vehicleSettings.dumperEnabled && (
                   <div
                     onClick={() => setSelectedVehicleType('DUMPER')}
@@ -1515,7 +1515,7 @@ export default function CreateOrder() {
               </div>
             ) : (
               /* DUMPER SAND: PROCESSING QUALITY OPTIONS */
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-5">
                 {availableOptions.map((opt) => {
                   const isSelected = opt === selectedOptionName;
                   return (
