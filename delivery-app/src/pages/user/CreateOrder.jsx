@@ -889,42 +889,42 @@ export default function CreateOrder() {
     return <LoadingSpinner message="Initializing dynamic material catalog..." />;
   }
 
-  // Dynamic Stepper labels
-  const dynamicSteps = isAggregate
+  // Grouped into fewer full-screen "pages" so the customer isn't forced through
+  // a separate Continue tap for every single quick pick. Steps 1+2 (Material +
+  // Vehicle) and 3+4+5 (Location/Grain + Quality/Trolley + Capacity) are each
+  // quick single-card choices, so they're shown together as one page. Delivery,
+  // Select Dealer, and Summary stay standalone -- each is substantial on its own
+  // and depends on the answers gathered before it (e.g. dealers are fetched
+  // only once delivery location is known).
+  const stepGroups = isAggregate
     ? selectedVehicleType === 'DUMPER'
       ? [
-          { id: 1, title: 'Material', icon: Layers },
-          { id: 2, title: 'Vehicle', icon: Truck },
-          { id: 3, title: 'Location', icon: MapPin },
-          { id: 4, title: 'Grain Size', icon: Sparkles },
-          { id: 5, title: 'Capacity', icon: Building2 },
-          { id: 6, title: 'Delivery', icon: Calendar },
-          { id: 7, title: 'Select Dealer', icon: Building2 },
-          { id: 8, title: 'Summary & Pay', icon: CreditCard }
+          { ids: [1, 2], title: 'Material & Vehicle', icon: Truck },
+          { ids: [3, 4, 5], title: 'Location & Capacity', icon: Sparkles },
+          { ids: [6], title: 'Delivery', icon: Calendar },
+          { ids: [7], title: 'Select Dealer', icon: Building2 },
+          { ids: [8], title: 'Summary & Pay', icon: CreditCard }
         ]
       : [
-          { id: 1, title: 'Material', icon: Layers },
-          { id: 2, title: 'Vehicle', icon: Truck },
-          { id: 3, title: 'Grain Size', icon: Sparkles },
-          { id: 4, title: 'Trolley', icon: Building2 },
-          { id: 5, title: 'Quantity', icon: Clock },
-          { id: 6, title: 'Delivery', icon: Calendar },
-          { id: 7, title: 'Select Dealer', icon: Building2 },
-          { id: 8, title: 'Summary & Pay', icon: CreditCard }
+          { ids: [1, 2], title: 'Material & Vehicle', icon: Truck },
+          { ids: [3, 4, 5], title: 'Grain Size & Quantity', icon: Sparkles },
+          { ids: [6], title: 'Delivery', icon: Calendar },
+          { ids: [7], title: 'Select Dealer', icon: Building2 },
+          { ids: [8], title: 'Summary & Pay', icon: CreditCard }
         ]
     : [
-        { id: 1, title: 'Material', icon: Layers },
-        { id: 2, title: 'Vehicle', icon: Truck },
-        { id: 3, title: 'Location', icon: MapPin },
-        { id: 4, title: selectedVehicleType === 'DUMPER' ? 'Sand Quality' : 'Trolley', icon: Sparkles },
-        { id: 5, title: selectedVehicleType === 'DUMPER' ? 'Capacity' : 'Quantity', icon: Building2 },
-        { id: 6, title: 'Delivery', icon: Calendar },
-        { id: 7, title: 'Select Dealer', icon: Building2 },
-        { id: 8, title: 'Summary & Pay', icon: CreditCard }
+        { ids: [1, 2], title: 'Material & Vehicle', icon: Truck },
+        { ids: [3, 4, 5], title: 'Specifications & Capacity', icon: Sparkles },
+        { ids: [6], title: 'Delivery', icon: Calendar },
+        { ids: [7], title: 'Select Dealer', icon: Building2 },
+        { ids: [8], title: 'Summary & Pay', icon: CreditCard }
       ];
 
-  const currentStepObj = dynamicSteps.find((s) => s.id === step) || dynamicSteps[0];
-  const progressPercent = Math.round((step / dynamicSteps.length) * 100);
+  const currentGroupIndex = Math.max(0, stepGroups.findIndex((g) => g.ids.includes(step)));
+  const currentGroup = stepGroups[currentGroupIndex];
+  const showStep = (n) => currentGroup.ids.includes(n);
+  const goToGroup = (idx) => setStep(stepGroups[idx].ids[0]);
+  const progressPercent = Math.round(((currentGroupIndex + 1) / stepGroups.length) * 100);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8 pb-16">
@@ -934,7 +934,7 @@ export default function CreateOrder() {
         <div className="flex items-center justify-between gap-3">
           <button
             type="button"
-            onClick={() => (step > 1 ? setStep((prev) => prev - 1) : navigate(-1))}
+            onClick={() => (currentGroupIndex > 0 ? goToGroup(currentGroupIndex - 1) : navigate(-1))}
             className="w-10 h-10 rounded-full bg-white border border-slate-200 shadow-xs flex items-center justify-center text-slate-700 hover:bg-slate-50 transition-all active:scale-95 shrink-0 cursor-pointer"
             aria-label="Previous step"
           >
@@ -943,10 +943,10 @@ export default function CreateOrder() {
 
           <div className="text-center min-w-0">
             <div className="inline-flex items-center px-3 py-0.5 rounded-full bg-amber-50 border border-amber-200/60 text-amber-700 text-[11px] font-black uppercase tracking-wider">
-              STEP {step <= 3 ? `1 TO 3 OF ${dynamicSteps.length}` : `${step} OF ${dynamicSteps.length}`}
+              STEP {currentGroupIndex + 1} OF {stepGroups.length}
             </div>
             <h1 className="text-lg sm:text-xl font-black text-slate-900 font-display tracking-tight mt-0.5 truncate">
-              {step <= 3 ? 'Material & Logistics' : step <= 5 ? 'Vehicle & Capacity' : 'Delivery & Settlement'}
+              {currentGroupIndex <= 1 ? 'Material & Logistics' : 'Delivery & Settlement'}
             </h1>
           </div>
 
@@ -963,7 +963,7 @@ export default function CreateOrder() {
         <div className="space-y-1.5 pt-1">
           <div className="flex items-center justify-between text-xs">
             <span className="font-bold text-slate-600">
-              Progress (Stage {step <= 3 ? '1 / 2' : '2 / 2'})
+              Progress (Stage {currentGroupIndex <= 1 ? '1 / 2' : '2 / 2'})
             </span>
             <span className="px-3 py-0.5 rounded-full bg-amber-50 text-amber-800 text-xs font-black border border-amber-200/60">
               {progressPercent}% Completed
@@ -979,19 +979,19 @@ export default function CreateOrder() {
 
         {/* Row 3: Horizontal Stepper Pills with Numbers & Chevrons */}
         <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar scroll-smooth">
-          {dynamicSteps.map((s, idx) => {
-            const isCompleted = s.id < step;
-            const isCurrent = s.id === step;
+          {stepGroups.map((g, idx) => {
+            const isCompleted = idx < currentGroupIndex;
+            const isCurrent = idx === currentGroupIndex;
             const isPassedOrCurrent = isCompleted || isCurrent;
 
             return (
-              <React.Fragment key={s.id}>
+              <React.Fragment key={g.ids[0]}>
                 <button
                   type="button"
                   onClick={() => {
-                    if (s.id < step) setStep(s.id);
+                    if (idx < currentGroupIndex) goToGroup(idx);
                   }}
-                  disabled={s.id > step}
+                  disabled={idx > currentGroupIndex}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all active:scale-95 ${
                     isPassedOrCurrent
                       ? 'bg-amber-50 border border-amber-300/80 text-amber-900 shadow-2xs'
@@ -1003,11 +1003,11 @@ export default function CreateOrder() {
                       isPassedOrCurrent ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-500'
                     }`}
                   >
-                    {s.id}
+                    {idx + 1}
                   </span>
-                  <span className="whitespace-nowrap">{s.title}</span>
+                  <span className="whitespace-nowrap">{g.title}</span>
                 </button>
-                {idx < dynamicSteps.length - 1 && (
+                {idx < stepGroups.length - 1 && (
                   <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
                 )}
               </React.Fragment>
@@ -1020,12 +1020,9 @@ export default function CreateOrder() {
       <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-8 space-y-8 shadow-xs">
         
         {/* ================= STEP 1: MATERIAL SELECTION (Exact match to screenshot) ================= */}
-        {step === 1 && (
+        {showStep(1) && (
           <div className="space-y-5">
             <div>
-              <span className="text-xs font-black text-amber-600 uppercase tracking-widest block">
-                STEP 1
-              </span>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-0.5">
                 Select Construction Material
               </h2>
@@ -1102,10 +1099,9 @@ export default function CreateOrder() {
         )}
 
         {/* ================= STEP 2: VEHICLE TYPE SELECTION (DUMPER VS TRACTOR) ================= */}
-        {step === 2 && (
-          <div className="space-y-6">
+        {showStep(2) && (
+          <div className="space-y-6 pt-6 mt-1 border-t border-slate-200">
             <div>
-              <span className="text-xs font-bold text-amber-600 uppercase tracking-widest">Step 2 of 7</span>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">Select Delivery Vehicle Type</h2>
               <p className="text-xs sm:text-sm text-slate-500">
                 Choose between heavy multi-wheel Dumper trucks or Tractor delivery for {selectedMaterial?.name || 'materials'}.
@@ -1183,12 +1179,11 @@ export default function CreateOrder() {
         )}
 
         {/* ================= STEP 3: LOCATION (OR GRAIN SIZE FOR AGGREGATE TRACTOR) ================= */}
-        {step === 3 && (
+        {showStep(3) && (
           isAggregate && selectedVehicleType === 'TRACTOR' ? (
             /* AGGREGATE + TRACTOR: DIRECT GRAIN SIZE SELECTION (NO QUARRY LOCATION) */
             <div className="space-y-6">
               <div>
-                <span className="text-xs font-bold text-amber-600 uppercase tracking-widest">Step 3 of 7</span>
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">Select Aggregate Grain Size</h2>
                 <p className="text-xs sm:text-sm text-slate-500">Choose calibrated basalt aggregate grain size for local tractor delivery.</p>
               </div>
@@ -1239,7 +1234,6 @@ export default function CreateOrder() {
             /* DUMPER (ALL) OR SAND TRACTOR: LOCATION SELECTION */
             <div className="space-y-6">
               <div>
-                <span className="text-xs font-bold text-amber-600 uppercase tracking-widest">Step 3 of 7</span>
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">
                   {isAggregate ? 'Select Aggregate Quarry Location' : 'Select Sourcing Location'}
                 </h2>
@@ -1300,10 +1294,9 @@ export default function CreateOrder() {
         )}
 
         {/* ================= STEP 4: TROLLEY (FOR TRACTOR) OR GRAIN SIZE / QUALITY (FOR DUMPER) ================= */}
-        {step === 4 && (
-          <div className="space-y-6">
+        {showStep(4) && (
+          <div className="space-y-6 pt-6 mt-1 border-t border-slate-200">
             <div>
-              <span className="text-xs font-bold text-amber-600 uppercase tracking-widest">Step 4 of 7</span>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">
                 {selectedVehicleType === 'TRACTOR'
                   ? 'Select Tractor Trolley Type'
@@ -1506,10 +1499,9 @@ export default function CreateOrder() {
         )}
 
         {/* ================= STEP 5: QUANTITY & UNITS ================= */}
-        {step === 5 && (
-          <div className="space-y-6">
+        {showStep(5) && (
+          <div className="space-y-6 pt-6 mt-1 border-t border-slate-200">
             <div>
-              <span className="text-xs font-bold text-amber-600 uppercase tracking-widest">Step 5 of 7</span>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">
                 {selectedVehicleType === 'DUMPER' ? 'Select Vehicle Capacity & Units' : 'Tractor Dispatch Capacity & Units'}
               </h2>
@@ -1673,10 +1665,9 @@ export default function CreateOrder() {
         )}
 
         {/* ================= STEP 6: SHIPPING & DELIVERY DETAILS ================= */}
-        {step === 6 && (
+        {showStep(6) && (
           <div className="space-y-6">
             <div>
-              <span className="text-xs font-bold text-amber-600 uppercase tracking-widest">Step 6 of 7</span>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">Delivery Site Details & Schedule</h2>
               <p className="text-xs sm:text-sm text-slate-500">Specify drop-off coordinates, schedule date, and recipient contact info.</p>
             </div>
@@ -1830,10 +1821,9 @@ export default function CreateOrder() {
         )}
 
         {/* ================= STEP 7: SELECT DEALER ================= */}
-        {step === 7 && (
+        {showStep(7) && (
           <div className="space-y-6">
             <div>
-              <span className="text-xs font-bold text-amber-600 uppercase tracking-widest">Step 7 of {dynamicSteps.length}</span>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">Select Dealer</h2>
               <p className="text-xs sm:text-sm text-slate-500">
                 {selectedVehicleType === 'DUMPER' ? 'Rate Per Ton' : 'Transport cost'} = dealer&apos;s rate per KM for {selectedMaterial?.category}
@@ -1904,10 +1894,9 @@ export default function CreateOrder() {
         )}
 
         {/* ================= STEP 8: ORDER SUMMARY & REVIEW ================= */}
-        {step === 8 && (
+        {showStep(8) && (
           <div className="space-y-6">
             <div>
-              <span className="text-xs font-bold text-amber-600 uppercase tracking-widest">Step 8 of {dynamicSteps.length}</span>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">Review Order Summary</h2>
               <p className="text-xs sm:text-sm text-slate-500">Verify all material specifications and delivery coordinates before payment.</p>
             </div>
@@ -2057,10 +2046,10 @@ export default function CreateOrder() {
 
         {/* Wizard Controls */}
         <div className="flex items-center justify-between pt-5 border-t border-slate-200 gap-3">
-          {step > 1 ? (
+          {currentGroupIndex > 0 ? (
             <button
               type="button"
-              onClick={() => setStep((prev) => prev - 1)}
+              onClick={() => goToGroup(currentGroupIndex - 1)}
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white hover:bg-slate-50 active:scale-95 border border-slate-200 text-slate-700 text-xs font-bold transition-all min-h-[48px] shadow-sm cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -2070,7 +2059,7 @@ export default function CreateOrder() {
             <div />
           )}
 
-          {step < 8 ? (
+          {currentGroupIndex < stepGroups.length - 1 ? (
             <button
               type="button"
               disabled={isConfirmingLocation}
@@ -2124,7 +2113,7 @@ export default function CreateOrder() {
                     return;
                   }
                 }
-                setStep((prev) => prev + 1);
+                goToGroup(currentGroupIndex + 1);
               }}
               className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 active:scale-95 text-white font-bold text-xs transition-all shadow-md shadow-amber-500/25 min-h-[48px] cursor-pointer ml-auto disabled:opacity-60"
             >
