@@ -25,6 +25,8 @@ import {
   Plus,
   MapPin,
   Truck,
+  Tractor,
+  Package,
   Calendar,
   Layers,
   Building2,
@@ -1040,52 +1042,55 @@ export default function CreateOrder() {
                 const defaultDesc = isSand
                   ? 'River sand, certified quality grade for plaster & RCC.'
                   : 'Crushed black basalt minerals (10mm & 20mm).';
+                const MaterialIcon = isSand ? Layers : Package;
 
                 return (
                   <div
                     key={m._id}
                     onClick={() => setSelectedMaterialId(m._id)}
-                    className={`cursor-pointer rounded-xl sm:rounded-3xl p-3 sm:p-5 border-2 transition-all flex flex-col justify-between space-y-2 sm:space-y-4 bg-white ${
+                    className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-5 border transition-all flex flex-col justify-between bg-white ${
                       isSelected
-                        ? 'border-amber-500 shadow-sm ring-2 ring-amber-500/20'
+                        ? 'border-amber-300 shadow-sm ring-2 ring-amber-500/15'
                         : 'border-slate-200/80 hover:border-slate-300 shadow-xs'
                     }`}
                   >
                     <div>
-                      <div className="flex items-center justify-between mb-1.5 sm:mb-3">
-                        <span
-                          className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-[10px] sm:text-[11px] font-black tracking-wide border ${
+                      <div className="flex items-start justify-between gap-2 mb-2 sm:mb-3">
+                        <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                          {tagLabel} Material
+                        </span>
+                        <div
+                          className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 transition-colors ${
                             isSelected
-                              ? 'bg-amber-100/70 text-amber-900 border-amber-200/80'
-                              : 'bg-slate-100 text-slate-600 border-slate-200/80'
+                              ? 'bg-amber-500 text-white'
+                              : isSand
+                              ? 'bg-sky-50 text-sky-600'
+                              : 'bg-amber-50 text-amber-600'
                           }`}
                         >
-                          {tagLabel}
-                        </span>
-                        {isSelected ? (
-                          <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-black shadow-xs">
-                            <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3]" />
-                          </div>
-                        ) : (
-                          <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-slate-200" />
-                        )}
+                          {isSelected ? (
+                            <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
+                          ) : (
+                            <MaterialIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          )}
+                        </div>
                       </div>
 
-                      <h3 className="text-sm sm:text-base font-black text-slate-900 font-display">
+                      <h3 className="text-sm sm:text-lg font-black text-slate-900 font-display">
                         {m.name}
                       </h3>
-                      <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 leading-snug sm:leading-relaxed">
+                      <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 leading-snug sm:leading-relaxed">
                         {m.description || defaultDesc}
                       </p>
                     </div>
 
                     <div
-                      className={`pt-2 sm:pt-3 border-t border-slate-100 flex items-center gap-1.5 text-[11px] sm:text-xs font-bold ${
+                      className={`mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-100 flex items-center gap-1.5 text-[11px] sm:text-xs font-bold ${
                         isSelected ? 'text-amber-700' : 'text-slate-400 font-medium'
                       }`}
                     >
                       <span
-                        className={`w-2 h-2 rounded-full ${
+                        className={`w-1.5 h-1.5 rounded-full ${
                           isSelected ? 'bg-amber-500' : 'bg-slate-300'
                         }`}
                       />
@@ -1119,30 +1124,37 @@ export default function CreateOrder() {
                 {vehicleSettings.dumperEnabled && (
                   <div
                     onClick={() => setSelectedVehicleType('DUMPER')}
-                    className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-7 border-2 transition-all space-y-2 sm:space-y-4 ${
+                    className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-6 border transition-all ${
                       selectedVehicleType === 'DUMPER'
-                        ? 'border-amber-500 bg-amber-50/40 shadow-md ring-2 ring-amber-500/20'
+                        ? 'border-amber-300 bg-amber-50/30 shadow-sm ring-2 ring-amber-500/15'
                         : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 sm:block">
-                      <span className="text-xl sm:text-3xl shrink-0">🚛</span>
-                      <div className="flex-1 sm:hidden">
-                        <h3 className="text-sm font-black text-slate-900 font-display leading-tight">Heavy Dumper Truck</h3>
+                    <div className="flex items-start justify-between gap-2 mb-2 sm:mb-3">
+                      <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        Heavy Vehicle
+                      </span>
+                      <div
+                        className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
+                          selectedVehicleType === 'DUMPER' ? 'bg-amber-500 text-white' : 'bg-blue-50 text-blue-600'
+                        }`}
+                      >
+                        {selectedVehicleType === 'DUMPER' ? (
+                          <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
+                        ) : (
+                          <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        )}
                       </div>
-                      {selectedVehicleType === 'DUMPER' && <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 shrink-0 sm:float-right" />}
                     </div>
 
-                    <div className="hidden sm:block">
-                      <h3 className="text-xl font-black text-slate-900 font-display">Heavy Dumper Truck</h3>
-                    </div>
+                    <h3 className="text-sm sm:text-xl font-black text-slate-900 font-display">Heavy Dumper Truck</h3>
                     <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 leading-snug">
                       {isAggregate
                         ? 'Direct quarry dispatch from Vadagam & Sayala (10 to 18 Wheels / 25 to 50 Tons).'
                         : 'Best suited for large bulk commercial sites (10 to 18 Wheels / 25 to 50 Tons capacity).'}
                     </p>
 
-                    <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200 text-[10px] sm:text-xs text-slate-700 font-semibold">
+                    <div className="mt-2 sm:mt-4 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200 text-[10px] sm:text-xs text-slate-700 font-semibold">
                       Available: 10W (25T) • 12W (35T) • 16W (45T) • 18W (50T)
                     </div>
                   </div>
@@ -1151,30 +1163,37 @@ export default function CreateOrder() {
                 {vehicleSettings.tractorEnabled && (
                   <div
                     onClick={() => setSelectedVehicleType('TRACTOR')}
-                    className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-7 border-2 transition-all space-y-2 sm:space-y-4 ${
+                    className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-6 border transition-all ${
                       selectedVehicleType === 'TRACTOR'
-                        ? 'border-amber-500 bg-amber-50/40 shadow-md ring-2 ring-amber-500/20'
+                        ? 'border-amber-300 bg-amber-50/30 shadow-sm ring-2 ring-amber-500/15'
                         : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 sm:block">
-                      <span className="text-xl sm:text-3xl shrink-0">🚜</span>
-                      <div className="flex-1 sm:hidden">
-                        <h3 className="text-sm font-black text-slate-900 font-display leading-tight">Tractor Dispatch</h3>
+                    <div className="flex items-start justify-between gap-2 mb-2 sm:mb-3">
+                      <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        Light Vehicle
+                      </span>
+                      <div
+                        className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
+                          selectedVehicleType === 'TRACTOR' ? 'bg-amber-500 text-white' : 'bg-emerald-50 text-emerald-600'
+                        }`}
+                      >
+                        {selectedVehicleType === 'TRACTOR' ? (
+                          <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
+                        ) : (
+                          <Tractor className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        )}
                       </div>
-                      {selectedVehicleType === 'TRACTOR' && <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 shrink-0 sm:float-right" />}
                     </div>
 
-                    <div className="hidden sm:block">
-                      <h3 className="text-xl font-black text-slate-900 font-display">Tractor Dispatch</h3>
-                    </div>
+                    <h3 className="text-sm sm:text-xl font-black text-slate-900 font-display">Tractor Dispatch</h3>
                     <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 leading-snug">
                       {isAggregate
                         ? 'Direct grain size delivery for residential & local sites (Single & Double Patiya).'
                         : 'Ideal for residential sites and narrow access roads (Single & Double Patiya).'}
                     </p>
 
-                    <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200 text-[10px] sm:text-xs text-slate-700 font-semibold">
+                    <div className="mt-2 sm:mt-4 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200 text-[10px] sm:text-xs text-slate-700 font-semibold">
                       Available: Single Patiya (3.5T) • Double Patiya (7.0T)
                     </div>
                   </div>
@@ -1257,24 +1276,36 @@ export default function CreateOrder() {
                     <div
                       key={loc._id}
                       onClick={() => setSelectedLocationId(loc._id)}
-                      className={`cursor-pointer rounded-lg sm:rounded-2xl p-2.5 sm:p-5 border-2 transition-all space-y-1.5 sm:space-y-3 ${
+                      className={`cursor-pointer rounded-lg sm:rounded-2xl p-2.5 sm:p-5 border transition-all ${
                         isSelected
-                          ? 'border-amber-500 bg-amber-50/40 shadow-md ring-2 ring-amber-500/20'
+                          ? 'border-amber-300 bg-amber-50/30 shadow-sm ring-2 ring-amber-500/15'
                           : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <MapPin className={`w-4 h-4 sm:w-5 sm:h-5 ${isSelected ? 'text-amber-600' : 'text-slate-400'}`} />
-                        {isSelected && <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />}
+                      <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-3">
+                        <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                          Source
+                        </span>
+                        <div
+                          className={`w-6 h-6 sm:w-9 sm:h-9 rounded-md sm:rounded-xl flex items-center justify-center shrink-0 ${
+                            isSelected ? 'bg-amber-500 text-white' : 'bg-violet-50 text-violet-600'
+                          }`}
+                        >
+                          {isSelected ? (
+                            <Check className="w-3 h-3 sm:w-4 sm:h-4 stroke-[3]" />
+                          ) : (
+                            <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
+                          )}
+                        </div>
                       </div>
 
                       <div>
-                        <h3 className="text-xs sm:text-base font-black text-slate-900 font-display">{loc.name}</h3>
+                        <h3 className="text-xs sm:text-lg font-black text-slate-900 font-display">{loc.name}</h3>
                         <span className="text-[10px] sm:text-xs text-slate-500 block mt-0.5">{loc.state || 'Gujarat'}</span>
                       </div>
 
                       {selectedVehicleType === 'TRACTOR' && (loc.singlePatiyaPrice || loc.doublePatiyaPrice) && (
-                        <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 pt-0.5 sm:pt-1">
+                        <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 pt-1 sm:pt-2">
                           {loc.singlePatiyaPrice && (
                             <span className="text-[9px] sm:text-[10px] font-semibold px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                               S: ₹{loc.singlePatiyaPrice}
@@ -1288,7 +1319,7 @@ export default function CreateOrder() {
                         </div>
                       )}
 
-                      <p className="hidden sm:block text-[11px] text-slate-500 border-t border-slate-100 pt-2">
+                      <p className="hidden sm:block text-[11px] text-slate-500 border-t border-slate-100 pt-2 mt-3">
                         {loc.description || (isAggregate ? 'Certified heavy dumper aggregate processing plant' : 'Verified quarry & river source')}
                       </p>
                     </div>
