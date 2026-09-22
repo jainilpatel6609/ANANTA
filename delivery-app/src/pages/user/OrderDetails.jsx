@@ -57,6 +57,11 @@ export default function OrderDetails() {
 
   useEffect(() => {
     fetchOrder();
+    // Poll for updates so a customer who already has this page open sees stage
+    // changes (e.g. dealer entering Total Weight, unlocking Final Payment) without
+    // needing to manually refresh.
+    const interval = setInterval(fetchOrder, 20000);
+    return () => clearInterval(interval);
   }, [id]);
 
   // Final payment (Total Weight x Rate Per Ton) -- entirely separate from the upfront booking

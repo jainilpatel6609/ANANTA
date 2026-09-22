@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../../context/NotificationContext';
 import { Bell, CheckCheck, Package, Clock, Truck, ShieldCheck, KeyRound, AlertCircle } from 'lucide-react';
 import { formatDate } from '../../utils/formatters';
@@ -6,6 +7,12 @@ import EmptyState from '../../components/EmptyState';
 
 export default function UserNotifications() {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const navigate = useNavigate();
+
+  const handleNotificationClick = (n) => {
+    if (!n.isRead) markAsRead(n._id);
+    if (n.orderId) navigate(`/user/orders/${n.orderId}`);
+  };
 
   // Helper to pick contextual icon based on notification content
   const getNotificationIcon = (item) => {
@@ -57,7 +64,7 @@ export default function UserNotifications() {
             return (
               <div
                 key={n._id}
-                onClick={() => !n.isRead && markAsRead(n._id)}
+                onClick={() => handleNotificationClick(n)}
                 className={`p-4 sm:p-5 rounded-3xl border transition-all cursor-pointer flex items-start gap-4 active:scale-[0.99] ${
                   n.isRead
                     ? 'bg-slate-50/60 border-slate-200/70 text-slate-500 hover:bg-slate-50'
