@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authService, driverService } from '../services';
-import { requestAndRegisterDevicePush, unregisterDevicePush, getPushPermissionState } from '../utils/fcm';
+import { requestAndRegisterDevicePush, unregisterDevicePush, getPushPermissionStateAsync } from '../utils/fcm';
+import { stopNativeLiveLocation } from '../utils/nativeBridge';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext(null);
@@ -22,8 +23,12 @@ export const AuthProvider = ({ children }) => {
           setUser(parsedUser);
 
           // Auto-register device push if permission already granted
-          if (getPushPermissionState() === 'granted' && (parsedUser.role === 'DEALER' || parsedUser.role === 'ADMIN')) {
-            requestAndRegisterDevicePush().catch(() => {});
+          if (parsedUser.role === 'DEALER' || parsedUser.role === 'ADMIN') {
+            getPushPermissionStateAsync()
+              .then((state) => {
+                if (state === 'granted') requestAndRegisterDevicePush().catch(() => {});
+              })
+              .catch(() => {});
           }
 
           // Refresh user profile from server in background
@@ -136,6 +141,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     unregisterDevicePush().catch(() => {});
+    stopNativeLiveLocation(); // Android app: stop background live-location sharing (no-op in a browser)
     localStorage.removeItem('ananta_token');
     localStorage.removeItem('ananta_user');
     setToken(null);

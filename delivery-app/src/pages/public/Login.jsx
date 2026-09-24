@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { authService } from '../../services';
+import { listenForNativeOtp } from '../../utils/nativeBridge';
 import RoleSelection from './RoleSelection';
 import {
   Truck,
@@ -116,6 +117,16 @@ export default function Login() {
     }
   };
 
+  // Android app: auto-fill the OTP from the incoming SMS (user consent); manual entry always still works.
+  const stopOtpListenerRef = useRef(null);
+  const stopOtpListener = () => {
+    if (stopOtpListenerRef.current) {
+      stopOtpListenerRef.current();
+      stopOtpListenerRef.current = null;
+    }
+  };
+  useEffect(() => stopOtpListener, []);
+
   // 3. Forgot Password: Step 1 -> Send OTP
   const handleSendForgotOtp = async (e) => {
     if (e) e.preventDefault();
@@ -125,6 +136,11 @@ export default function Login() {
     }
 
     setSendingOtp(true);
+    stopOtpListener();
+    stopOtpListenerRef.current = listenForNativeOtp((otp) => {
+      setForgotOtp(otp.replace(/D/g, '').slice(0, 6));
+      toast.success('OTP filled automatically.');
+    });
     try {
       const res = await authService.forgotPasswordSendOtp(forgotMobile.trim());
       setMaskedMobile(res.data?.maskedMobile || `******${forgotMobile.slice(-4)}`);
@@ -132,6 +148,7 @@ export default function Login() {
       setResendTimer(60);
       toast.success(res.message || `OTP sent successfully to ${res.data?.maskedMobile}`);
     } catch (err) {
+      stopOtpListener();
       toast.error(err.message || 'Failed to dispatch verification OTP.');
     } finally {
       setSendingOtp(false);
@@ -149,6 +166,7 @@ export default function Login() {
     setVerifyingOtp(true);
     try {
       const res = await authService.forgotPasswordVerifyOtp(forgotMobile.trim(), forgotOtp.trim());
+      stopOtpListener();
       if (res.data?.resetToken) {
         setResetToken(res.data.resetToken);
         setForgotStep(3);

@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { pincodeService, authService } from '../../services';
 import RoleSelection from './RoleSelection';
 import LiveCameraModal from '../../components/LiveCameraModal';
+import { listenForNativeOtp } from '../../utils/nativeBridge';
 import {
   Truck,
   User,
@@ -93,6 +94,16 @@ export default function Register() {
     verifying: false,
     resendTimer: 0
   });
+
+  // Android app: auto-fill the OTP from the incoming SMS (user consent); manual entry always still works.
+  const stopOtpListenerRef = useRef(null);
+  const stopOtpListener = () => {
+    if (stopOtpListenerRef.current) {
+      stopOtpListenerRef.current();
+      stopOtpListenerRef.current = null;
+    }
+  };
+  useEffect(() => stopOtpListener, []);
 
   // Resend OTP Countdown Timer
   useEffect(() => {
@@ -259,6 +270,11 @@ export default function Register() {
     }
 
     setDealerOtp((prev) => ({ ...prev, sending: true }));
+    stopOtpListener();
+    stopOtpListenerRef.current = listenForNativeOtp((otp) => {
+      setDealerOtp((prev) => ({ ...prev, otp: otp.replace(/D/g, '').slice(0, 6) }));
+      toast.success('OTP filled automatically.');
+    });
     try {
       const res = await authService.sendDealerSignupOtp(cleanMobile);
       const generatedOtp = res.data?.demoOtp || res.data?.data?.demoOtp || '';
@@ -271,6 +287,7 @@ export default function Register() {
       }));
       toast.success(generatedOtp ? `OTP Sent! Demo OTP: ${generatedOtp}` : `6-Digit OTP sent to +91 ${cleanMobile}`);
     } catch (err) {
+      stopOtpListener();
       toast.error(err.message || 'Failed to send OTP.');
       setDealerOtp((prev) => ({ ...prev, sending: false }));
     }
@@ -288,6 +305,7 @@ export default function Register() {
     setDealerOtp((prev) => ({ ...prev, verifying: true }));
     try {
       await authService.verifyDealerSignupOtp(cleanMobile, cleanOtp);
+      stopOtpListener();
       setDealerOtp((prev) => ({
         ...prev,
         isVerified: true,

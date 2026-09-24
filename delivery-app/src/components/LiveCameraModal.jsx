@@ -9,6 +9,7 @@ import {
   SwitchCamera
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { isNativeApp, captureNativePhoto, describeNativeError } from '../utils/nativeBridge';
 
 export default function LiveCameraModal({
   isOpen,
@@ -29,8 +30,36 @@ export default function LiveCameraModal({
   const [cameraError, setCameraError] = useState('');
   const [isStarting, setIsStarting] = useState(false);
 
+  // Inside the Android app the capture happens in the native camera (camera-only, with native permission
+  // handling); the result comes back here and goes through the same onCapture/onClose flow as the web camera.
+  const nativeCamera = isNativeApp();
+  const onCaptureRef = useRef(onCapture);
+  const onCloseRef = useRef(onClose);
+  onCaptureRef.current = onCapture;
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (!isOpen || !nativeCamera) return undefined;
+    let cancelled = false;
+    captureNativePhoto(facingMode)
+      .then(({ file, dataUrl }) => {
+        if (cancelled) return;
+        if (onCaptureRef.current) onCaptureRef.current(file, dataUrl);
+        onCloseRef.current();
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        if (err.code !== 'CAMERA_CANCELLED') toast.error(describeNativeError(err));
+        onCloseRef.current();
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, facingMode, nativeCamera]);
+
   // Sync facingMode when modal opens
   useEffect(() => {
+    if (nativeCamera) return undefined;
     if (isOpen) {
       setCurrentFacingMode(facingMode);
       setCapturedImage(null);
@@ -171,7 +200,7 @@ export default function LiveCameraModal({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || nativeCamera) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">

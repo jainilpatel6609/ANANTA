@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, BellRing, Smartphone, CheckCircle, Volume2, ShieldCheck, X } from 'lucide-react';
-import { getPushPermissionState, requestAndRegisterDevicePush } from '../utils/fcm';
+import { getPushPermissionState, getPushPermissionStateAsync, requestAndRegisterDevicePush } from '../utils/fcm';
 import { notificationService } from '../services';
 import toast from 'react-hot-toast';
 
@@ -12,6 +12,8 @@ export default function NotificationPermissionPrompt({ role = 'DEALER' }) {
 
   useEffect(() => {
     setPermission(getPushPermissionState());
+    // Inside the Android app the real permission status is read from the native side asynchronously.
+    getPushPermissionStateAsync().then(setPermission);
   }, []);
 
   if (dismissed || permission === 'unsupported' || permission === 'denied') {

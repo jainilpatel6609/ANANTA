@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { orderService, deliveryService, driverService } from '../../services';
+import { getApiBaseUrl } from '../../services/api';
+import { isNativeApp, startNativeLiveLocation, stopNativeLiveLocation } from '../../utils/nativeBridge';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import LiveCameraModal from '../../components/LiveCameraModal';
 import {
@@ -66,6 +68,11 @@ export default function DriverDeliveryDetails() {
     fetchOrder();
   }, [id]);
 
+  // Delivery completed: stop the Android app's continuous live-location sharing (no-op in a browser).
+  useEffect(() => {
+    if (order?.orderStatus === 'DELIVERED') stopNativeLiveLocation();
+  }, [order?.orderStatus]);
+
   // Handle Delivery OTP Verification
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
@@ -105,6 +112,15 @@ export default function DriverDeliveryDetails() {
             speed: speed || 0
           });
           toast.success('Live GPS coordinates broadcasted to customer!');
+          // Android app: keep sharing continuously (also in the background) through native GPS. It posts to the same
+          // endpoint as above, so the customer's live map keeps updating over the existing Socket.IO broadcast.
+          if (isNativeApp()) {
+            startNativeLiveLocation({
+              orderId: id,
+              token: localStorage.getItem('ananta_token'),
+              apiBase: getApiBaseUrl()
+            }).catch((err) => toast.error(err.message || 'Could not start continuous live location.'));
+          }
           fetchOrder(); // Picks up fulfillmentStage advancing to LOCATION_SHARED on Dumper orders
         } catch (err) {
           toast.error('Failed to update live GPS.');
