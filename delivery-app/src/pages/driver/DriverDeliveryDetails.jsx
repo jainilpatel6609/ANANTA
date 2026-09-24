@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { orderService, deliveryService, driverService } from '../../services';
-import { getApiBaseUrl } from '../../services/api';
-import { isNativeApp, startNativeLiveLocation, stopNativeLiveLocation } from '../../utils/nativeBridge';
+import { orderService, deliveryService } from '../../services';
+import { stopNativeLiveLocation } from '../../utils/nativeBridge';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import LiveCameraModal from '../../components/LiveCameraModal';
 import {
@@ -18,7 +17,6 @@ import {
   AlertCircle,
   ArrowLeft,
   KeyRound,
-  Radio,
   Camera,
   SkipForward,
   Clock,
@@ -42,9 +40,8 @@ export default function DriverDeliveryDetails() {
   const [loading, setLoading] = useState(true);
   const [deliveryOtp, setDeliveryOtp] = useState('');
   const [verifyingOtp, setVerifyingOtp] = useState(false);
-  const [broadcastingGps, setBroadcastingGps] = useState(false);
 
-  // Dumper fulfillment flow (Share Location -> River Royalty -> Stock Yard -> 5 Required Photos)
+  // Dumper fulfillment flow (River Royalty -> Stock Yard -> 5 Required Photos)
   const [activeCameraTarget, setActiveCameraTarget] = useState(null); // which photo slot is being captured
   const [uploadingStage, setUploadingStage] = useState(false);
   const [requiredPhotos, setRequiredPhotos] = useState({}); // { [slotKey]: { file, preview } } -- staged locally until all 5 are submitted together
@@ -91,49 +88,6 @@ export default function DriverDeliveryDetails() {
     } finally {
       setVerifyingOtp(false);
     }
-  };
-
-  // Broadcast Live GPS Location to Customer
-  const handleBroadcastGps = () => {
-    if (!navigator.geolocation) {
-      toast.error('Geolocation is not supported by your browser.');
-      return;
-    }
-
-    setBroadcastingGps(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const { latitude, longitude, heading, speed } = pos.coords;
-          await driverService.updateDriverLocation(id, {
-            latitude,
-            longitude,
-            heading: heading || 0,
-            speed: speed || 0
-          });
-          toast.success('Live GPS coordinates broadcasted to customer!');
-          // Android app: keep sharing continuously (also in the background) through native GPS. It posts to the same
-          // endpoint as above, so the customer's live map keeps updating over the existing Socket.IO broadcast.
-          if (isNativeApp()) {
-            startNativeLiveLocation({
-              orderId: id,
-              token: localStorage.getItem('ananta_token'),
-              apiBase: getApiBaseUrl()
-            }).catch((err) => toast.error(err.message || 'Could not start continuous live location.'));
-          }
-          fetchOrder(); // Picks up fulfillmentStage advancing to LOCATION_SHARED on Dumper orders
-        } catch (err) {
-          toast.error('Failed to update live GPS.');
-        } finally {
-          setBroadcastingGps(false);
-        }
-      },
-      (err) => {
-        toast.error(`GPS Error: ${err.message}`);
-        setBroadcastingGps(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
   };
 
   // River Royalty photo captured -> upload immediately (optional -- capture or skip)
@@ -274,15 +228,6 @@ export default function DriverDeliveryDetails() {
             <Navigation className="w-4 h-4" />
             <span>Open Google Maps Navigation</span>
           </a>
-
-          <button
-            onClick={handleBroadcastGps}
-            disabled={broadcastingGps}
-            className="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all"
-          >
-            <Radio className={`w-4 h-4 text-emerald-400 ${broadcastingGps ? 'animate-pulse' : ''}`} />
-            <span>{broadcastingGps ? 'Broadcasting...' : 'Broadcast Live GPS'}</span>
-          </button>
         </div>
       </div>
 
@@ -324,33 +269,17 @@ export default function DriverDeliveryDetails() {
         </div>
       </div>
 
-      {/* Dumper Fulfillment Flow: Share Location -> River Royalty -> Stock Yard -> 5 Required Photos */}
+      {/* Dumper Fulfillment Flow: River Royalty -> Stock Yard -> 5 Required Photos */}
       {showFulfillmentFlow && (
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-5">
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
             <Truck className="w-4 h-4 text-amber-400" /> Dispatch Checklist
           </h2>
 
-          {/* Step 1: Share Live Location (gates River Royalty) */}
-          {!order.driverLocationSharedAt && (
+          {/* Step 1: River Royalty */}
+          {['DRIVER_ASSIGNED', 'LOCATION_SHARED'].includes(order.fulfillmentStage) && (
             <div className="p-4 bg-slate-950/60 rounded-xl border border-amber-500/30 space-y-3">
-              <p className="text-sm text-slate-200 font-semibold">Step 1: Share your live location</p>
-              <p className="text-xs text-slate-400">Required before you can upload the River Royalty photo.</p>
-              <button
-                onClick={handleBroadcastGps}
-                disabled={broadcastingGps}
-                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-              >
-                <Radio className={`w-4 h-4 ${broadcastingGps ? 'animate-pulse' : ''}`} />
-                <span>{broadcastingGps ? 'Sharing...' : 'Share Live Location'}</span>
-              </button>
-            </div>
-          )}
-
-          {/* Step 2: River Royalty */}
-          {order.fulfillmentStage === 'LOCATION_SHARED' && (
-            <div className="p-4 bg-slate-950/60 rounded-xl border border-amber-500/30 space-y-3">
-              <p className="text-sm text-slate-200 font-semibold">Step 2: River Royalty photo</p>
+              <p className="text-sm text-slate-200 font-semibold">Step 1: River Royalty photo</p>
               <p className="text-xs text-slate-400">Optional -- capture a photo, or skip this step.</p>
               <div className="flex gap-3">
                 <button
@@ -373,10 +302,10 @@ export default function DriverDeliveryDetails() {
             </div>
           )}
 
-          {/* Step 3: Plant Stock Yard Royalty (required photo) */}
+          {/* Step 2: Plant Stock Yard Royalty (required photo) */}
           {order.fulfillmentStage === 'RIVER_ROYALTY_DONE' && (
             <div className="p-4 bg-slate-950/60 rounded-xl border border-amber-500/30 space-y-3">
-              <p className="text-sm text-slate-200 font-semibold">Step 3: Plant Stock Yard Royalty photo</p>
+              <p className="text-sm text-slate-200 font-semibold">Step 2: Plant Stock Yard Royalty photo</p>
               <button
                 onClick={() => setActiveCameraTarget('stockYard')}
                 disabled={uploadingStage}
@@ -388,10 +317,10 @@ export default function DriverDeliveryDetails() {
             </div>
           )}
 
-          {/* Step 4: The 5 required photos, staged locally then submitted together */}
+          {/* Step 3: The 5 required photos, staged locally then submitted together */}
           {order.fulfillmentStage === 'STOCK_YARD_DONE' && (
             <div className="p-4 bg-slate-950/60 rounded-xl border border-amber-500/30 space-y-3">
-              <p className="text-sm text-slate-200 font-semibold">Step 4: Required photos (camera only)</p>
+              <p className="text-sm text-slate-200 font-semibold">Step 3: Required photos (camera only)</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {REQUIRED_PHOTO_SLOTS.map((slot) => (
                   <button
@@ -427,7 +356,7 @@ export default function DriverDeliveryDetails() {
             </div>
           )}
 
-          {/* Step 5: waiting on the dealer to review photos and enter Total Weight */}
+          {/* Step 4: waiting on the dealer to review photos and enter Total Weight */}
           {order.fulfillmentStage === 'PHOTOS_SUBMITTED' && (
             <div className="p-4 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center gap-3">
               <Clock className="w-5 h-5 text-amber-400 shrink-0" />
@@ -435,7 +364,7 @@ export default function DriverDeliveryDetails() {
             </div>
           )}
 
-          {/* Step 6: waiting on customer's final payment */}
+          {/* Step 5: waiting on customer's final payment */}
           {order.fulfillmentStage === 'WEIGHT_ENTERED' && (
             <div className="p-4 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center gap-3">
               <Weight className="w-5 h-5 text-amber-400 shrink-0" />

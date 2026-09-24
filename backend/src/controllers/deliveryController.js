@@ -118,8 +118,7 @@ const assignDriverToOrder = async (req, res) => {
   }
 };
 
-// @desc    Driver uploads the River Royalty photo, or explicitly skips this step (Dumper only) --
-//          requires live location to already have been shared at least once for this order.
+// @desc    Driver uploads the River Royalty photo, or explicitly skips this step (Dumper only).
 //          Skipping is a first-class option, not a workaround.
 // @route   POST /api/deliveries/:id/river-royalty
 // @access  Private (Driver)
@@ -132,10 +131,9 @@ const uploadRiverRoyalty = async (req, res) => {
     if (!order.driverId || order.driverId.toString() !== req.user._id.toString()) {
       return errorResponse(res, 'Unauthorized. This order is not assigned to you.', 403);
     }
-    if (!order.driverLocationSharedAt) {
-      return errorResponse(res, 'Please share your live location before uploading the River Royalty photo.', 400);
-    }
-    if (order.fulfillmentStage !== 'LOCATION_SHARED') {
+    // Live location sharing is no longer a prerequisite; LOCATION_SHARED is still accepted for orders that already
+    // passed that step before it was removed.
+    if (!['DRIVER_ASSIGNED', 'LOCATION_SHARED'].includes(order.fulfillmentStage)) {
       return errorResponse(res, 'The River Royalty step has already been completed.', 400);
     }
 
