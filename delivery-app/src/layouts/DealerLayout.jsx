@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
-import DealerLocationEnforcer from '../components/DealerLocationEnforcer';
 import {
   LayoutDashboard,
   Inbox,
@@ -185,13 +184,11 @@ export default function DealerLayout() {
         </div>
       </aside>
 
-      {/* Main Content Area with Mandatory Location Enforcement */}
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <DealerLocationEnforcer>
-          <main key={location.pathname} className="flex-1 p-4 sm:p-8 overflow-y-auto max-w-7xl mx-auto w-full animate-page-in">
-            <Outlet />
-          </main>
-        </DealerLocationEnforcer>
+        <main key={location.pathname} className="flex-1 p-4 sm:p-8 overflow-y-auto max-w-7xl mx-auto w-full animate-page-in">
+          <Outlet />
+        </main>
       </div>
 
       {/* Mobile Android Bottom Tab Navigation Bar */}
