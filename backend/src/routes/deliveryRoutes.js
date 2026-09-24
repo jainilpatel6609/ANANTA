@@ -13,7 +13,7 @@ router.post(
   deliveryController.assignDriverToOrder
 );
 
-// Driver uploads River Royalty photo (Dumper fulfillment flow, requires location already shared)
+// Driver uploads River Royalty photo, or skips this step (no file = skip); requires location already shared
 router.post(
   '/:id/river-royalty',
   authenticateToken,
@@ -22,7 +22,7 @@ router.post(
   deliveryController.uploadRiverRoyalty
 );
 
-// Driver uploads Plant Stock Yard Royalty photo, or skips this step (no file = skip)
+// Driver uploads the required Plant Stock Yard Royalty photo
 router.post(
   '/:id/stock-yard-royalty',
   authenticateToken,

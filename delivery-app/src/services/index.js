@@ -60,14 +60,14 @@ export const deliveryService = {
   getOtpStatus: (id) => api.get(`/deliveries/${id}/otp`),
   uploadRiverRoyalty: (id, file) => {
     const formData = new FormData();
-    formData.append('riverRoyalty', file);
+    if (file) formData.append('riverRoyalty', file);
     return api.post(`/deliveries/${id}/river-royalty`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
   uploadStockYardRoyalty: (id, file) => {
     const formData = new FormData();
-    if (file) formData.append('stockYardRoyalty', file);
+    formData.append('stockYardRoyalty', file);
     return api.post(`/deliveries/${id}/stock-yard-royalty`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });

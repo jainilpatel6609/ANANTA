@@ -120,7 +120,7 @@ export default function DriverDeliveryDetails() {
     );
   };
 
-  // River Royalty photo captured -> upload immediately (single required photo)
+  // River Royalty photo captured -> upload immediately (optional -- capture or skip)
   const handleRiverRoyaltyCapture = async (blob) => {
     setActiveCameraTarget(null);
     setUploadingStage(true);
@@ -135,7 +135,7 @@ export default function DriverDeliveryDetails() {
     }
   };
 
-  // Plant Stock Yard Royalty photo captured -> upload immediately
+  // Plant Stock Yard Royalty photo captured -> upload immediately (required)
   const handleStockYardCapture = async (blob) => {
     setActiveCameraTarget(null);
     setUploadingStage(true);
@@ -151,11 +151,11 @@ export default function DriverDeliveryDetails() {
   };
 
   // Explicit skip -- no file sent
-  const handleSkipStockYard = async () => {
+  const handleSkipRiverRoyalty = async () => {
     setUploadingStage(true);
     try {
-      await deliveryService.uploadStockYardRoyalty(id, null);
-      toast.success('Plant Stock Yard Royalty step skipped.');
+      await deliveryService.uploadRiverRoyalty(id, null);
+      toast.success('River Royalty step skipped.');
       fetchOrder();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to skip this step.');
@@ -332,28 +332,13 @@ export default function DriverDeliveryDetails() {
           )}
 
           {/* Step 2: River Royalty */}
-          {order.driverLocationSharedAt && !order.riverRoyaltyUrl && (
+          {order.fulfillmentStage === 'LOCATION_SHARED' && (
             <div className="p-4 bg-slate-950/60 rounded-xl border border-amber-500/30 space-y-3">
               <p className="text-sm text-slate-200 font-semibold">Step 2: River Royalty photo</p>
-              <button
-                onClick={() => setActiveCameraTarget('riverRoyalty')}
-                disabled={uploadingStage}
-                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-              >
-                <Camera className="w-4 h-4" />
-                <span>Capture River Royalty Photo</span>
-              </button>
-            </div>
-          )}
-
-          {/* Step 3: Plant Stock Yard Royalty (optional -- capture or skip) */}
-          {order.fulfillmentStage === 'RIVER_ROYALTY_DONE' && (
-            <div className="p-4 bg-slate-950/60 rounded-xl border border-amber-500/30 space-y-3">
-              <p className="text-sm text-slate-200 font-semibold">Step 3: Plant Stock Yard Royalty photo</p>
               <p className="text-xs text-slate-400">Optional -- capture a photo, or skip this step.</p>
               <div className="flex gap-3">
                 <button
-                  onClick={() => setActiveCameraTarget('stockYard')}
+                  onClick={() => setActiveCameraTarget('riverRoyalty')}
                   disabled={uploadingStage}
                   className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
                 >
@@ -361,7 +346,7 @@ export default function DriverDeliveryDetails() {
                   <span>Capture Photo</span>
                 </button>
                 <button
-                  onClick={handleSkipStockYard}
+                  onClick={handleSkipRiverRoyalty}
                   disabled={uploadingStage}
                   className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
                 >
@@ -369,6 +354,21 @@ export default function DriverDeliveryDetails() {
                   <span>Skip This Step</span>
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Step 3: Plant Stock Yard Royalty (required photo) */}
+          {order.fulfillmentStage === 'RIVER_ROYALTY_DONE' && (
+            <div className="p-4 bg-slate-950/60 rounded-xl border border-amber-500/30 space-y-3">
+              <p className="text-sm text-slate-200 font-semibold">Step 3: Plant Stock Yard Royalty photo</p>
+              <button
+                onClick={() => setActiveCameraTarget('stockYard')}
+                disabled={uploadingStage}
+                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+              >
+                <Camera className="w-4 h-4" />
+                <span>Capture Stock Yard Royalty Photo</span>
+              </button>
             </div>
           )}
 

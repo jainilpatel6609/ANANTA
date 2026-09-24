@@ -118,8 +118,9 @@ const assignDriverToOrder = async (req, res) => {
   }
 };
 
-// @desc    Driver uploads the River Royalty photo (Dumper only) -- requires live location to
-//          already have been shared at least once for this order.
+// @desc    Driver uploads the River Royalty photo, or explicitly skips this step (Dumper only) --
+//          requires live location to already have been shared at least once for this order.
+//          Skipping is a first-class option, not a workaround.
 // @route   POST /api/deliveries/:id/river-royalty
 // @access  Private (Driver)
 const uploadRiverRoyalty = async (req, res) => {
@@ -134,22 +135,29 @@ const uploadRiverRoyalty = async (req, res) => {
     if (!order.driverLocationSharedAt) {
       return errorResponse(res, 'Please share your live location before uploading the River Royalty photo.', 400);
     }
-    if (!req.file) {
-      return errorResponse(res, 'River Royalty photo is required.', 400);
+    if (order.fulfillmentStage !== 'LOCATION_SHARED') {
+      return errorResponse(res, 'The River Royalty step has already been completed.', 400);
     }
 
-    order.riverRoyaltyUrl = await processUploadedFile(req.file, 'ananta_traders/royalty');
+    if (req.file) {
+      order.riverRoyaltyUrl = await processUploadedFile(req.file, 'ananta_traders/royalty');
+    }
+    // No file provided = this step was skipped; riverRoyaltyUrl stays '' by design.
+
     order.fulfillmentStage = 'RIVER_ROYALTY_DONE';
     await order.save();
 
-    return successResponse(res, 'River Royalty photo uploaded successfully.', { order });
+    return successResponse(
+      res,
+      req.file ? 'River Royalty photo uploaded successfully.' : 'River Royalty step skipped.',
+      { order }
+    );
   } catch (error) {
     return errorResponse(res, error.message, 500);
   }
 };
 
-// @desc    Driver uploads the Plant Stock Yard Royalty photo, or explicitly skips this step
-//          (Dumper only). Skipping is a first-class option, not a workaround.
+// @desc    Driver uploads the (required) Plant Stock Yard Royalty photo (Dumper only).
 // @route   POST /api/deliveries/:id/stock-yard-royalty
 // @access  Private (Driver)
 const uploadStockYardRoyalty = async (req, res) => {
@@ -165,19 +173,15 @@ const uploadStockYardRoyalty = async (req, res) => {
       return errorResponse(res, 'Please upload the River Royalty photo first.', 400);
     }
 
-    if (req.file) {
-      order.plantStockYardRoyaltyUrl = await processUploadedFile(req.file, 'ananta_traders/stock_yard');
+    if (!req.file) {
+      return errorResponse(res, 'Plant Stock Yard Royalty photo is required.', 400);
     }
-    // No file provided = this step was skipped; plantStockYardRoyaltyUrl stays '' by design.
 
+    order.plantStockYardRoyaltyUrl = await processUploadedFile(req.file, 'ananta_traders/stock_yard');
     order.fulfillmentStage = 'STOCK_YARD_DONE';
     await order.save();
 
-    return successResponse(
-      res,
-      req.file ? 'Plant Stock Yard Royalty photo uploaded successfully.' : 'Plant Stock Yard Royalty step skipped.',
-      { order }
-    );
+    return successResponse(res, 'Plant Stock Yard Royalty photo uploaded successfully.', { order });
   } catch (error) {
     return errorResponse(res, error.message, 500);
   }
