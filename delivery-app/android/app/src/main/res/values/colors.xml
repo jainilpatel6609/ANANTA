@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Black & Gold Luxury theme, matching the web app's Tailwind tokens -->
-    <color name="colorPrimary">#0a0a0a</color>
+    <color name="colorPrimary">#0b0f19</color>
     <color name="colorPrimaryDark">#000000</color>
-    <color name="colorAccent">#c9a227</color>
+    <color name="colorAccent">#b28e4e</color>
 </resources>
