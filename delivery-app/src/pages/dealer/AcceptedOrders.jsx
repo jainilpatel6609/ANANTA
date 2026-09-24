@@ -161,7 +161,7 @@ export default function AcceptedOrders() {
         await deliveryService.dispatchOrder(selectedOrder._id, formData);
         toast.success('Order dispatched! Customer received OTP and Driver received Google Maps Live Navigation link.');
       } else {
-        // Dumper: assignment only. The driver shares live location, uploads River Royalty /
+        // Dumper: assignment only. The driver uploads River Royalty /
         // Stock Yard / weighbridge photos from their own app, and dispatch happens
         // automatically once you enter Total Weight and the customer completes final payment.
         await deliveryService.assignDriver(selectedOrder._id, {
@@ -170,7 +170,7 @@ export default function AcceptedOrders() {
           driverMobile: cleanMobile,
           vehicleNumber: vehicleNumber.trim().toUpperCase()
         });
-        toast.success('Driver assigned! They will share live location and upload the required photos next.');
+        toast.success('Driver assigned! They will upload the required photos next.');
       }
       setSelectedOrder(null);
       loadData();
@@ -436,7 +436,7 @@ export default function AcceptedOrders() {
                 ) : (
                   <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex items-center gap-3 text-xs text-slate-300">
                     <Clock className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span>Waiting for driver to share live location and upload the pickup photos.</span>
+                    <span>Waiting for driver to upload the pickup photos.</span>
                   </div>
                 )}
               </div>
@@ -548,7 +548,7 @@ export default function AcceptedOrders() {
             </div>
 
             {/* Upload Area for Royalty & Weighbridge Photos -- Tractor only. For Dumper, the
-                driver now shares live location and uploads these (and the required weighbridge/
+                driver now uploads these (and the required weighbridge/
                 dumper photos) directly from their own app after being assigned here. */}
             {isTractorOrder(selectedOrder) ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
@@ -630,7 +630,7 @@ export default function AcceptedOrders() {
               <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2.5 text-xs text-emerald-300">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>
-                  <strong>Dumper Delivery:</strong> once assigned, your driver will share live location and upload the River Royalty, Stock Yard, and Weighbridge photos directly from their own app. You'll be notified to enter the Total Weight once they're done.
+                  <strong>Dumper Delivery:</strong> once assigned, your driver will upload the River Royalty, Stock Yard, and Weighbridge photos directly from their own app. You'll be notified to enter the Total Weight once they're done.
                 </span>
               </div>
             )}
