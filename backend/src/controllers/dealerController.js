@@ -1,5 +1,7 @@
 const User = require('../models/User');
 const Order = require('../models/Order');
+const Dumper = require('../models/Dumper');
+const { buildSummary } = require('../utils/dumperAvailability');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
 
 // @desc    Admin: List all dealers with stats
@@ -38,6 +40,21 @@ const getAllDealers = async (req, res) => {
       }
     ]);
 
+    // Dealer-wise dumper counts, computed live from the Dumper records
+    const dumperRows = await Dumper.aggregate([
+      { $match: { dealerId: { $in: dealerIds } } },
+      { $group: { _id: { dealerId: '$dealerId', wheelType: '$wheelType', status: '$status' }, count: { $sum: 1 } } }
+    ]);
+    const dumperRowsByDealer = {};
+    dumperRows.forEach((r) => {
+      const key = r._id.dealerId.toString();
+      (dumperRowsByDealer[key] = dumperRowsByDealer[key] || []).push({
+        wheelType: r._id.wheelType,
+        status: r._id.status,
+        count: r.count
+      });
+    });
+
     const statsMap = {};
     orderStats.forEach((stat) => {
       statsMap[stat._id.toString()] = stat;
@@ -61,7 +78,8 @@ const getAllDealers = async (req, res) => {
         stats: {
           ...stats,
           completionRate
-        }
+        },
+        dumperSummary: buildSummary(dumperRowsByDealer[dealer._id.toString()] || [])
       };
     });
 

@@ -7,6 +7,7 @@ const { processUploadedFile } = require('../middleware/upload');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
 const { emitOrderStatusUpdate } = require('../sockets/socket');
 const { findConflictingActiveOrder } = require('../utils/driverAvailability');
+const { releaseDumperForOrder } = require('../utils/dumperAvailability');
 
 // @desc    Dealer assigns a Driver to an accepted order & dispatches SMS + Live Google Maps Link to Driver's phone
 // @route   POST /api/deliveries/:id/assign-driver
@@ -455,6 +456,9 @@ const verifyDeliveryOtp = async (req, res) => {
     order.deliveredAt = new Date();
     order.deliveryVerifiedAt = new Date();
     await order.save();
+
+    // Delivery complete: the dealer's dumper goes back to Available (IN_ORDER -> AVAILABLE)
+    await releaseDumperForOrder(order._id);
 
     // If driver is linked, update stats & release driver back to AVAILABLE
     if (order.driverId) {

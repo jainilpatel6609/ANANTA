@@ -727,7 +727,11 @@ export default function CreateOrder() {
         material: selectedMaterial?.category,
         locationName: sourcingLocationName,
         lat: useCoords.lat,
-        lng: useCoords.lng
+        lng: useCoords.lng,
+        // Dumper bookings only list dealers with a currently-available dumper of this wheel type
+        ...(selectedVehicleType === 'DUMPER' && selectedCapacity?.wheelCount
+          ? { wheelCount: selectedCapacity.wheelCount }
+          : {})
       });
       const list = res.data?.dealers || [];
       setDealers(list);
@@ -1916,7 +1920,7 @@ export default function CreateOrder() {
                 No dealers currently offer transport for {selectedMaterial?.category}
                 {selectedLocation?.name ? ` from ${selectedLocation.name}` : ''}.{' '}
                 {selectedVehicleType === 'DUMPER'
-                  ? 'A Dumper booking needs at least one dealer with a configured rate for this location — please choose a different sourcing location or contact support.'
+                  ? `A Dumper booking needs a dealer with a configured rate for this location and an available ${selectedCapacity?.wheelCount || ''} Wheel dumper — please choose a different wheel type or sourcing location, or contact support.`
                   : 'A nearby dealer will be auto-assigned, or please contact support.'}
               </div>
             ) : (

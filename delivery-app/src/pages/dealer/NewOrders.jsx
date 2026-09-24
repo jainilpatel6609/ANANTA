@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { orderService, driverService } from '../../services';
+import { orderService, driverService, dumperService } from '../../services';
 import StatusBadge from '../../components/StatusBadge';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
@@ -37,6 +37,8 @@ export default function NewOrders() {
   // Accept & Assign Driver Modal State
   const [acceptingOrder, setAcceptingOrder] = useState(null);
   const [selectedDriverId, setSelectedDriverId] = useState('');
+  const [dumpers, setDumpers] = useState([]);
+  const [selectedDumperId, setSelectedDumperId] = useState('');
   const [driverName, setDriverName] = useState('');
   const [driverMobile, setDriverMobile] = useState('');
   const [vehicleNumber, setVehicleNumber] = useState('');
@@ -58,12 +60,14 @@ export default function NewOrders() {
 
   const loadData = async () => {
     try {
-      const [ordersRes, driversRes] = await Promise.all([
+      const [ordersRes, driversRes, dumpersRes] = await Promise.all([
         orderService.getDealerAvailable(),
         // Only offer drivers who aren't already out on another active delivery --
         // backend also enforces this on submit, this just keeps the picker honest.
-        driverService.getDrivers({ status: 'AVAILABLE' }).catch(() => ({ data: { drivers: [] } }))
+        driverService.getDrivers({ status: 'AVAILABLE' }).catch(() => ({ data: { drivers: [] } })),
+        dumperService.getDumpers({ status: 'AVAILABLE' }).catch(() => ({ data: { dumpers: [] } }))
       ]);
+      setDumpers(dumpersRes.data?.dumpers || []);
 
       if (ordersRes.data?.orders) {
         const orderList = ordersRes.data.orders;
@@ -99,6 +103,7 @@ export default function NewOrders() {
   // Open Accept & Assign Driver Modal
   const openAcceptModal = (order) => {
     setAcceptingOrder(order);
+    setSelectedDumperId('');
     setSelectedDriverId('');
     setDriverName('');
     setDriverMobile('');
@@ -133,6 +138,15 @@ export default function NewOrders() {
 
     let payload = {};
 
+    // Dumper orders: commit one of this dealer's available dumpers of the required wheel type
+    if (!isTractorOrder(acceptingOrder) && acceptingOrder.wheelCountSnapshot) {
+      if (!selectedDumperId) {
+        toast.error(`Please select one of your available ${acceptingOrder.wheelCountSnapshot} Wheel dumpers.`);
+        return;
+      }
+      payload.dumperId = selectedDumperId;
+    }
+
     if (withDriver) {
       if (!driverName.trim() || !driverMobile.trim() || !vehicleNumber.trim()) {
         toast.error('Driver name, 10-digit mobile, and vehicle plate number are required.');
@@ -146,6 +160,7 @@ export default function NewOrders() {
       }
 
       payload = {
+        ...payload,
         driverId: selectedDriverId || undefined,
         driverName: driverName.trim(),
         driverMobile: cleanMobile,
@@ -446,6 +461,34 @@ export default function NewOrders() {
             {/* Driver Selection Section -- Tractor only. Dumper orders keep Accept and
                 Driver Assignment as two separate steps: after accepting here, the dealer
                 assigns a driver from the Accepted Orders screen instead. */}
+            {!isTractorOrder(acceptingOrder) && acceptingOrder.wheelCountSnapshot && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Truck className="w-4 h-4" />
+                  <span>Assign Your {acceptingOrder.wheelCountSnapshot} Wheel Dumper *</span>
+                </label>
+                <select
+                  value={selectedDumperId}
+                  onChange={(e) => setSelectedDumperId(e.target.value)}
+                  className="app-select w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-500 font-medium"
+                >
+                  <option value="">-- Select available dumper --</option>
+                  {dumpers
+                    .filter((d) => d.wheelType === Number(acceptingOrder.wheelCountSnapshot))
+                    .map((d) => (
+                      <option key={d._id} value={d._id}>
+                        {d.numberPlate} — {d.capacity} Ton
+                      </option>
+                    ))}
+                </select>
+                {dumpers.filter((d) => d.wheelType === Number(acceptingOrder.wheelCountSnapshot)).length === 0 && (
+                  <p className="text-[11px] text-rose-400">
+                    You have no available {acceptingOrder.wheelCountSnapshot} Wheel dumper right now. Add or free one in My Dumpers first.
+                  </p>
+                )}
+              </div>
+            )}
+
             {!isTractorOrder(acceptingOrder) ? (
               <div className="p-3.5 rounded-2xl bg-amber-500/5 border border-amber-500/30 flex items-start gap-2.5 text-xs text-slate-300">
                 <Truck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />

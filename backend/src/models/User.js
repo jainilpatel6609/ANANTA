@@ -102,7 +102,8 @@ const userSchema = new mongoose.Schema(
     dealerCode: {
       type: String,
       trim: true,
-      default: null,
+      // No default: a sparse unique index still indexes explicit nulls, so a `null` default would
+      // make every second user without a code collide. Leave the field absent until generated.
       unique: true,
       sparse: true
     },

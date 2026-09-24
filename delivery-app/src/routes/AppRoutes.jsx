@@ -36,6 +36,7 @@ import AcceptedOrders from '../pages/dealer/AcceptedOrders';
 import ActiveDeliveries from '../pages/dealer/ActiveDeliveries';
 import CompletedDeliveries from '../pages/dealer/CompletedDeliveries';
 import DriverManagement from '../pages/dealer/DriverManagement';
+import DumperManagement from '../pages/dealer/DumperManagement';
 import DealerProfile from '../pages/dealer/DealerProfile';
 import TransportConfig from '../pages/dealer/TransportConfig';
 
@@ -88,6 +89,7 @@ export default function AppRoutes() {
           <Route path="/dealer/active" element={<ActiveDeliveries />} />
           <Route path="/dealer/completed" element={<CompletedDeliveries />} />
           <Route path="/dealer/drivers" element={<DriverManagement />} />
+          <Route path="/dealer/dumpers" element={<DumperManagement />} />
           <Route path="/dealer/transport-config" element={<TransportConfig />} />
           <Route path="/dealer/profile" element={<DealerProfile />} />
           <Route path="/dealer/notifications" element={<UserNotifications />} />

@@ -3,6 +3,8 @@ const Location = require('../models/Location');
 const PincodeService = require('../services/pincodeService');
 const RoadDistanceService = require('../services/roadDistanceService');
 const { generateDealerCode } = require('../utils/dealerCode');
+const Dumper = require('../models/Dumper');
+const { getDealerIdsWithAvailableDumper } = require('../utils/dumperAvailability');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
 
 const MATERIALS = ['Sand', 'Aggregate'];
@@ -157,7 +159,7 @@ const deleteMyConfig = async (req, res) => {
 // @access  Public / Customer
 const getEligibleDealers = async (req, res) => {
   try {
-    const { material, locationName, lat, lng } = req.query;
+    const { material, locationName, lat, lng, wheelCount } = req.query;
 
     if (!MATERIALS.includes(material)) {
       return errorResponse(res, 'A valid material (Sand or Aggregate) is required.', 400);
@@ -180,7 +182,19 @@ const getEligibleDealers = async (req, res) => {
       path: 'dealerId',
       match: { role: 'DEALER', isActive: true, isDeleted: { $ne: true } }
     });
-    const validConfigs = configs.filter((cfg) => cfg.dealerId);
+    let validConfigs = configs.filter((cfg) => cfg.dealerId);
+
+    // Dumper bookings pass the required wheel type: only dealers with at least one enabled,
+    // currently-available Dumper of that wheel type are eligible (live Dumper status, not
+    // merely "has a registered dumper").
+    if (wheelCount !== undefined && wheelCount !== '') {
+      const wheel = Number(wheelCount);
+      if (!Dumper.WHEEL_TYPES.includes(wheel)) {
+        return errorResponse(res, 'A valid wheelCount is required for Dumper dealer filtering.', 400);
+      }
+      const eligibleDealerIds = new Set(await getDealerIdsWithAvailableDumper(wheel));
+      validConfigs = validConfigs.filter((cfg) => eligibleDealerIds.has(cfg.dealerId._id.toString()));
+    }
 
     // Resolve the admin-configured sourcing-Location road distance once per distinct
     // locationName present (an external routing lookup), so it isn't repeated per dealer.

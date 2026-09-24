@@ -4,6 +4,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import DealerDumpersModal from '../../components/DealerDumpersModal';
 import { formatINR, formatDate } from '../../utils/formatters';
 import {
   Building2,
@@ -20,7 +21,8 @@ import {
   CheckCircle2,
   XCircle,
   MapPin,
-  AlertTriangle
+  AlertTriangle,
+  Truck
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -77,6 +79,7 @@ export default function DealerManagement() {
 
   // Delete Dealer Confirmation Modal
   const [deleteModalDealer, setDeleteModalDealer] = useState(null);
+  const [dumperModalDealer, setDumperModalDealer] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
   // Reset Password Modal
@@ -396,6 +399,7 @@ export default function DealerManagement() {
                   <th className="px-4 py-3.5">Dealership / Firm</th>
                   <th className="px-4 py-3.5">Depot PIN & Location</th>
                   <th className="px-4 py-3.5">Contact Line</th>
+                  <th className="px-4 py-3.5">Dumpers</th>
                   <th className="px-4 py-3.5">Total Deliveries</th>
                   <th className="px-4 py-3.5">Fulfillment Rate</th>
                   <th className="px-4 py-3.5">Total Revenue</th>
@@ -426,6 +430,24 @@ export default function DealerManagement() {
                       <div className="text-slate-200">{dealer.mobile}</div>
                       <div className="text-[10px] text-slate-500">{dealer.email || 'No email'}</div>
                     </td>
+                    <td className="px-4 py-3.5 min-w-[190px]">
+                      <div className="font-bold text-white font-mono">Total Dumpers: {dealer.dumperSummary?.total || 0}</div>
+                      <div className="text-[10px] font-mono text-slate-400">
+                        <span className="text-emerald-400">Available: {dealer.dumperSummary?.available || 0}</span>
+                        {' | '}
+                        <span className="text-amber-400">In Order: {dealer.dumperSummary?.inOrder || 0}</span>
+                        {' | '}
+                        <span>Disabled: {dealer.dumperSummary?.disabled || 0}</span>
+                      </div>
+                      <div className="mt-1 space-y-0.5 text-[10px] font-mono text-slate-500">
+                        {[10, 12, 14, 16, 18].map((w) => {
+                          const b = dealer.dumperSummary?.wheels?.[w] || { available: 0, inOrder: 0 };
+                          return (
+                            <div key={w}>{w}W: {b.available} Available | {b.inOrder} In Order</div>
+                          );
+                        })}
+                      </div>
+                    </td>
                     <td className="px-4 py-3.5">
                       <div className="font-bold text-white font-mono">{dealer.stats?.completedOrders || 0} completed</div>
                       <div className="text-[10px] text-slate-500">{dealer.stats?.totalOrders || 0} total assigned</div>
@@ -453,6 +475,15 @@ export default function DealerManagement() {
                     </td>
                     <td className="px-4 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => setDumperModalDealer(dealer)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 font-bold text-xs border border-sky-500/20 transition-all shadow-sm"
+                          title="View / manage this dealer's dumpers"
+                        >
+                          <Truck className="w-3.5 h-3.5" />
+                          <span>Dumpers</span>
+                        </button>
+
                         <button
                           onClick={() => openEditModal(dealer)}
                           className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 font-bold text-xs border border-amber-500/20 transition-all shadow-sm"
@@ -1040,6 +1071,12 @@ export default function DealerManagement() {
           </div>
         </div>
       </Modal>
+
+      <DealerDumpersModal
+        dealer={dumperModalDealer}
+        onClose={() => setDumperModalDealer(null)}
+        onChanged={loadDealers}
+      />
     </div>
   );
 }

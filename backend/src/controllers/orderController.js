@@ -9,6 +9,7 @@ const DealerTransportConfig = require('../models/DealerTransportConfig');
 const { generateOrderNumber } = require('../utils/orderNumber');
 const { generateDealerCode } = require('../utils/dealerCode');
 const { findConflictingActiveOrder } = require('../utils/driverAvailability');
+const { claimDumperForOrder, releaseDumperForOrder } = require('../utils/dumperAvailability');
 const RazorpayService = require('../services/razorpayService');
 const NotificationService = require('../services/notificationService');
 const PincodeService = require('../services/pincodeService');
@@ -812,6 +813,27 @@ const acceptOrder = async (req, res) => {
       }
     }
 
+    // Dumper orders: the accepting dealer must commit one of their own available dumpers of the
+    // required wheel type (Available -> In Order). Claimed atomically so the same dumper can never
+    // be on two active orders.
+    let claimedDumper = null;
+    if (order.vehicleTypeSnapshot === 'DUMPER' && order.wheelCountSnapshot) {
+      claimedDumper = await claimDumperForOrder({
+        dumperId: (req.body || {}).dumperId,
+        dealerId: req.user._id,
+        wheelType: order.wheelCountSnapshot,
+        orderId: order._id
+      });
+      if (!claimedDumper) {
+        return errorResponse(
+          res,
+          `Select one of your available ${order.wheelCountSnapshot} Wheel dumpers to accept this order.`,
+          400
+        );
+      }
+      order.dumperId = claimedDumper._id;
+    }
+
     // Optional Driver Assignment right at Acceptance / Claim Time
     const { driverId, driverName, driverMobile, vehicleNumber } = req.body || {};
     let finalDriverName = (driverName || '').trim();
@@ -838,6 +860,7 @@ const acceptOrder = async (req, res) => {
         excludeOrderId: order._id
       });
       if (conflict) {
+        if (claimedDumper) await releaseDumperForOrder(order._id);
         return errorResponse(
           res,
           `This driver is already on an active delivery (Order #${conflict.orderNumber}). They'll be available again once that delivery is completed.`,
@@ -876,7 +899,12 @@ const acceptOrder = async (req, res) => {
       }).catch((err) => console.warn('[SMS Driver Assignment Warning]', err.message));
     }
 
-    await order.save();
+    try {
+      await order.save();
+    } catch (saveErr) {
+      if (claimedDumper) await releaseDumperForOrder(order._id);
+      throw saveErr;
+    }
 
     // Notify Customer
     await NotificationService.send({

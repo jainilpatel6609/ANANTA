@@ -67,6 +67,14 @@ export const driverService = {
   deleteDriver: (id) => api.delete(`/drivers/${id}`)
 };
 
+export const dumperService = {
+  getDumpers: (params) => api.get('/dumpers', { params }),
+  createDumper: (data) => api.post('/dumpers', data),
+  updateDumper: (id, data) => api.put(`/dumpers/${id}`, data),
+  toggleDumper: (id) => api.patch(`/dumpers/${id}/toggle`),
+  deleteDumper: (id) => api.delete(`/dumpers/${id}`)
+};
+
 export const paymentService = {
   verify: (data) => api.post('/payments/verify', data),
   verifyPayment: (data) => api.post('/payments/verify', data),

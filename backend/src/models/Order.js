@@ -209,6 +209,12 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: ''
     },
+    // The dealer-registered Dumper (see models/Dumper.js) currently assigned to this order.
+    dumperId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Dumper',
+      default: null
+    },
     wheelCountSnapshot: {
       type: Number,
       default: null
