@@ -233,12 +233,10 @@ const createOrder = async (req, res) => {
       }
     }
 
-    // 6. Mandatory 6-digit Indian PIN code & Address validation
+    // 6. PIN code is optional -- a confirmed map/GPS pin (latitude/longitude below) can stand in
+    // for it. When a PIN code IS provided, it must still be a valid 6-digit Indian PIN.
     const pincode = String(rawPincode || shippingDetails?.pincode || '').trim();
-    if (!pincode) {
-      return errorResponse(res, 'A 6-digit Indian PIN code is mandatory for the shipping address.', 400);
-    }
-    if (!PincodeService.isValidIndianPincode(pincode)) {
+    if (pincode && !PincodeService.isValidIndianPincode(pincode)) {
       return errorResponse(
         res,
         'Invalid PIN code. Must be exactly 6 numeric digits (e.g. 384001). Letters and special characters are not allowed.',
@@ -246,8 +244,8 @@ const createOrder = async (req, res) => {
       );
     }
 
-    // Geocode PIN code
-    const pinGeo = await PincodeService.lookup(pincode);
+    // Geocode PIN code (only if one was actually provided)
+    const pinGeo = pincode ? await PincodeService.lookup(pincode) : null;
 
     // Build structured shipping details
     const finalGpsAccuracy =
@@ -850,7 +848,7 @@ const acceptOrder = async (req, res) => {
       }
     }
 
-    if (finalDriverName && finalDriverMobile && finalVehicleNumber) {
+    if (finalDriverName && finalDriverMobile) {
       const cleanDriverMobile = String(finalDriverMobile).replace(/\D/g, '').slice(-10);
 
       // A driver can only be on one active (not-yet-delivered) delivery at a time.

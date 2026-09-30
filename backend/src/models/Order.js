@@ -122,7 +122,7 @@ const orderSchema = new mongoose.Schema(
     },
     pincode: {
       type: String,
-      required: [true, 'PIN code is required'],
+      default: '',
       index: true
     },
     deliveryPincode: {

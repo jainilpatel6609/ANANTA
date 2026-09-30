@@ -103,8 +103,8 @@ export default function AcceptedOrders() {
     if (matchedDriver) {
       setDriverName(matchedDriver.name);
       setDriverMobile(matchedDriver.mobile);
-      setVehicleNumber(matchedDriver.vehicleNumber);
-      toast.success(`Selected driver ${matchedDriver.name} (${matchedDriver.vehicleNumber})`);
+      setVehicleNumber(matchedDriver.vehicleNumber || '');
+      toast.success(`Selected driver ${matchedDriver.name}`);
     }
   };
 
@@ -126,8 +126,8 @@ export default function AcceptedOrders() {
 
   const handleDispatchSubmit = async (e) => {
     e.preventDefault();
-    if (!driverName.trim() || !driverMobile.trim() || !vehicleNumber.trim()) {
-      toast.error('Driver name, mobile number, and vehicle plate number are required.');
+    if (!driverName.trim() || !driverMobile.trim()) {
+      toast.error('Driver name and mobile number are required.');
       return;
     }
 
@@ -479,7 +479,7 @@ export default function AcceptedOrders() {
                   <option value="">-- Choose a driver or type manually below --</option>
                   {assignableDrivers.map((d) => (
                     <option key={d._id} value={d._id}>
-                      {d.name} (+91 {d.mobile}) — {d.vehicleNumber} ({d.vehicleType})
+                      {d.name} (+91 {d.mobile})
                       {d._id === selectedOrder.driverId ? ' — currently on this order' : ''}
                     </option>
                   ))}
@@ -494,7 +494,7 @@ export default function AcceptedOrders() {
             )}
 
             {/* Driver Form Inputs */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
                 <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
                   Driver Full Name *
@@ -521,20 +521,6 @@ export default function AcceptedOrders() {
                   value={driverMobile}
                   onChange={(e) => setDriverMobile(e.target.value.replace(/\D/g, ''))}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500 font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
-                  Vehicle Plate Number *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. GJ-02-AB-1234"
-                  value={vehicleNumber}
-                  onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500 uppercase font-mono font-bold"
                 />
               </div>
             </div>

@@ -40,8 +40,8 @@ const assignDriverToOrder = async (req, res) => {
       }
     }
 
-    if (!finalDriverName || !finalDriverMobile || !finalVehicleNumber) {
-      return errorResponse(res, 'Driver name, 10-digit mobile number, and vehicle plate number are required.', 400);
+    if (!finalDriverName || !finalDriverMobile) {
+      return errorResponse(res, 'Driver name and 10-digit mobile number are required.', 400);
     }
 
     const cleanDriverMobile = String(finalDriverMobile).replace(/\D/g, '').slice(-10);
@@ -269,8 +269,8 @@ const dispatchOrder = async (req, res) => {
       }
     }
 
-    if (!finalDriverName || !finalDriverMobile || !finalVehicleNumber) {
-      return errorResponse(res, 'Driver name, driver mobile number, and vehicle registration number are required.', 400);
+    if (!finalDriverName || !finalDriverMobile) {
+      return errorResponse(res, 'Driver name and driver mobile number are required.', 400);
     }
 
     const cleanDriverMobile = String(finalDriverMobile).replace(/\D/g, '').slice(-10);

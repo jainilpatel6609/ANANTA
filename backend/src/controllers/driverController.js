@@ -145,10 +145,6 @@ const createDriver = async (req, res) => {
       return errorResponse(res, 'Invalid Indian mobile number. Must be 10 digits starting with 6, 7, 8, or 9.', 400);
     }
 
-    if (!vehicleNumber || !vehicleNumber.trim()) {
-      return errorResponse(res, 'Vehicle registration plate number is required (e.g. GJ-02-AB-1234).', 400);
-    }
-
     const dealerId = req.user.role === 'ADMIN' && req.body.dealerId ? req.body.dealerId : req.user._id;
 
     // Check if driver with same mobile already exists for this dealer
@@ -189,7 +185,7 @@ const createDriver = async (req, res) => {
       name: name.trim(),
       mobile: cleanMobile,
       alternateMobile: alternateMobile ? String(alternateMobile).replace(/\D/g, '').slice(-10) : '',
-      vehicleNumber: vehicleNumber.trim().toUpperCase(),
+      vehicleNumber: vehicleNumber ? vehicleNumber.trim().toUpperCase() : '',
       vehicleType: vehicleType || 'Tractor',
       licenseNumber: licenseNumber ? licenseNumber.trim().toUpperCase() : '',
       licenseFrontUrl: licenseFrontUrl || '',

@@ -7,7 +7,7 @@ import OrderAlarmBanner from '../../components/OrderAlarmBanner';
 import NotificationPermissionPrompt from '../../components/NotificationPermissionPrompt';
 import Modal from '../../components/Modal';
 import { useAlarm } from '../../hooks/useAlarm';
-import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport, isTractorOrder } from '../../utils/formatters';
+import { formatINR, formatDate, formatOrderQuantity, isTractorOrder } from '../../utils/formatters';
 import {
   Inbox,
   CheckCircle2,
@@ -329,7 +329,7 @@ export default function NewOrders() {
                 </div>
 
                 {/* Order Specs */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs">
                   <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-950 border border-slate-800/80 space-y-0.5 sm:space-y-1">
                     <span className="text-slate-400 block uppercase tracking-wider text-[9px] sm:text-[10px] font-bold">
                       Material Specification
@@ -340,14 +340,6 @@ export default function NewOrders() {
                       {order.sandLocation ? `• Origin: ${order.sandLocation}` : ''}
                       {order.aggregateType ? `• Grade: ${order.aggregateType}` : ''}
                     </div>
-                  </div>
-
-                  <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-950 border border-slate-800/80 space-y-0.5 sm:space-y-1">
-                    <span className="text-slate-400 block uppercase tracking-wider text-[9px] sm:text-[10px] font-bold">
-                      Required Tractors / Quantity
-                    </span>
-                    <div className="text-sm sm:text-base font-bold text-brand-400 font-mono">{formatOrderQuantity(order)}</div>
-                    <div className="text-slate-300 font-medium">{formatOrderTransport(order)}</div>
                   </div>
 
                   <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-950 border border-slate-800/80 space-y-0.5 sm:space-y-1">
@@ -372,15 +364,6 @@ export default function NewOrders() {
                           PIN: {order.pincode}
                         </span>
                       )}
-                      {typeof order.distanceToDealer === 'number' ? (
-                        <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono font-bold text-[10px] border border-emerald-500/20">
-                          📍 ~{order.distanceToDealer} km from your depot
-                        </span>
-                      ) : typeof order.dealerDistanceKm === 'number' ? (
-                        <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono font-bold text-[10px] border border-emerald-500/20">
-                          📍 ~{order.dealerDistanceKm} km from your depot
-                        </span>
-                      ) : null}
                     </div>
                   </div>
 

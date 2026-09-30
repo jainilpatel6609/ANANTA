@@ -255,12 +255,6 @@ export default function DriverManagement() {
       return;
     }
 
-    if (!formData.vehicleNumber.trim()) {
-      toast.error('Vehicle registration number is mandatory (e.g. GJ-02-AB-1234).');
-      setActiveTab('BASIC');
-      return;
-    }
-
     // 2. Compulsory KYC Validation
     if (!formData.licenseNumber || !formData.licenseNumber.trim()) {
       toast.error('Driving License Number is compulsory.');
@@ -813,39 +807,6 @@ export default function DriverManagement() {
                   onChange={(e) => setFormData({ ...formData, alternateMobile: e.target.value.replace(/\D/g, '') })}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white font-mono focus:outline-none focus:border-amber-500"
                 />
-              </div>
-
-              {/* Vehicle Registration & Type */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                    Vehicle Registration Plate *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. GJ-02-AB-1234"
-                    value={formData.vehicleNumber}
-                    onChange={(e) => setFormData({ ...formData, vehicleNumber: e.target.value.toUpperCase() })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white font-mono font-bold focus:outline-none focus:border-amber-500 uppercase"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                    Vehicle Type
-                  </label>
-                  <select
-                    value={formData.vehicleType}
-                    onChange={(e) => setFormData({ ...formData, vehicleType: e.target.value })}
-                    className="app-select w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500"
-                  >
-                    <option value="Tractor">Tractor (Single / Double Patiya)</option>
-                    <option value="Dumper">Dumper (10 / 12 / 16 Wheel)</option>
-                    <option value="Truck">Truck</option>
-                    <option value="Other">Other Commercial Vehicle</option>
-                  </select>
-                </div>
               </div>
 
               <div className="pt-2 flex justify-end">

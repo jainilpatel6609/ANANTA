@@ -32,9 +32,9 @@ const driverSchema = new mongoose.Schema(
     },
     vehicleNumber: {
       type: String,
-      required: [true, 'Vehicle plate number is required'],
       trim: true,
-      uppercase: true
+      uppercase: true,
+      default: ''
     },
     vehicleType: {
       type: String,

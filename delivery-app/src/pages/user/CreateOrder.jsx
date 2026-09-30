@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -110,7 +110,6 @@ export default function CreateOrder() {
   const [mapStatus, setMapStatus] = useState(null); // { type: 'success' | 'warning' | 'error' | 'info', text: string }
   const [isSearchingMap, setIsSearchingMap] = useState(false);
   const [isLocatingGPS, setIsLocatingGPS] = useState(false);
-  const isInternalLocationUpdateRef = useRef(false);
 
   // Post-order & Payment Modal states
   const [createdOrder, setCreatedOrder] = useState(null);
@@ -352,24 +351,6 @@ export default function CreateOrder() {
         if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
           setCoordinates({ lat, lng });
           setCoordinatesConfirmed(true);
-          isInternalLocationUpdateRef.current = true;
-
-          setShippingDetails((prev) => ({
-            ...prev,
-            addressLine1: bestMatch.addressLine1 || bestMatch.title || prev.addressLine1,
-            area: bestMatch.area || prev.area,
-            city: bestMatch.city || prev.city,
-            state: bestMatch.state || prev.state || 'Gujarat',
-            pincode: bestMatch.pincode && /^[1-9][0-9]{5}$/.test(bestMatch.pincode) ? bestMatch.pincode : prev.pincode
-          }));
-
-          if (bestMatch.pincode && /^[1-9][0-9]{5}$/.test(bestMatch.pincode)) {
-            setPincodeValidation({
-              valid: true,
-              message: `✓ Verified PIN Code (${bestMatch.city || bestMatch.state})`,
-              loading: false
-            });
-          }
 
           setMapStatus({
             type: 'success',
@@ -406,10 +387,6 @@ export default function CreateOrder() {
   // Debounced auto-search when user modifies address fields in Step 6
   useEffect(() => {
     if (step !== 6) return;
-    if (isInternalLocationUpdateRef.current) {
-      isInternalLocationUpdateRef.current = false;
-      return;
-    }
 
     // A genuine user edit to the address invalidates whatever coordinates were confirmed
     // before -- re-confirmation is required (see the Continue-button guard) before this order
@@ -484,39 +461,11 @@ export default function CreateOrder() {
         setGpsCoordinates({ lat, lng });
         setGpsAccuracy(typeof accuracy === 'number' ? accuracy : null);
 
-        // Reverse geocode via Backend to auto-fill address fields accurately
-        try {
-          const res = await pincodeService.reverseGeocode(lat, lng);
-          const location = res.data?.location;
-          if (location) {
-            isInternalLocationUpdateRef.current = true;
-            setShippingDetails((prev) => ({
-              ...prev,
-              addressLine1: location.addressLine1 || prev.addressLine1,
-              area: location.area || prev.area,
-              city: location.city || prev.city,
-              state: location.state || prev.state || 'Gujarat',
-              pincode: (location.pincode && /^[1-9][0-9]{5}$/.test(location.pincode)) ? location.pincode : prev.pincode,
-              landmark: location.landmark || prev.landmark
-            }));
-
-            if (location.pincode && /^[1-9][0-9]{5}$/.test(location.pincode)) {
-              setPincodeValidation({
-                valid: true,
-                message: `✓ Verified PIN Code (${location.city || location.state})`,
-                loading: false
-              });
-            }
-          }
-        } catch (e) {
-          console.warn('Reverse geocode error on GPS:', e);
-        }
-
         setIsLocatingGPS(false);
         const accuracyText = accuracy ? ` (Accuracy: ${Math.round(accuracy)} meters)` : '';
         setMapStatus({
           type: 'success',
-          text: `✓ GPS location detected${accuracyText} — Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}. Address fields updated.`
+          text: `✓ GPS location detected${accuracyText} — Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}. Please type your delivery address below.`
         });
         toast.success(`Current location detected${accuracy ? ` (Accuracy: ${Math.round(accuracy)}m)` : ''}!`);
       },
@@ -551,67 +500,10 @@ export default function CreateOrder() {
       setPlaceName(parsedLocation.placeName);
     }
 
-    if (parsedLocation && parsedLocation.city) {
-      isInternalLocationUpdateRef.current = true;
-      setShippingDetails((prev) => ({
-        ...prev,
-        addressLine1: parsedLocation.addressLine1 || prev.addressLine1,
-        area: parsedLocation.area || prev.area,
-        city: parsedLocation.city || prev.city,
-        state: parsedLocation.state || prev.state || 'Gujarat',
-        pincode:
-          parsedLocation.pincode && /^[1-9][0-9]{5}$/.test(parsedLocation.pincode)
-            ? parsedLocation.pincode
-            : prev.pincode,
-        landmark: parsedLocation.landmark || prev.landmark
-      }));
-
-      if (parsedLocation.pincode && /^[1-9][0-9]{5}$/.test(parsedLocation.pincode)) {
-        setPincodeValidation({
-          valid: true,
-          message: `✓ Verified PIN Code (${parsedLocation.city || parsedLocation.state})`,
-          loading: false
-        });
-      }
-      return;
-    }
-
-    try {
-      const res = await pincodeService.reverseGeocode(lat, lng);
-      const location = res.data?.location;
-      if (location) {
-        isInternalLocationUpdateRef.current = true;
-        setShippingDetails((prev) => ({
-          ...prev,
-          addressLine1: location.addressLine1 || prev.addressLine1,
-          area: location.area || prev.area,
-          city: location.city || prev.city,
-          state: location.state || prev.state || 'Gujarat',
-          pincode: location.pincode && /^[1-9][0-9]{5}$/.test(location.pincode) ? location.pincode : prev.pincode,
-          landmark: location.landmark || prev.landmark
-        }));
-
-        if (location.pincode && /^[1-9][0-9]{5}$/.test(location.pincode)) {
-          setPincodeValidation({
-            valid: true,
-            message: `✓ Verified PIN Code (${location.city || location.state})`,
-            loading: false
-          });
-        }
-
-        const previewTitle = [location.addressLine1, location.area, location.city].filter(Boolean).join(', ');
-        setMapStatus({
-          type: 'success',
-          text: `✓ Marker placed: ${previewTitle || `${lat.toFixed(5)}, ${lng.toFixed(5)}`} (${location.pincode || 'Gujarat'}) — Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`
-        });
-      }
-    } catch (e) {
-      console.warn('Reverse geocode error on map move:', e);
-      setMapStatus({
-        type: 'info',
-        text: `📍 Delivery marker set to (${lat.toFixed(5)}, ${lng.toFixed(5)}).`
-      });
-    }
+    setMapStatus({
+      type: 'info',
+      text: `📍 Delivery marker set to (${lat.toFixed(5)}, ${lng.toFixed(5)}). Please type your delivery address below.`
+    });
   };
 
   // Handle Selection from Google Places Autocomplete Dropdown
@@ -621,33 +513,16 @@ export default function CreateOrder() {
 
     if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
       setCoordinates({ lat, lng });
+      setCoordinatesConfirmed(true);
       setGpsAccuracy(null);
       if (item.placeId) setPlaceId(item.placeId);
       if (item.placeName || item.title) setPlaceName(item.placeName || item.title);
-      isInternalLocationUpdateRef.current = true;
-
-      setShippingDetails((prev) => ({
-        ...prev,
-        addressLine1: item.addressLine1 || item.formattedAddress?.split(',')[0] || item.title || prev.addressLine1,
-        area: item.area || prev.area,
-        city: item.city || prev.city,
-        state: item.state || prev.state || 'Gujarat',
-        pincode: item.pincode && /^[1-9][0-9]{5}$/.test(item.pincode) ? item.pincode : prev.pincode
-      }));
-
-      if (item.pincode && /^[1-9][0-9]{5}$/.test(item.pincode)) {
-        setPincodeValidation({
-          valid: true,
-          message: `✓ Verified PIN Code (${item.city || item.state})`,
-          loading: false
-        });
-      }
 
       setMapStatus({
         type: 'success',
-        text: `✓ Location selected: ${item.formattedAddress || item.title} (Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)})`
+        text: `✓ Location selected: ${item.formattedAddress || item.title} (Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}). Please type your delivery address below.`
       });
-      toast.success(`Location set to ${item.city || item.title || 'Selected Site'}`);
+      toast.success('Location pin set. Please type your delivery address below.');
     }
   };
 
@@ -748,7 +623,7 @@ export default function CreateOrder() {
   };
 
   const handleProceedToPayment = async () => {
-    if (!shippingDetails.fullName || !shippingDetails.mobile || !shippingDetails.pincode || !shippingDetails.addressLine1) {
+    if (!shippingDetails.fullName || !shippingDetails.mobile || !shippingDetails.addressLine1) {
       toast.error('Please fill in all mandatory delivery site details.');
       setStep(6);
       return;
@@ -1787,11 +1662,12 @@ export default function CreateOrder() {
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-sm"
                   required
                 />
+                <p className="text-[11px] font-medium text-slate-500">Delivery in 48 Hrs.</p>
               </div>
 
               {/* PIN Code with live validation */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Delivery PIN Code *</label>
+                <label className="text-xs font-bold text-slate-700">Delivery PIN Code (Optional)</label>
                 <input
                   type="text"
                   maxLength={6}
@@ -1805,7 +1681,6 @@ export default function CreateOrder() {
                       ? 'border-rose-500/60'
                       : 'border-slate-200'
                   }`}
-                  required
                 />
                 {pincodeValidation.message && (
                   <p
@@ -2144,22 +2019,26 @@ export default function CreateOrder() {
               disabled={isConfirmingLocation}
               onClick={async () => {
                 if (step === 6) {
-                  if (!shippingDetails.fullName || !shippingDetails.mobile || !shippingDetails.pincode || !shippingDetails.addressLine1) {
+                  if (!shippingDetails.fullName || !shippingDetails.mobile || !shippingDetails.addressLine1) {
                     toast.error('Please complete all required delivery details.');
                     return;
                   }
                   if (pincodeValidation.valid === false) {
-                    toast.error('Please enter a valid 6-digit Indian PIN code.');
+                    toast.error('Please enter a valid 6-digit Indian PIN code, or leave it blank and pin your location on the map.');
                     return;
                   }
 
                   // Distance-based pricing depends entirely on `coordinates` matching the
-                  // address just typed. The debounced auto-geocode may not have finished yet
-                  // (race condition) -- if it hasn't genuinely resolved, force one guaranteed,
-                  // awaited PIN-code lookup right now rather than risk sending a stale/default
-                  // coordinate (e.g. the customer's own account location) into the distance calc.
+                  // delivery site. If the customer hasn't confirmed a location via the map/GPS
+                  // pin, fall back to a PIN-code lookup when one was entered -- otherwise ask
+                  // them to pin the location directly rather than risk a stale/default coordinate
+                  // (e.g. the customer's own account location) going into the distance calc.
                   let coordsToUse = coordinates;
                   if (!coordinatesConfirmed) {
+                    if (!shippingDetails.pincode) {
+                      toast.error('Please pin your delivery location on the map or via GPS to continue.');
+                      return;
+                    }
                     setIsConfirmingLocation(true);
                     try {
                       const res = await pincodeService.lookup(shippingDetails.pincode);
