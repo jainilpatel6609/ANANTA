@@ -157,13 +157,13 @@ export default function DealerDashboard() {
       {/* Quick Action Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Available Orders Box */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 className="text-sm sm:text-base font-black text-white font-display flex items-center gap-2">
-              <Inbox className="w-4 h-4 text-brand-400" />
+        <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 className="text-sm sm:text-base font-black text-slate-900 font-display flex items-center gap-2">
+              <Inbox className="w-4 h-4 text-amber-600" />
               <span>New Order Pool</span>
             </h3>
-            <Link to="/dealer/new-orders" className="text-xs font-bold text-brand-400 hover:underline flex items-center gap-1">
+            <Link to="/dealer/new-orders" className="text-xs font-bold text-amber-600 hover:underline flex items-center gap-1">
               <span>View All ({availableOrders.length})</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </Link>
@@ -178,19 +178,19 @@ export default function DealerDashboard() {
               {availableOrders.slice(0, 3).map((order) => (
                 <div
                   key={order._id}
-                  className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all"
+                  className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-white text-xs">#{order.orderNumber}</span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      <span className="font-mono font-bold text-slate-900 text-xs">#{order.orderNumber}</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                         {formatINR(order.totalAmount)}
                       </span>
                     </div>
-                    <div className="text-xs font-bold text-slate-200">
+                    <div className="text-xs font-bold text-slate-700">
                       {formatOrderQuantity(order)} {order.productNameSnapshot}
                     </div>
-                    <div className="text-[11px] text-slate-400 truncate max-w-xs">
+                    <div className="text-[11px] text-slate-500 truncate max-w-xs">
                       {order.shippingAddress || (typeof order.distanceToDealer === 'number' ? `~${order.distanceToDealer} km away · address unlocks on accept` : 'Address unlocks on accept')}
                     </div>
                   </div>
@@ -207,13 +207,13 @@ export default function DealerDashboard() {
         </div>
 
         {/* Active Deliveries Box */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 className="text-sm sm:text-base font-bold text-white font-display flex items-center gap-2">
-              <Truck className="w-4 h-4 text-blue-400" />
+        <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 className="text-sm sm:text-base font-bold text-slate-900 font-display flex items-center gap-2">
+              <Truck className="w-4 h-4 text-sky-600" />
               <span>Active Shipments & Handover OTP</span>
             </h3>
-            <Link to="/dealer/active" className="text-xs font-bold text-blue-400 hover:underline flex items-center gap-1">
+            <Link to="/dealer/active" className="text-xs font-bold text-sky-600 hover:underline flex items-center gap-1">
               <span>Manage ({activeCount})</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </Link>
@@ -231,14 +231,14 @@ export default function DealerDashboard() {
                 .map((order) => (
                   <div
                     key={order._id}
-                    className="p-4 rounded-2xl bg-slate-950/80 border border-blue-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all"
+                    className="p-4 rounded-2xl bg-slate-50 border border-sky-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all"
                   >
                     <div className="space-y-1">
-                      <span className="font-mono font-bold text-white text-xs">#{order.orderNumber}</span>
-                      <div className="text-xs text-slate-200">
-                        Driver: <strong className="text-amber-300">{order.driverName}</strong> ({order.vehicleNumber})
+                      <span className="font-mono font-bold text-slate-900 text-xs">#{order.orderNumber}</span>
+                      <div className="text-xs text-slate-700">
+                        Driver: <strong className="text-amber-700">{order.driverName}</strong> ({order.vehicleNumber})
                       </div>
-                      <div className="text-[11px] text-slate-400 truncate max-w-xs">{order.shippingAddress}</div>
+                      <div className="text-[11px] text-slate-500 truncate max-w-xs">{order.shippingAddress}</div>
                     </div>
                     <Link
                       to="/dealer/active"

@@ -230,15 +230,15 @@ export default function AcceptedOrders() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white font-display">Accepted Orders</h1>
-          <p className="text-xs text-slate-400">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 font-display">Accepted Orders</h1>
+          <p className="text-xs text-slate-500">
             Orders accepted by your dealership. Assign your driver and upload river royalty & weighbridge certificate to dispatch.
           </p>
         </div>
 
         <a
           href="/dealer/drivers"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs border border-slate-700 transition-colors shrink-0"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-amber-600 font-bold text-xs border border-slate-200 transition-colors shrink-0"
         >
           <Users className="w-4 h-4" />
           <span>Manage Driver Fleet ({drivers.length})</span>
@@ -264,86 +264,86 @@ export default function AcceptedOrders() {
             return (
               <div
                 key={order._id}
-                className="bg-slate-900 border border-slate-800 hover:border-slate-700 transition-all rounded-2xl sm:rounded-3xl p-3 sm:p-7 space-y-3 sm:space-y-6 shadow-xl relative overflow-hidden"
+                className="bg-white border border-slate-200/80 hover:border-slate-300 transition-all rounded-2xl sm:rounded-3xl p-3 sm:p-7 space-y-3 sm:space-y-6 shadow-xs relative overflow-hidden"
               >
                 {/* Header */}
-                <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 border-b border-slate-800 pb-2.5 sm:pb-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 border-b border-slate-100 pb-2.5 sm:pb-4">
                   <div className="space-y-0.5 sm:space-y-1">
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <span className="text-sm sm:text-lg font-black text-white font-mono">#{order.orderNumber}</span>
+                      <span className="text-sm sm:text-lg font-black text-slate-900 font-mono">#{order.orderNumber}</span>
                       <StatusBadge status={order.orderStatus} />
                     </div>
-                    <span className="hidden sm:block text-xs text-slate-400">Accepted: {formatDate(order.acceptedAt || order.updatedAt)}</span>
+                    <span className="hidden sm:block text-xs text-slate-500">Accepted: {formatDate(order.acceptedAt || order.updatedAt)}</span>
                   </div>
 
                   <div className="text-right">
-                    <span className="text-slate-400 block uppercase font-bold text-[9px] sm:text-[10px] tracking-wider">
+                    <span className="text-slate-500 block uppercase font-bold text-[9px] sm:text-[10px] tracking-wider">
                       Order Value
                     </span>
-                    <span className="text-sm sm:text-lg font-black text-amber-400 font-mono">{formatINR(order.totalAmount)}</span>
+                    <span className="text-sm sm:text-lg font-black text-amber-600 font-mono">{formatINR(order.totalAmount)}</span>
                   </div>
                 </div>
 
                 {/* Grid Details */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4 text-xs">
                   {/* Material & Fleet */}
-                  <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-950 border border-slate-800/80 space-y-1 sm:space-y-2">
-                    <span className="text-slate-400 font-bold block uppercase text-[9px] sm:text-[10px] tracking-wider">
+                  <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1 sm:space-y-2">
+                    <span className="text-slate-500 font-bold block uppercase text-[9px] sm:text-[10px] tracking-wider">
                       Material Specification
                     </span>
-                    <div className="font-bold text-white text-sm">{order.productNameSnapshot}</div>
-                    <div className="text-amber-400 font-medium">
+                    <div className="font-bold text-slate-900 text-sm">{order.productNameSnapshot}</div>
+                    <div className="text-amber-600 font-medium">
                       {order.transportType} ({order.tractorType || order.vehicleType}) • {formatOrderQuantity(order)}
                     </div>
                     {order.sandLocation && (
-                      <div className="text-slate-400 text-[11px]">Source: {order.sandLocation}</div>
+                      <div className="text-slate-500 text-[11px]">Source: {order.sandLocation}</div>
                     )}
                   </div>
 
                   {/* Customer Info */}
-                  <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-950 border border-slate-800/80 space-y-1 sm:space-y-2">
-                    <span className="text-slate-400 font-bold block uppercase text-[9px] sm:text-[10px] tracking-wider">
+                  <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1 sm:space-y-2">
+                    <span className="text-slate-500 font-bold block uppercase text-[9px] sm:text-[10px] tracking-wider">
                       Customer & Site Contact
                     </span>
-                    <div className="font-bold text-white flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-amber-400" />
+                    <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-amber-600" />
                       <span>{order.shippingDetails?.fullName || order.userId?.name}</span>
                     </div>
-                    <div className="text-slate-300 font-mono flex items-center gap-1.5">
-                      <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                    <div className="text-slate-600 font-mono flex items-center gap-1.5">
+                      <Phone className="w-3.5 h-3.5 text-emerald-600" />
                       <span>+91 {order.shippingDetails?.mobile || order.userId?.mobile}</span>
                     </div>
                   </div>
 
                   {/* Destination & Live Google Map Link */}
-                  <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-950 border border-slate-800/80 space-y-1 sm:space-y-2">
-                    <span className="text-slate-400 font-bold block uppercase text-[9px] sm:text-[10px] tracking-wider flex items-center justify-between">
+                  <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1 sm:space-y-2">
+                    <span className="text-slate-500 font-bold block uppercase text-[9px] sm:text-[10px] tracking-wider flex items-center justify-between">
                       <span>Delivery Site</span>
                       <a
                         href={googleMapUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-400 hover:text-amber-300 flex items-center gap-1 normal-case font-semibold"
+                        className="text-amber-600 hover:text-amber-700 flex items-center gap-1 normal-case font-semibold"
                       >
                         <MapPin className="w-3 h-3" />
                         <span>Open Map</span>
                         <ExternalLink className="w-2.5 h-2.5" />
                       </a>
                     </span>
-                    <div className="text-slate-300 leading-snug line-clamp-2">{order.shippingAddress}</div>
+                    <div className="text-slate-600 leading-snug line-clamp-2">{order.shippingAddress}</div>
                     {order.shippingDetails?.landmark && (
-                      <div className="text-slate-400 text-[11px]">Landmark: {order.shippingDetails.landmark}</div>
+                      <div className="text-slate-500 text-[11px]">Landmark: {order.shippingDetails.landmark}</div>
                     )}
                   </div>
                 </div>
 
                 {/* Driver Status Banner if Assigned */}
                 {order.driverName && (
-                  <div className="p-2.5 sm:p-3.5 rounded-lg sm:rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex flex-wrap items-center justify-between gap-2 sm:gap-3 text-xs">
+                  <div className="p-2.5 sm:p-3.5 rounded-lg sm:rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-wrap items-center justify-between gap-2 sm:gap-3 text-xs">
                     <div className="flex items-center gap-2">
-                      <Truck className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span className="text-slate-200">
-                        Assigned Driver: <strong className="text-white">{order.driverName}</strong> (+91 {order.driverMobile}) • Plate: <strong className="font-mono text-amber-400">{order.vehicleNumber}</strong>
+                      <Truck className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="text-slate-700">
+                        Assigned Driver: <strong className="text-slate-900">{order.driverName}</strong> (+91 {order.driverMobile}) • Plate: <strong className="font-mono text-amber-700">{order.vehicleNumber}</strong>
                       </span>
                     </div>
 
@@ -351,7 +351,7 @@ export default function AcceptedOrders() {
                       href={getDriverWhatsAppUrl(order, order.driverMobile, order.driverName)}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black text-xs transition-colors shadow-sm min-h-[36px]"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition-colors shadow-sm min-h-[36px]"
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
                       <span>Share on WhatsApp</span>
@@ -384,17 +384,17 @@ export default function AcceptedOrders() {
                     </button>
                   </div>
                 ) : order.fulfillmentStage === 'PHOTOS_SUBMITTED' ? (
-                  <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/30 space-y-4">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-4">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-amber-700 flex items-center gap-2">
                       <Scale className="w-4 h-4" /> Weighbridge Review &amp; Total Weight
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="p-2 bg-slate-950 rounded-xl border border-slate-800">
-                        <span className="text-[10px] text-slate-400 block mb-1.5 font-semibold uppercase">Weight Bridge Slip</span>
+                      <div className="p-2 bg-white rounded-xl border border-slate-200">
+                        <span className="text-[10px] text-slate-500 block mb-1.5 font-semibold uppercase">Weight Bridge Slip</span>
                         <img src={order.waybridgePhotoUrl} alt="Weight Bridge Slip" className="w-full h-32 object-cover rounded-lg" />
                       </div>
-                      <div className="p-2 bg-slate-950 rounded-xl border border-slate-800">
-                        <span className="text-[10px] text-slate-400 block mb-1.5 font-semibold uppercase">Weight Bridge Display</span>
+                      <div className="p-2 bg-white rounded-xl border border-slate-200">
+                        <span className="text-[10px] text-slate-500 block mb-1.5 font-semibold uppercase">Weight Bridge Display</span>
                         <img src={order.weightBridgeDisplayUrl} alt="Weight Bridge Display" className="w-full h-32 object-cover rounded-lg" />
                       </div>
                     </div>
@@ -407,7 +407,7 @@ export default function AcceptedOrders() {
                           placeholder="Total Weight (Tons)"
                           value={weightInputs[order._id] || ''}
                           onChange={(e) => setWeightInputs((prev) => ({ ...prev, [order._id]: e.target.value }))}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm font-mono text-white focus:outline-none focus:border-amber-500"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-sm font-mono text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
                         />
                       </div>
                       <button
@@ -426,16 +426,16 @@ export default function AcceptedOrders() {
                     </div>
                   </div>
                 ) : order.fulfillmentStage === 'WEIGHT_ENTERED' ? (
-                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex items-center gap-3 text-xs text-slate-300">
-                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-3 text-xs text-slate-700">
+                    <Clock className="w-4 h-4 text-amber-600 shrink-0" />
                     <span>
-                      Total Weight: <strong className="text-white">{order.totalWeight} Ton</strong>. Waiting for customer's
-                      final payment of <strong className="text-amber-400">{formatINR(order.finalPaymentAmount)}</strong> before dispatch.
+                      Total Weight: <strong className="text-slate-900">{order.totalWeight} Ton</strong>. Waiting for customer's
+                      final payment of <strong className="text-amber-600">{formatINR(order.finalPaymentAmount)}</strong> before dispatch.
                     </span>
                   </div>
                 ) : (
-                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex items-center gap-3 text-xs text-slate-300">
-                    <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-3 text-xs text-slate-700">
+                    <Clock className="w-4 h-4 text-amber-600 shrink-0" />
                     <span>Waiting for driver to upload the pickup photos.</span>
                   </div>
                 )}

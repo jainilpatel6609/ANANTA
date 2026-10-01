@@ -14,18 +14,18 @@ export default function OrderAlarmBanner({
   const isDealer = role === 'DEALER';
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-slate-900 border border-red-500/40 p-4 sm:p-5 text-white shadow-classic my-3">
+    <div className="relative overflow-hidden rounded-3xl bg-white border border-red-200 p-4 sm:p-5 text-slate-900 shadow-xs my-3">
       {/* Subtle red tint glow */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-red-500/80" />
 
       <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         {/* Left Side Info */}
         <div className="flex items-start gap-3.5 flex-1">
-          <div className="p-2.5 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-400 shrink-0">
+          <div className="p-2.5 rounded-2xl bg-red-50 border border-red-200 text-red-600 shrink-0">
             {isDealer ? (
               <BellRing className="w-5 h-5" />
             ) : type === 'DEALER_DECLINED' ? (
-              <ShieldAlert className="w-5 h-5 text-red-400" />
+              <ShieldAlert className="w-5 h-5 text-red-600" />
             ) : (
               <AlertTriangle className="w-5 h-5" />
             )}
@@ -33,24 +33,24 @@ export default function OrderAlarmBanner({
 
           <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-300 text-[11px] font-semibold border border-red-500/30 uppercase tracking-wide">
+              <span className="px-2.5 py-0.5 rounded-full bg-red-50 text-red-600 text-[11px] font-semibold border border-red-200 uppercase tracking-wide">
                 {isDealer
                   ? 'New Order Dispatch'
                   : type === 'DEALER_DECLINED'
                   ? 'Dealer Declined'
                   : 'Response Timeout'}
               </span>
-              <span className="text-xs font-medium text-slate-400 font-mono">
+              <span className="text-xs font-medium text-slate-500 font-mono">
                 {count} {count === 1 ? 'Action Required' : 'Orders Need Attention'}
               </span>
             </div>
 
-            <p className="text-xs sm:text-sm font-semibold text-slate-200 leading-snug">
+            <p className="text-xs sm:text-sm font-semibold text-slate-700 leading-snug">
               {isDealer ? (
                 <>
                   New nearest delivery order assigned to your depot. Please respond within 15 minutes.
                   {latestOrder && (
-                    <span className="block text-[11px] font-normal text-slate-400 mt-0.5 truncate">
+                    <span className="block text-[11px] font-normal text-slate-500 mt-0.5 truncate">
                       #{latestOrder.orderNumber} • {latestOrder.productNameSnapshot} • PIN: {latestOrder.pincode}
                     </span>
                   )}
@@ -59,7 +59,7 @@ export default function OrderAlarmBanner({
                 <>
                   A dealer has declined a customer order. Immediate re-routing required.
                   {latestOrder && (
-                    <span className="block text-[11px] font-normal text-slate-400 mt-0.5 truncate">
+                    <span className="block text-[11px] font-normal text-slate-500 mt-0.5 truncate">
                       #{latestOrder.orderNumber} • Declined by: {latestOrder.assignedDealerId?.companyName || latestOrder.assignedDealerId?.name || 'Assigned Dealer'}
                     </span>
                   )}
@@ -68,7 +68,7 @@ export default function OrderAlarmBanner({
                 <>
                   Dealer failed to respond within 15 minutes. Dispatch reassignment needed.
                   {latestOrder && (
-                    <span className="block text-[11px] font-normal text-slate-400 mt-0.5 truncate">
+                    <span className="block text-[11px] font-normal text-slate-500 mt-0.5 truncate">
                       #{latestOrder.orderNumber} • Assigned to: {latestOrder.assignedDealerId?.companyName || latestOrder.assignedDealerId?.name}
                     </span>
                   )}
@@ -79,14 +79,14 @@ export default function OrderAlarmBanner({
         </div>
 
         {/* Right Side Action Buttons */}
-        <div className="flex items-center gap-2.5 w-full md:w-auto justify-end shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
+        <div className="flex items-center gap-2.5 w-full md:w-auto justify-end shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
           <button
             type="button"
             onClick={onToggleMute}
             className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all active:scale-95 border ${
               isMuted
-                ? 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
-                : 'bg-red-500/15 text-red-300 border-red-500/30 hover:bg-red-500/25'
+                ? 'bg-slate-100 text-slate-500 border-slate-200 hover:text-slate-900'
+                : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
             }`}
             title={isMuted ? 'Unmute alarm audio' : 'Silence alarm sound'}
           >

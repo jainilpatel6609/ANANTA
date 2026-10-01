@@ -363,14 +363,14 @@ export default function DriverManagement() {
       {/* Top Header & Add Driver Button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <span className="text-xs font-bold text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
+          <span className="text-xs font-bold text-amber-600 uppercase tracking-widest flex items-center gap-1.5">
             <Truck className="w-4 h-4" />
             <span>Fleet & Logistics Management</span>
           </span>
-          <h1 className="text-2xl sm:text-3xl font-black text-white font-display mt-1">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 font-display mt-1">
             Driver Onboarding & Fleet
           </h1>
-          <p className="text-xs text-slate-400 max-w-2xl">
+          <p className="text-xs text-slate-500 max-w-2xl">
             Onboard drivers with full KYC (License, Aadhaar, PAN, Photo), verify phone with OTP, assign login credentials, and track deliveries.
           </p>
         </div>
@@ -387,29 +387,29 @@ export default function DriverManagement() {
 
       {/* Quick Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Fleet</span>
-          <div className="text-2xl font-black text-white font-display">{drivers.length}</div>
+        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Total Fleet</span>
+          <div className="text-2xl font-black text-slate-900 font-display">{drivers.length}</div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Available</span>
-          <div className="text-2xl font-black text-emerald-400 font-display">{availableCount}</div>
+        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Available</span>
+          <div className="text-2xl font-black text-emerald-600 font-display">{availableCount}</div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">On Delivery</span>
-          <div className="text-2xl font-black text-amber-400 font-display">{onDeliveryCount}</div>
+        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600">On Delivery</span>
+          <div className="text-2xl font-black text-amber-600 font-display">{onDeliveryCount}</div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Trips Completed</span>
-          <div className="text-2xl font-black text-white font-display">{totalDeliveriesCount}</div>
+        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Trips Completed</span>
+          <div className="text-2xl font-black text-slate-900 font-display">{totalDeliveriesCount}</div>
         </div>
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
@@ -417,7 +417,7 @@ export default function DriverManagement() {
             placeholder="Search driver by name, phone, license, or vehicle plate..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+            className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
           />
         </div>
 
@@ -430,7 +430,7 @@ export default function DriverManagement() {
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 filterStatus === st
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
-                  : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                  : 'bg-slate-100 text-slate-500 hover:text-slate-900 border border-slate-200'
               }`}
             >
               {st === 'ALL' ? 'All Drivers' : st === 'AVAILABLE' ? 'Available' : st === 'ON_DELIVERY' ? 'On Delivery' : 'Inactive'}
@@ -462,12 +462,12 @@ export default function DriverManagement() {
             return (
               <div
                 key={driver._id}
-                className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all shadow-lg space-y-4 relative group overflow-hidden"
+                className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-slate-300 transition-all shadow-xs space-y-4 relative group overflow-hidden"
               >
                 {/* Status Glow Bar */}
                 <div
                   className={`absolute top-0 left-0 right-0 h-1 ${
-                    isAvailable ? 'bg-emerald-500' : isOnDelivery ? 'bg-amber-500' : 'bg-slate-700'
+                    isAvailable ? 'bg-emerald-500' : isOnDelivery ? 'bg-amber-500' : 'bg-slate-300'
                   }`}
                 />
 
@@ -478,33 +478,33 @@ export default function DriverManagement() {
                       <img
                         src={driver.photoUrl}
                         alt={driver.name}
-                        className="w-12 h-12 rounded-2xl object-cover border border-amber-500/30"
+                        className="w-12 h-12 rounded-2xl object-cover border border-amber-200"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-amber-400 border border-slate-700 font-black text-lg">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-200 font-black text-lg">
                         {driver.name.charAt(0).toUpperCase()}
                       </div>
                     )}
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <h3 className="font-bold text-white text-sm">{driver.name}</h3>
+                        <h3 className="font-bold text-slate-900 text-sm">{driver.name}</h3>
                         {driver.isMobileVerified && (
-                          <ShieldCheck className="w-4 h-4 text-emerald-400" title="Verified Mobile Number" />
+                          <ShieldCheck className="w-4 h-4 text-emerald-600" title="Verified Mobile Number" />
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
                             isAvailable
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
                               : isOnDelivery
-                              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                              : 'bg-slate-800 text-slate-400 border border-slate-700'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : 'bg-slate-100 text-slate-500 border border-slate-200'
                           }`}
                         >
                           <span
                             className={`w-1.5 h-1.5 rounded-full ${
-                              isAvailable ? 'bg-emerald-400 animate-pulse' : isOnDelivery ? 'bg-amber-400' : 'bg-slate-500'
+                              isAvailable ? 'bg-emerald-500 animate-pulse' : isOnDelivery ? 'bg-amber-500' : 'bg-slate-400'
                             }`}
                           />
                           {driver.status.replace('_', ' ')}
@@ -517,7 +517,7 @@ export default function DriverManagement() {
                     <button
                       type="button"
                       onClick={() => openEditModal(driver)}
-                      className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                      className="p-2 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
                       title="Edit Driver"
                     >
                       <Edit2 className="w-4 h-4" />
@@ -525,7 +525,7 @@ export default function DriverManagement() {
                     <button
                       type="button"
                       onClick={() => handleDelete(driver)}
-                      className="p-2 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                      className="p-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
                       title="Delete Driver"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -534,38 +534,38 @@ export default function DriverManagement() {
                 </div>
 
                 {/* Details Pill Grid */}
-                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 space-y-2 text-xs">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400 flex items-center gap-1.5">
-                      <Truck className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="text-slate-500 flex items-center gap-1.5">
+                      <Truck className="w-3.5 h-3.5 text-slate-400" />
                       <span>Vehicle:</span>
                     </span>
-                    <span className="font-mono font-bold text-amber-400">
+                    <span className="font-mono font-bold text-amber-600">
                       {driver.vehicleNumber} ({driver.vehicleType})
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400 flex items-center gap-1.5">
-                      <Phone className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="text-slate-500 flex items-center gap-1.5">
+                      <Phone className="w-3.5 h-3.5 text-slate-400" />
                       <span>Mobile:</span>
                     </span>
-                    <span className="font-mono text-slate-200">+91 {driver.mobile}</span>
+                    <span className="font-mono text-slate-700">+91 {driver.mobile}</span>
                   </div>
 
                   {driver.licenseNumber && (
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400 flex items-center gap-1.5">
-                        <Shield className="w-3.5 h-3.5 text-slate-500" />
+                      <span className="text-slate-500 flex items-center gap-1.5">
+                        <Shield className="w-3.5 h-3.5 text-slate-400" />
                         <span>License:</span>
                       </span>
-                      <span className="font-mono text-slate-300">{driver.licenseNumber}</span>
+                      <span className="font-mono text-slate-600">{driver.licenseNumber}</span>
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between pt-1 border-t border-slate-800/60 text-[11px]">
-                    <span className="text-slate-500">Deliveries Completed:</span>
-                    <span className="font-bold text-white">{driver.totalDeliveries || 0} Trips</span>
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-200 text-[11px]">
+                    <span className="text-slate-400">Deliveries Completed:</span>
+                    <span className="font-bold text-slate-900">{driver.totalDeliveries || 0} Trips</span>
                   </div>
                 </div>
 
@@ -573,12 +573,12 @@ export default function DriverManagement() {
                 <button
                   type="button"
                   onClick={() => openDocViewer(driver)}
-                  className="w-full py-2 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-300 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  className="w-full py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-600 flex items-center justify-center gap-2 transition-colors cursor-pointer"
                 >
-                  <FileText className="w-3.5 h-3.5 text-amber-400" />
+                  <FileText className="w-3.5 h-3.5 text-amber-600" />
                   <span>View Driver KYC & Documents</span>
                   {hasKyc && (
-                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                   )}
                 </button>
 
@@ -586,9 +586,9 @@ export default function DriverManagement() {
                 <div className="grid grid-cols-2 gap-2 pt-1">
                   <a
                     href={`tel:+91${driver.mobile}`}
-                    className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                    className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
                   >
-                    <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                    <Phone className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Call Driver</span>
                   </a>
 
@@ -596,7 +596,7 @@ export default function DriverManagement() {
                     href={`https://wa.me/91${driver.mobile}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="py-2.5 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                    className="py-2.5 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-600 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
                     <span>WhatsApp</span>

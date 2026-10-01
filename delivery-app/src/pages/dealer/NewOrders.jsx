@@ -255,14 +255,14 @@ export default function NewOrders() {
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
         <div>
-          <h1 className="text-lg sm:text-3xl font-extrabold text-white font-display">New Available Orders</h1>
-          <p className="hidden sm:block text-xs text-slate-400">
+          <h1 className="text-lg sm:text-3xl font-extrabold text-slate-900 font-display">New Available Orders</h1>
+          <p className="hidden sm:block text-xs text-slate-500">
             Open pool of confirmed customer orders. Nearest depot assignments include a mandatory 15-minute response SLA.
           </p>
         </div>
         <button
           onClick={loadData}
-          className="px-2.5 py-1.5 sm:px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-[11px] sm:text-xs font-semibold text-brand-400 border border-slate-800 cursor-pointer shrink-0"
+          className="px-2.5 py-1.5 sm:px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-[11px] sm:text-xs font-semibold text-amber-600 border border-slate-200 cursor-pointer shrink-0"
         >
           Refresh Pool
         </button>
@@ -283,20 +283,20 @@ export default function NewOrders() {
             return (
               <div
                 key={order._id}
-                className={`bg-slate-900 border rounded-2xl sm:rounded-3xl p-3 sm:p-8 space-y-3 sm:space-y-6 shadow-xl transition-all ${
+                className={`bg-white border rounded-2xl sm:rounded-3xl p-3 sm:p-8 space-y-3 sm:space-y-6 shadow-xs transition-all ${
                   isAssignedToMe
-                    ? 'border-amber-500/50 bg-gradient-to-b from-slate-900 to-slate-950 shadow-amber-500/5'
-                    : 'border-slate-800 hover:border-slate-700'
+                    ? 'border-amber-300 bg-gradient-to-b from-amber-50/50 to-white shadow-amber-100'
+                    : 'border-slate-200/80 hover:border-slate-300'
                 }`}
               >
-                <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 border-b border-slate-800 pb-2.5 sm:pb-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 border-b border-slate-100 pb-2.5 sm:pb-4">
                   <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                    <span className="text-sm sm:text-lg font-black font-mono text-white">#{order.orderNumber}</span>
-                    <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                    <span className="text-sm sm:text-lg font-black font-mono text-slate-900">#{order.orderNumber}</span>
+                    <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-600 border border-sky-200">
                       Payment Verified & Placed
                     </span>
                     {isAssignedToMe && (
-                      <span className="px-2 py-0.5 sm:px-2.5 rounded-full text-[10px] sm:text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wide">
+                      <span className="px-2 py-0.5 sm:px-2.5 rounded-full text-[10px] sm:text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 uppercase tracking-wide">
                         Nearest Depot
                       </span>
                     )}
@@ -308,10 +308,10 @@ export default function NewOrders() {
                       <div
                         className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-mono font-bold ${
                           timeInfo.diffSec <= 180
-                            ? 'bg-red-950/40 text-red-300 border border-red-800/50'
+                            ? 'bg-red-50 text-red-600 border border-red-200'
                             : timeInfo.diffSec <= 600
-                            ? 'bg-amber-950/40 text-amber-300 border border-amber-800/50'
-                            : 'bg-emerald-950/40 text-emerald-300 border border-emerald-800/50'
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                            : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
                         }`}
                       >
                         <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -321,7 +321,7 @@ export default function NewOrders() {
                       </div>
                     )}
 
-                    <div className="hidden sm:flex text-xs text-slate-400 items-center gap-1.5">
+                    <div className="hidden sm:flex text-xs text-slate-500 items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5" />
                       {formatDate(order.createdAt)}
                     </div>
@@ -330,37 +330,37 @@ export default function NewOrders() {
 
                 {/* Order Specs */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs">
-                  <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-950 border border-slate-800/80 space-y-0.5 sm:space-y-1">
-                    <span className="text-slate-400 block uppercase tracking-wider text-[9px] sm:text-[10px] font-bold">
+                  <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-50 border border-slate-200/80 space-y-0.5 sm:space-y-1">
+                    <span className="text-slate-500 block uppercase tracking-wider text-[9px] sm:text-[10px] font-bold">
                       Material Specification
                     </span>
-                    <div className="text-sm sm:text-base font-bold text-white">{order.productNameSnapshot}</div>
-                    <div className="text-brand-400 font-semibold">
+                    <div className="text-sm sm:text-base font-bold text-slate-900">{order.productNameSnapshot}</div>
+                    <div className="text-amber-600 font-semibold">
                       {order.category}{' '}
                       {order.sandLocation ? `• Origin: ${order.sandLocation}` : ''}
                       {order.aggregateType ? `• Grade: ${order.aggregateType}` : ''}
                     </div>
                   </div>
 
-                  <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-950 border border-slate-800/80 space-y-0.5 sm:space-y-1">
-                    <span className="text-slate-400 block uppercase tracking-wider text-[9px] sm:text-[10px] font-bold">
+                  <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-50 border border-slate-200/80 space-y-0.5 sm:space-y-1">
+                    <span className="text-slate-500 block uppercase tracking-wider text-[9px] sm:text-[10px] font-bold">
                       Order Value (Paid)
                     </span>
-                    <div className="text-sm sm:text-base font-bold text-white font-mono">{formatINR(order.totalAmount)}</div>
-                    <div className="hidden sm:block text-slate-400 text-[11px]">Direct Razorpay Settlement</div>
+                    <div className="text-sm sm:text-base font-bold text-slate-900 font-mono">{formatINR(order.totalAmount)}</div>
+                    <div className="hidden sm:block text-slate-500 text-[11px]">Direct Razorpay Settlement</div>
                   </div>
                 </div>
 
                 {/* Shipping Drop-off & Nearest Dealer Distance */}
-                <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5 sm:space-y-2 text-xs">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-900 pb-2">
-                    <div className="flex items-center gap-1.5 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
-                      <MapPin className="w-3.5 h-3.5 text-brand-400" />
+                <div className="p-2.5 sm:p-4 rounded-lg sm:rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 sm:space-y-2 text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/70 pb-2">
+                    <div className="flex items-center gap-1.5 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                      <MapPin className="w-3.5 h-3.5 text-amber-600" />
                       Site Delivery Destination
                     </div>
                     <div className="flex items-center gap-2">
                       {order.pincode && (
-                        <span className="px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 font-mono font-bold text-[10px] border border-brand-500/20">
+                        <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 font-mono font-bold text-[10px] border border-amber-200">
                           PIN: {order.pincode}
                         </span>
                       )}
@@ -368,23 +368,23 @@ export default function NewOrders() {
                   </div>
 
                   {order.shippingAddress ? (
-                    <div className="text-slate-200 font-medium">{order.shippingAddress}</div>
+                    <div className="text-slate-700 font-medium">{order.shippingAddress}</div>
                   ) : (
-                    <div className="text-slate-500 italic flex items-center gap-1.5">
+                    <div className="text-slate-400 italic flex items-center gap-1.5">
                       <Lock className="w-3 h-3" />
                       Full address unlocks after you accept
                     </div>
                   )}
                   {order.shippingDetails?.fullName && (
-                    <div className="text-slate-400 text-[11px]">
-                      Recipient: <span className="text-white font-medium">{order.shippingDetails.fullName}</span>
+                    <div className="text-slate-500 text-[11px]">
+                      Recipient: <span className="text-slate-900 font-medium">{order.shippingDetails.fullName}</span>
                       {order.shippingDetails.mobile && (
-                        <span className="font-mono text-slate-300 ml-2">({order.shippingDetails.mobile})</span>
+                        <span className="font-mono text-slate-600 ml-2">({order.shippingDetails.mobile})</span>
                       )}
                     </div>
                   )}
                   {order.deliveryInstructions && (
-                    <div className="text-brand-400 italic text-[11px]">
+                    <div className="text-amber-600 italic text-[11px]">
                       Instructions: "{order.deliveryInstructions}"
                     </div>
                   )}
@@ -395,9 +395,9 @@ export default function NewOrders() {
                   <button
                     type="button"
                     onClick={() => openRejectModal(order)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2.5 sm:px-4 rounded-xl bg-slate-950 hover:bg-red-950/40 border border-slate-800 hover:border-red-500/40 text-slate-400 hover:text-red-300 text-xs font-bold transition-all cursor-pointer min-h-[44px]"
+                    className="inline-flex items-center gap-1.5 px-3 py-2.5 sm:px-4 rounded-xl bg-slate-100 hover:bg-red-50 border border-slate-200 hover:border-red-300 text-slate-500 hover:text-red-600 text-xs font-bold transition-all cursor-pointer min-h-[44px]"
                   >
-                    <XCircle className="w-4 h-4 text-red-400" />
+                    <XCircle className="w-4 h-4 text-red-500" />
                     <span className="hidden sm:inline">Decline Order</span>
                   </button>
 

@@ -57,43 +57,20 @@ export default function UserDashboard() {
     return <LoadingSpinner message="Loading contractor portal..." />;
   }
 
-  // Calculate real metrics or use sensible defaults matching reference
-  const realTotalOrders = orders.length;
-  const realInTransit = orders.filter((o) => ['ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length;
-  const realDelivered = orders.filter((o) => o.orderStatus === 'DELIVERED').length;
-  const realTotalSpend = orders
+  // Real metrics only -- new customers with no orders yet must see zeros, not demo data.
+  const displayTotalOrders = orders.length;
+  const displayInTransit = orders.filter((o) => ['ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length;
+  const displayDelivered = orders.filter((o) => o.orderStatus === 'DELIVERED').length;
+  const displayTotalSpend = orders
     .filter((o) => o.paymentStatus === 'PAID')
     .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
-  // If user has orders use real data, otherwise fallback to reference demo data so UI looks identical
-  const displayTotalOrders = realTotalOrders > 0 ? realTotalOrders : 7;
-  const displayInTransit = realTotalOrders > 0 ? realInTransit : 0;
-  const displayDelivered = realTotalOrders > 0 ? realDelivered : 4;
-  const displayTotalSpend = realTotalSpend > 0 ? realTotalSpend : 20300;
-
   const activeOrder = orders.find((o) => ['ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus));
-  const latestOrders = orders.length > 0 ? orders.slice(0, 5) : [];
-
-  // Fallback demo order for preview if no order placed yet
-  const demoOrder = {
-    _id: 'demo-order-7',
-    orderNumber: 'AT-2026-000007',
-    productNameSnapshot: 'Washed River Sand (Fine)',
-    aggregateType: 'Screened High Purity',
-    vehicleSnapshot: { vehicleType: '14 Wheeler (32 Tonne)', capacityTons: 32 },
-    quantityTons: 32,
-    totalAmount: 16800,
-    orderStatus: 'CONFIRMED',
-    paymentStatus: 'PAID',
-    shippingAddress: 'Arise Ananta, Science City Road, Sola, Ahmedabad',
-    createdAt: new Date().toISOString(),
-    deliveryOtp: '749216'
-  };
-
-  const displayOrders = latestOrders.length > 0 ? latestOrders : [demoOrder];
-  const currentOtp = activeOrder?.deliveryOtp || demoOrder.deliveryOtp;
+  const displayOrders = orders.slice(0, 5);
+  const currentOtp = activeOrder?.deliveryOtp || null;
 
   const handleCopyOtp = () => {
+    if (!currentOtp) return;
     navigator.clipboard.writeText(currentOtp);
     setCopiedOtp(true);
     setTimeout(() => setCopiedOtp(false), 2000);
@@ -355,9 +332,15 @@ export default function UserDashboard() {
 
         {/* Order Cards */}
         <div className="space-y-3">
+          {displayOrders.length === 0 && (
+            <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs text-center space-y-2">
+              <Package className="w-8 h-8 text-slate-300 mx-auto" />
+              <p className="text-sm font-bold text-slate-700">No orders yet</p>
+              <p className="text-xs text-slate-500">Place your first material order to see it tracked here.</p>
+            </div>
+          )}
           {displayOrders.map((order) => {
-            const isDemo = order._id === 'demo-order-7';
-            const orderLink = isDemo ? '/user/create-order' : `/user/orders/${order._id}`;
+            const orderLink = `/user/orders/${order._id}`;
 
             return (
               <div
@@ -460,35 +443,44 @@ export default function UserDashboard() {
               </div>
             </div>
 
-            <div className="bg-slate-900 text-white rounded-2xl p-5 text-center space-y-2">
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                VERIFICATION CODE
-              </div>
-              <div className="text-3xl font-mono font-black text-amber-400 tracking-[0.3em]">
-                {currentOtp}
-              </div>
-              <button
-                type="button"
-                onClick={handleCopyOtp}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-colors"
-              >
-                {copiedOtp ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="text-emerald-400">Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Copy Code</span>
-                  </>
-                )}
-              </button>
-            </div>
+            {currentOtp ? (
+              <>
+                <div className="bg-slate-900 text-white rounded-2xl p-5 text-center space-y-2">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                    VERIFICATION CODE
+                  </div>
+                  <div className="text-3xl font-mono font-black text-amber-400 tracking-[0.3em]">
+                    {currentOtp}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyOtp}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-colors"
+                  >
+                    {copiedOtp ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-400">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy Code</span>
+                      </>
+                    )}
+                  </button>
+                </div>
 
-            <div className="text-[11px] text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-100 leading-relaxed font-medium">
-              💡 <span className="font-semibold text-slate-700">Security Note:</span> Share this OTP with the driver only after the dump truck has reached your site and the weighbridge slip is inspected.
-            </div>
+                <div className="text-[11px] text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-100 leading-relaxed font-medium">
+                  💡 <span className="font-semibold text-slate-700">Security Note:</span> Share this OTP with the driver only after the dump truck has reached your site and the weighbridge slip is inspected.
+                </div>
+              </>
+            ) : (
+              <div className="bg-slate-50 rounded-2xl p-5 text-center border border-slate-100">
+                <p className="text-sm font-bold text-slate-700">No active delivery right now</p>
+                <p className="text-xs text-slate-500 mt-1">Your Gate Pass OTP will appear here once a dispatch is out for delivery.</p>
+              </div>
+            )}
 
             <button
               type="button"

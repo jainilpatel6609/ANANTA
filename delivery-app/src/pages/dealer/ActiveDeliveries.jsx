@@ -77,24 +77,24 @@ export default function ActiveDeliveries() {
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/80 backdrop-blur-md border border-slate-800/80 rounded-3xl p-5 shadow-lg">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200/80 rounded-3xl p-5 shadow-xs">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-black text-white font-display">Active Deliveries</h1>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 font-display">Active Deliveries</h1>
             {orders.length > 0 && (
-              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-black text-xs border border-blue-500/20">
+              <span className="px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-600 font-black text-xs border border-sky-200">
                 {orders.length} en route
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             Vehicles currently en route to construction sites. Enter customer 6-digit OTP upon material unloading.
           </p>
         </div>
         <button
           type="button"
           onClick={loadActive}
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-brand-400 active:scale-95 transition-all min-h-[40px] cursor-pointer self-start sm:self-auto"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-bold text-amber-600 active:scale-95 transition-all min-h-[40px] cursor-pointer self-start sm:self-auto"
         >
           <RotateCw className="w-3.5 h-3.5" />
           <span>Refresh Live</span>
@@ -112,14 +112,14 @@ export default function ActiveDeliveries() {
           {orders.map((order) => (
             <div
               key={order._id}
-              className="bg-slate-900 border border-amber-500/30 rounded-3xl p-5 sm:p-7 space-y-5 shadow-xl relative overflow-hidden"
+              className="bg-white border border-amber-200 rounded-3xl p-5 sm:p-7 space-y-5 shadow-xs relative overflow-hidden"
             >
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
                 <div className="flex items-center gap-3">
-                  <span className="text-lg font-black font-mono text-white">#{order.orderNumber}</span>
+                  <span className="text-lg font-black font-mono text-slate-900">#{order.orderNumber}</span>
                   <StatusBadge status={order.orderStatus} />
                 </div>
-                <div className="text-xs text-amber-300 font-semibold flex items-center gap-1.5 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                <div className="text-xs text-amber-700 font-semibold flex items-center gap-1.5 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
                   <Truck className="w-3.5 h-3.5" />
                   <span>Dispatched: {formatDate(order.outForDeliveryAt || order.updatedAt)}</span>
                 </div>
@@ -127,49 +127,49 @@ export default function ActiveDeliveries() {
 
               {/* Driver & Material summary */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
-                <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1.5">
-                  <span className="text-slate-400 block uppercase tracking-wider text-[10px] font-bold">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                  <span className="text-slate-500 block uppercase tracking-wider text-[10px] font-bold">
                     Driver on Duty
                   </span>
-                  <div className="text-sm font-black text-white">{order.driverName}</div>
+                  <div className="text-sm font-black text-slate-900">{order.driverName}</div>
                   <a
                     href={`tel:${order.driverMobile}`}
-                    className="text-brand-400 font-bold flex items-center gap-1.5 font-mono hover:underline text-xs"
+                    className="text-amber-600 font-bold flex items-center gap-1.5 font-mono hover:underline text-xs"
                   >
                     <Phone className="w-3.5 h-3.5" />
                     <span>{order.driverMobile}</span>
                   </a>
-                  <div className="text-[11px] text-emerald-400 font-mono font-bold uppercase bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 inline-block">
+                  <div className="text-[11px] text-emerald-600 font-mono font-bold uppercase bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-block">
                     Plate: {order.vehicleNumber}
                   </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1.5">
-                  <span className="text-slate-400 block uppercase tracking-wider text-[10px] font-bold">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                  <span className="text-slate-500 block uppercase tracking-wider text-[10px] font-bold">
                     Dispatched Material
                   </span>
-                  <div className="text-sm font-black text-white">{order.productNameSnapshot}</div>
-                  <div className="text-amber-400 font-mono font-bold text-base">{formatOrderQuantity(order)}</div>
-                  <div className="text-[11px] text-slate-400">{formatOrderTransport(order)}</div>
+                  <div className="text-sm font-black text-slate-900">{order.productNameSnapshot}</div>
+                  <div className="text-amber-600 font-mono font-bold text-base">{formatOrderQuantity(order)}</div>
+                  <div className="text-[11px] text-slate-500">{formatOrderTransport(order)}</div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1.5">
-                  <span className="text-slate-400 block uppercase tracking-wider text-[10px] font-bold">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                  <span className="text-slate-500 block uppercase tracking-wider text-[10px] font-bold">
                     Customer & Site Contact
                   </span>
-                  <div className="text-sm font-black text-white flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-amber-400" />
+                  <div className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-amber-600" />
                     <span>{order.shippingDetails?.fullName || order.userId?.name}</span>
                   </div>
                   <a
                     href={`tel:${order.shippingDetails?.mobile || order.userId?.mobile}`}
-                    className="text-slate-300 font-mono text-xs block hover:underline"
+                    className="text-slate-600 font-mono text-xs block hover:underline"
                   >
                     +91 {order.shippingDetails?.mobile || order.userId?.mobile}
                   </a>
-                  <div className="text-[11px] text-slate-400">
+                  <div className="text-[11px] text-slate-500">
                     {order.finalPaymentStatus === 'PAID' ? 'Order Total (Final)' : 'Order Total'}:{' '}
-                    <strong className="text-white font-mono">
+                    <strong className="text-slate-900 font-mono">
                       {formatINR(order.finalPaymentStatus === 'PAID' ? order.finalPaymentAmount : order.totalAmount)}
                     </strong>
                   </div>
@@ -177,13 +177,13 @@ export default function ActiveDeliveries() {
               </div>
 
               {/* Destination & Navigation Action */}
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs">
                 <div className="space-y-1 flex-1">
-                  <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-brand-400" />
+                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-amber-600" />
                     Site Destination
                   </span>
-                  <p className="text-slate-200 font-medium leading-relaxed">{order.shippingAddress}</p>
+                  <p className="text-slate-700 font-medium leading-relaxed">{order.shippingAddress}</p>
                 </div>
 
                 {order.latitude && order.longitude && (
@@ -191,9 +191,9 @@ export default function ActiveDeliveries() {
                     href={`https://maps.google.com/?q=${order.latitude},${order.longitude}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-brand-400 shrink-0 active:scale-95 transition-all min-h-[44px]"
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-amber-600 shrink-0 active:scale-95 transition-all min-h-[44px]"
                   >
-                    <Navigation className="w-4 h-4 text-amber-400" />
+                    <Navigation className="w-4 h-4 text-amber-600" />
                     <span>Open in Maps</span>
                     <ExternalLink className="w-3 h-3 text-slate-400" />
                   </a>

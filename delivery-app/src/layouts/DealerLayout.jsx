@@ -42,14 +42,14 @@ export default function DealerLayout() {
   const isRootPage = location.pathname === '/dealer/dashboard';
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col md:flex-row text-slate-100 selection:bg-brand-500 selection:text-slate-950 pb-20 md:pb-0">
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row text-slate-900 selection:bg-amber-500/20 selection:text-amber-900 pb-20 md:pb-0">
       {/* Mobile Sticky Top App Bar */}
-      <div className="md:hidden sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
+      <div className="md:hidden sticky top-0 z-40 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-2.5">
           {!isRootPage && (
             <Link
               to="/dealer/dashboard"
-              className="p-2 -ml-1 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 active:scale-90 transition-all"
+              className="p-2 -ml-1 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200/60 text-slate-700 active:scale-90 transition-all"
               aria-label="Back to dealer dashboard"
             >
               <ChevronLeft className="w-5 h-5" />
@@ -61,10 +61,10 @@ export default function DealerLayout() {
               <Truck className="w-4 h-4 stroke-[2]" />
             </div>
             <div>
-              <span className="font-bold text-sm font-display text-white block leading-none">
-                DEALER <span className="text-amber-400 font-semibold">DISPATCH</span>
+              <span className="font-bold text-sm font-display text-slate-900 block leading-none">
+                DEALER <span className="text-amber-600 font-semibold">DISPATCH</span>
               </span>
-              <span className="text-[9px] text-slate-400 font-medium uppercase tracking-wider block mt-0.5">
+              <span className="text-[9px] text-slate-500 font-medium uppercase tracking-wider block mt-0.5">
                 Authorized Depot
               </span>
             </div>
@@ -74,18 +74,18 @@ export default function DealerLayout() {
         <div className="flex items-center gap-2">
           <Link
             to="/dealer/notifications"
-            className="relative p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white active:scale-95 transition-all"
+            className="relative p-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200/60 text-slate-700 hover:text-slate-900 active:scale-95 transition-all"
           >
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 bg-amber-600 text-white rounded-full text-[10px] font-semibold flex items-center justify-center border-2 border-slate-950">
+              <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 bg-amber-600 text-white rounded-full text-[10px] font-semibold flex items-center justify-center border-2 border-white">
                 {unreadCount}
               </span>
             )}
           </Link>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 active:scale-95 transition-all"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200/60 text-slate-700 active:scale-95 transition-all"
             aria-label="Toggle menu"
           >
             {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
