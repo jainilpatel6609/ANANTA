@@ -1,19 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Truck,
-  HardHat,
-  Warehouse,
-  Navigation,
+  User,
+  Store,
+  Send,
   ArrowRight,
-  Sparkles,
-  ChevronRight,
-  ShieldCheck,
-  MapPin,
-  Clock,
-  KeyRound,
-  Coins,
-  PhoneCall
+  Sparkles
 } from 'lucide-react';
 
 export default function RoleSelection({ onSelectRole }) {
@@ -30,60 +22,39 @@ export default function RoleSelection({ onSelectRole }) {
   const roles = [
     {
       key: 'USER',
-      title: 'Customer Portal',
-      roleLabel: 'Builder & Contractor',
-      subtitle: 'Order Sand, Aggregate & Grit with Live Delivery',
-      icon: HardHat,
-      badge: 'Order Materials',
-      themeColor: 'emerald',
-      bgGradient: 'from-emerald-500/15 via-emerald-500/5 to-slate-900',
-      borderClass: 'border-emerald-500/30 hover:border-emerald-400 hover:shadow-emerald-500/20',
-      iconBg: 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
-      badgeClass: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-      btnClass: 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/25',
-      features: [
-        { icon: Coins, text: 'Direct Riverbed & Quarry Rates' },
-        { icon: MapPin, text: 'Google Maps GPS Delivery' },
-        { icon: ShieldCheck, text: '100% Genuine Royalty & Slips' }
-      ]
+      titleWhite: 'Customer',
+      titleColor: 'Portal',
+      icon: User,
+      ringClass: 'border-emerald-400/70',
+      glowClass: 'bg-emerald-500',
+      glowShadow: 'shadow-[0_0_55px_-8px_rgba(16,185,129,0.65)]',
+      iconGradient: 'from-emerald-300 to-emerald-600',
+      textColorClass: 'text-emerald-400',
+      arrowClass: 'border-emerald-400/70 text-emerald-400'
     },
     {
       key: 'DEALER',
-      title: 'Dealer Portal',
-      roleLabel: 'Authorized Depot',
-      subtitle: 'Regional Material Depot & Fleet Dispatch Management',
-      icon: Warehouse,
-      badge: 'Depot & Fleet',
-      themeColor: 'amber',
-      bgGradient: 'from-amber-500/15 via-amber-500/5 to-slate-900',
-      borderClass: 'border-amber-500/30 hover:border-amber-400 hover:shadow-amber-500/20',
-      iconBg: 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
-      badgeClass: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-      btnClass: 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/25',
-      features: [
-        { icon: Clock, text: 'Live Order Pool & 15-min Alarms' },
-        { icon: KeyRound, text: 'Customer Delivery OTP Verification' },
-        { icon: Truck, text: 'Tipper & Tractor Fleet Dispatch' }
-      ]
+      titleWhite: 'Dealer',
+      titleColor: 'Portal',
+      icon: Store,
+      ringClass: 'border-amber-400/70',
+      glowClass: 'bg-amber-500',
+      glowShadow: 'shadow-[0_0_55px_-8px_rgba(245,158,11,0.65)]',
+      iconGradient: 'from-amber-300 to-amber-600',
+      textColorClass: 'text-amber-400',
+      arrowClass: 'border-amber-400/70 text-amber-400'
     },
     {
       key: 'DRIVER',
-      title: 'Driver Console',
-      roleLabel: 'Fleet Driver',
-      subtitle: 'Fast Driver Login with Live Route & Customer OTP',
-      icon: Navigation,
-      badge: 'Fleet Transit',
-      themeColor: 'cyan',
-      bgGradient: 'from-cyan-500/15 via-cyan-500/5 to-slate-900',
-      borderClass: 'border-cyan-500/30 hover:border-cyan-400 hover:shadow-cyan-500/20',
-      iconBg: 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30',
-      badgeClass: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
-      btnClass: 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-cyan-500/25',
-      features: [
-        { icon: MapPin, text: 'Turn-by-turn Site Navigation' },
-        { icon: KeyRound, text: 'Verify 6-digit Customer OTP' },
-        { icon: ShieldCheck, text: 'Proof of Delivery Photo Upload' }
-      ]
+      titleWhite: 'Driver',
+      titleColor: 'Portal',
+      icon: Send,
+      ringClass: 'border-blue-400/70',
+      glowClass: 'bg-blue-500',
+      glowShadow: 'shadow-[0_0_55px_-8px_rgba(59,130,246,0.65)]',
+      iconGradient: 'from-blue-300 to-blue-600',
+      textColorClass: 'text-blue-400',
+      arrowClass: 'border-blue-400/70 text-blue-400'
     }
   ];
 
@@ -109,65 +80,43 @@ export default function RoleSelection({ onSelectRole }) {
         </p>
       </div>
 
-      {/* Role Cards Grid */}
-      <div className="relative z-10 max-w-4xl mx-auto w-full py-8 grid grid-cols-1 md:grid-cols-3 gap-5">
+      {/* Glowing Role Circles */}
+      <div className="relative z-10 max-w-sm sm:max-w-3xl mx-auto w-full py-10 flex flex-col sm:flex-row items-center justify-center gap-12 sm:gap-10">
         {roles.map((role) => {
           const Icon = role.icon;
           return (
-            <div
+            <button
               key={role.key}
+              type="button"
               onClick={() => handleSelect(role.key)}
-              className={`relative overflow-hidden bg-gradient-to-b ${role.bgGradient} backdrop-blur-xl border rounded-3xl p-6 sm:p-7 flex flex-col justify-between shadow-2xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer group ${role.borderClass}`}
+              className="relative flex flex-col items-center justify-center group"
             >
-              <div className="space-y-4">
-                {/* Header with icon and role badge */}
-                <div className="flex items-center justify-between">
-                  <div className={`p-3 rounded-2xl ${role.iconBg} shadow-inner group-hover:scale-110 transition-transform`}>
-                    <Icon className="w-7 h-7" />
-                  </div>
-                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${role.badgeClass}`}>
-                    {role.badge}
-                  </span>
+              {/* Ambient glow bloom behind the ring */}
+              <div
+                className={`absolute inset-0 m-auto w-44 h-44 sm:w-48 sm:h-48 rounded-full ${role.glowClass} opacity-20 blur-3xl transition-opacity group-hover:opacity-30 pointer-events-none`}
+              />
+
+              {/* Outer glowing ring */}
+              <div
+                className={`relative w-52 h-52 sm:w-56 sm:h-56 rounded-full border-2 ${role.ringClass} ${role.glowShadow} bg-slate-950/60 flex flex-col items-center justify-center gap-3 transition-transform duration-300 group-hover:scale-[1.04] group-active:scale-[0.97]`}
+              >
+                {/* Icon bubble */}
+                <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${role.iconGradient} flex items-center justify-center shadow-lg`}>
+                  <Icon className="w-8 h-8 text-white" strokeWidth={2.2} />
                 </div>
 
-                {/* Role Title & Description */}
-                <div>
-                  <h3 className="text-xl font-black text-white font-display tracking-tight group-hover:text-brand-300 transition-colors">
-                    {role.title}
-                  </h3>
-                  <div className="text-xs font-bold text-slate-400 mt-0.5">{role.roleLabel}</div>
-                  <p className="text-xs text-slate-400 mt-2 font-medium leading-relaxed">{role.subtitle}</p>
+                {/* Title */}
+                <div className="text-base sm:text-lg font-black tracking-tight">
+                  <span className="text-white">{role.titleWhite}</span>{' '}
+                  <span className={role.textColorClass}>{role.titleColor}</span>
                 </div>
 
-                {/* Features List */}
-                <div className="pt-3 border-t border-slate-800/80 space-y-2.5">
-                  {role.features.map((feat, idx) => {
-                    const FeatIcon = feat.icon;
-                    return (
-                      <div key={idx} className="flex items-center gap-2.5 text-xs text-slate-300 font-medium">
-                        <FeatIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span className="truncate">{feat.text}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+                {/* Arrow trigger */}
+                <span className={`w-7 h-7 rounded-full border flex items-center justify-center ${role.arrowClass}`}>
+                  <ArrowRight className="w-3.5 h-3.5" strokeWidth={2.5} />
+                </span>
               </div>
-
-              {/* Action Trigger Button */}
-              <div className="mt-6 pt-2">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSelect(role.key);
-                  }}
-                  className={`w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl text-xs font-black transition-all shadow-lg active:scale-95 ${role.btnClass}`}
-                >
-                  <span>Enter {role.title.split(' ')[0]}</span>
-                  <ArrowRight className="w-4 h-4 stroke-[2.5] group-hover:translate-x-1 transition-transform" />
-                </button>
-              </div>
-            </div>
+            </button>
           );
         })}
       </div>
