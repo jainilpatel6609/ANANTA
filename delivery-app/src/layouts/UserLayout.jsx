@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
+import HelpRequestModal from '../components/HelpRequestModal';
 import {
   LayoutDashboard,
   LayoutGrid,
@@ -15,12 +16,11 @@ import {
   X,
   ChevronRight,
   ChevronLeft,
-  ChevronDown,
-  MapPin,
   FileText,
   PhoneCall,
   Navigation,
-  Plus
+  Plus,
+  LifeBuoy
 } from 'lucide-react';
 
 export default function UserLayout() {
@@ -28,6 +28,7 @@ export default function UserLayout() {
   const { unreadCount } = useNotifications();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   const navItems = [
     { name: 'Dashboard', path: '/user/dashboard', icon: LayoutDashboard },
@@ -65,14 +66,17 @@ export default function UserLayout() {
           </div>
         </Link>
 
-        {/* Right Controls: Location Pill, Bell, Avatar */}
+        {/* Right Controls: Help, Bell, Avatar */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* Location Pill Selector */}
-          <div className="bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1.5 rounded-full text-[11px] font-semibold text-slate-700 flex items-center gap-1 border border-slate-200/60 shadow-2xs cursor-pointer">
-            <MapPin className="w-3 h-3 text-amber-600 shrink-0" />
-            <span className="max-w-[75px] truncate font-medium">{user?.companyName || user?.city || 'Arise Ananta'}</span>
-            <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
-          </div>
+          {/* Help & Support Button */}
+          <button
+            type="button"
+            onClick={() => setShowHelpModal(true)}
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors"
+            aria-label="Help & Support"
+          >
+            <LifeBuoy className="w-4 h-4" />
+          </button>
 
           {/* Notifications Bell Button */}
           <Link
@@ -258,6 +262,8 @@ export default function UserLayout() {
           </span>
         </Link>
       </nav>
+
+      <HelpRequestModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} />
     </div>
   );
 }

@@ -145,3 +145,8 @@ export const pincodeService = {
   geocode: (q) => api.get('/pincode/geocode', { params: { q } }),
   reverseGeocode: (lat, lng) => api.get('/pincode/reverse-geocode', { params: { lat, lng } })
 };
+
+export const helpService = {
+  getAll: (params) => api.get('/help', { params }),
+  toggleResolve: (id) => api.patch(`/help/${id}/resolve`)
+};

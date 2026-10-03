@@ -13,12 +13,13 @@ import {
   Mail,
   FileText,
   Lock,
-  Sparkles
+  Sparkles,
+  LogOut
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function UserProfile() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const [formData, setFormData] = useState({
     name: user?.name || '',
     whatsappNumber: user?.whatsappNumber || '',
@@ -240,6 +241,16 @@ export default function UserProfile() {
           </button>
         </form>
       </div>
+
+      {/* Logout */}
+      <button
+        type="button"
+        onClick={logout}
+        className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-white hover:bg-rose-50 border border-slate-200/80 hover:border-rose-200 text-rose-600 font-black text-sm transition-all shadow-xs active:scale-98 cursor-pointer"
+      >
+        <LogOut className="w-5 h-5 stroke-[2.5]" />
+        <span>Log Out</span>
+      </button>
     </div>
   );
 }

@@ -18,7 +18,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Coins,
-  Route as RouteIcon
+  Route as RouteIcon,
+  LifeBuoy
 } from 'lucide-react';
 
 export default function AdminLayout() {
@@ -39,6 +40,7 @@ export default function AdminLayout() {
     { name: 'Vehicle & Fleet Management', path: '/vehicles', icon: Truck },
     { name: 'Delivery Radar & OTP', path: '/deliveries', icon: ShieldAlert },
     { name: 'Reports & Analytics', path: '/reports', icon: FileBarChart },
+    { name: 'Help Center', path: '/help-center', icon: LifeBuoy },
     { name: 'Profile & Security', path: '/profile', icon: ShieldCheck }
   ];
 

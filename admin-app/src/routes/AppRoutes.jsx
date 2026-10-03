@@ -25,6 +25,7 @@ import VehicleManagement from '../pages/admin/VehicleManagement';
 import DeliveryMonitoring from '../pages/admin/DeliveryMonitoring';
 import Reports from '../pages/admin/Reports';
 import AdminProfile from '../pages/admin/AdminProfile';
+import HelpCenter from '../pages/admin/HelpCenter';
 
 export default function AppRoutes() {
   return (
@@ -51,6 +52,7 @@ export default function AppRoutes() {
           <Route path="/vehicles" element={<VehicleManagement />} />
           <Route path="/deliveries" element={<DeliveryMonitoring />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/help-center" element={<HelpCenter />} />
           <Route path="/profile" element={<AdminProfile />} />
           <Route path="/settings" element={<AdminProfile />} />
         </Route>

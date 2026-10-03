@@ -96,13 +96,6 @@ export default function UserDashboard() {
             <span className="text-amber-400">👷</span>
             <span>Site Verified Partner</span>
           </div>
-          <a
-            href="tel:9800001111"
-            className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-slate-300 text-[9px] sm:text-[11px] font-medium backdrop-blur-sm hover:text-amber-400 transition-colors shadow-xs"
-          >
-            <span>📞</span>
-            <span className="font-mono">{user?.mobile ? `+91 ${user.mobile}` : '+91 9800001111'}</span>
-          </a>
         </div>
 
         {/* Greeting Title */}
@@ -115,7 +108,7 @@ export default function UserDashboard() {
           </p>
         </div>
 
-        {/* Action Buttons: New Order + OTP */}
+        {/* Action Button: New Order */}
         <div className="flex items-center gap-2 sm:gap-2.5 relative z-10">
           <Link
             to="/user/create-order"
@@ -124,14 +117,6 @@ export default function UserDashboard() {
             <PlusCircle className="w-4 h-4 stroke-[2.5]" />
             <span>NEW MATERIAL ORDER</span>
           </Link>
-          <button
-            type="button"
-            onClick={() => setShowOtpModal(true)}
-            className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-3 py-2.5 sm:px-4 sm:py-3 rounded-full bg-slate-800/90 hover:bg-slate-700 text-white font-bold text-[11px] sm:text-sm border border-amber-500/40 shadow-md active:scale-[0.98] transition-all shrink-0 min-h-[44px]"
-          >
-            <span className="font-mono font-black text-amber-400 tracking-wider">123</span>
-            <span>OTP</span>
-          </button>
         </div>
       </div>
 

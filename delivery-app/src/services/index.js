@@ -181,3 +181,7 @@ export const dealerTransportService = {
   deleteConfig: (id) => api.delete(`/dealer-transport/my-configs/${id}`),
   getEligibleDealers: (params) => api.get('/dealer-transport/eligible-dealers', { params })
 };
+
+export const helpService = {
+  create: (data) => api.post('/help', data)
+};
