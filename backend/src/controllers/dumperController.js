@@ -3,6 +3,7 @@ const Dumper = require('../models/Dumper');
 const User = require('../models/User');
 const { buildSummary } = require('../utils/dumperAvailability');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
+const { logDealerActivity } = require('../utils/dealerActivityLogger');
 
 const { WHEEL_TYPES } = Dumper;
 
@@ -83,6 +84,15 @@ const createDumper = async (req, res) => {
     }
 
     const dumper = await Dumper.create({ dealerId, wheelType: wheel, numberPlate: plate, capacity: cap });
+
+    logDealerActivity({
+      dealerId,
+      category: 'DUMPER',
+      action: 'Added dumper',
+      description: `Registered a ${wheel}-wheel dumper ${plate} (${cap}T).`,
+      actor: req.user
+    });
+
     return successResponse(res, 'Dumper registered successfully.', { dumper }, 201);
   } catch (error) {
     return errorResponse(res, error.message, 500);
@@ -120,7 +130,19 @@ const updateDumper = async (req, res) => {
       dumper.capacity = cap;
     }
 
+    const changedFields = dumper.modifiedPaths();
     await dumper.save();
+
+    if (changedFields.length > 0) {
+      logDealerActivity({
+        dealerId: dumper.dealerId,
+        category: 'DUMPER',
+        action: 'Updated dumper',
+        description: `Updated dumper ${dumper.numberPlate} — changed: ${changedFields.join(', ')}.`,
+        actor: req.user
+      });
+    }
+
     return successResponse(res, 'Dumper updated successfully.', { dumper });
   } catch (error) {
     return errorResponse(res, error.message, 500);
@@ -136,6 +158,15 @@ const deleteDumper = async (req, res) => {
     if (dumper.status === 'IN_ORDER') {
       return errorResponse(res, 'This dumper is assigned to an active order and cannot be deleted right now.', 409);
     }
+
+    logDealerActivity({
+      dealerId: dumper.dealerId,
+      category: 'DUMPER',
+      action: 'Removed dumper',
+      description: `Deleted dumper ${dumper.numberPlate} (${dumper.wheelType}-wheel, ${dumper.capacity}T).`,
+      actor: req.user
+    });
+
     await dumper.deleteOne();
     return successResponse(res, 'Dumper deleted successfully.');
   } catch (error) {
@@ -154,6 +185,15 @@ const toggleDumper = async (req, res) => {
     }
     dumper.status = dumper.status === 'DISABLED' ? 'AVAILABLE' : 'DISABLED';
     await dumper.save();
+
+    logDealerActivity({
+      dealerId: dumper.dealerId,
+      category: 'DUMPER',
+      action: 'Changed dumper status',
+      description: `Dumper ${dumper.numberPlate} ${dumper.status === 'DISABLED' ? 'disabled' : 'enabled'}.`,
+      actor: req.user
+    });
+
     return successResponse(res, `Dumper ${dumper.status === 'DISABLED' ? 'disabled' : 'enabled'}.`, { dumper });
   } catch (error) {
     return errorResponse(res, error.message, 500);

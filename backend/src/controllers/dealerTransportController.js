@@ -6,6 +6,7 @@ const { generateDealerCode } = require('../utils/dealerCode');
 const Dumper = require('../models/Dumper');
 const { getDealerIdsWithAvailableDumper } = require('../utils/dumperAvailability');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
+const { logDealerActivity } = require('../utils/dealerActivityLogger');
 
 const MATERIALS = ['Sand', 'Aggregate'];
 
@@ -108,6 +109,14 @@ const bulkSaveConfigs = async (req, res) => {
       )
     );
 
+    logDealerActivity({
+      dealerId: req.user._id,
+      category: 'TRANSPORT_RATE',
+      action: 'Saved transport rates',
+      description: `Saved rate/KM for: ${cleaned.map((c) => `${c.material} → ${c.locationName} (₹${c.ratePerKm}/km)`).join(', ')}.`,
+      actor: req.user
+    });
+
     return successResponse(res, 'Transport configuration saved successfully.', { configs: saved });
   } catch (error) {
     return errorResponse(res, error.message, 500);
@@ -125,6 +134,15 @@ const toggleMyConfig = async (req, res) => {
     }
     config.isActive = !config.isActive;
     await config.save();
+
+    logDealerActivity({
+      dealerId: req.user._id,
+      category: 'TRANSPORT_RATE',
+      action: 'Changed rate status',
+      description: `Rate for ${config.material} → ${config.locationName} is now ${config.isActive ? 'active' : 'disabled'}.`,
+      actor: req.user
+    });
+
     return successResponse(res, `Configuration for ${config.material} → ${config.locationName} is now ${config.isActive ? 'active' : 'disabled'}.`, { config });
   } catch (error) {
     return errorResponse(res, error.message, 500);
@@ -141,6 +159,15 @@ const deleteMyConfig = async (req, res) => {
     if (!config) {
       return errorResponse(res, 'Transport configuration not found.', 404);
     }
+
+    logDealerActivity({
+      dealerId: req.user._id,
+      category: 'TRANSPORT_RATE',
+      action: 'Deleted transport rate',
+      description: `Deleted rate for ${config.material} → ${config.locationName}.`,
+      actor: req.user
+    });
+
     return successResponse(res, 'Transport configuration deleted successfully.', {});
   } catch (error) {
     return errorResponse(res, error.message, 500);

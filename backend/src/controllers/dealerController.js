@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Order = require('../models/Order');
 const Dumper = require('../models/Dumper');
+const DealerActivityLog = require('../models/DealerActivityLog');
 const { buildSummary } = require('../utils/dumperAvailability');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
 
@@ -355,11 +356,33 @@ const resetDealerPassword = async (req, res) => {
   }
 };
 
+// @desc    Admin: view a dealer's activity log (Driver Fleet, My Dumpers,
+//          Transport Rates, Depot Profile changes)
+// @route   GET /api/admin/dealers/:id/logs
+// @access  Private (Admin)
+const getDealerActivityLogs = async (req, res) => {
+  try {
+    const dealer = await User.findOne({ _id: req.params.id, role: 'DEALER' });
+    if (!dealer) {
+      return errorResponse(res, 'Dealer not found.', 404);
+    }
+
+    const logs = await DealerActivityLog.find({ dealerId: req.params.id })
+      .sort({ createdAt: -1 })
+      .limit(200);
+
+    return successResponse(res, 'Dealer activity log retrieved.', { dealer, logs });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
 module.exports = {
   getAllDealers,
   createDealer,
   updateDealer,
   deleteDealer,
   toggleDealerStatus,
-  resetDealerPassword
+  resetDealerPassword,
+  getDealerActivityLogs
 };

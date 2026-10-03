@@ -8,6 +8,7 @@ const { successResponse, errorResponse } = require('../utils/responseHelper');
 const PincodeService = require('../services/pincodeService');
 const OtpService = require('../services/otpService');
 const SmsService = require('../services/smsService');
+const { logDealerActivity } = require('../utils/dealerActivityLogger');
 
 const generateToken = (user) => {
   return jwt.sign(
@@ -771,7 +772,18 @@ const updateProfile = async (req, res) => {
       user.passwordHash = await User.hashPassword(cleanNewPass);
     }
 
+    const changedFields = user.modifiedPaths().filter((f) => f !== 'passwordHash');
     await user.save();
+
+    if (user.role === 'DEALER' && changedFields.length > 0) {
+      logDealerActivity({
+        dealerId: user._id,
+        category: 'PROFILE',
+        action: 'Updated depot profile',
+        description: `Updated profile — changed: ${changedFields.join(', ')}.`,
+        actor: req.user
+      });
+    }
 
     const token = generateToken(user);
 

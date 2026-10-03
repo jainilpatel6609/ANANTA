@@ -88,7 +88,8 @@ export const dealerService = {
   updateDealer: (id, data) => api.put(`/admin/dealers/${id}`, data),
   deleteDealer: (id) => api.delete(`/admin/dealers/${id}`),
   toggleStatus: (id) => api.patch(`/admin/dealers/${id}/toggle-status`),
-  resetPassword: (id, newPassword) => api.post(`/admin/dealers/${id}/reset-password`, { newPassword })
+  resetPassword: (id, newPassword) => api.post(`/admin/dealers/${id}/reset-password`, { newPassword }),
+  getActivityLogs: (id) => api.get(`/admin/dealers/${id}/logs`)
 };
 
 export const adminService = {

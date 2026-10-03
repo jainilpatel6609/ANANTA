@@ -5,6 +5,7 @@ import EmptyState from '../../components/EmptyState';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import DealerDumpersModal from '../../components/DealerDumpersModal';
+import DealerActivityLogModal from '../../components/DealerActivityLogModal';
 import { formatINR, formatDate } from '../../utils/formatters';
 import {
   Building2,
@@ -22,7 +23,8 @@ import {
   XCircle,
   MapPin,
   AlertTriangle,
-  Truck
+  Truck,
+  History
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -80,6 +82,7 @@ export default function DealerManagement() {
   // Delete Dealer Confirmation Modal
   const [deleteModalDealer, setDeleteModalDealer] = useState(null);
   const [dumperModalDealer, setDumperModalDealer] = useState(null);
+  const [logsModalDealer, setLogsModalDealer] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
   // Reset Password Modal
@@ -463,6 +466,15 @@ export default function DealerManagement() {
                         >
                           <Truck className="w-3.5 h-3.5" />
                           <span>Dumpers</span>
+                        </button>
+
+                        <button
+                          onClick={() => setLogsModalDealer(dealer)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 font-bold text-xs border border-purple-500/20 transition-all shadow-sm"
+                          title="View this dealer's activity log"
+                        >
+                          <History className="w-3.5 h-3.5" />
+                          <span>Logs</span>
                         </button>
 
                         <button
@@ -1058,6 +1070,8 @@ export default function DealerManagement() {
         onClose={() => setDumperModalDealer(null)}
         onChanged={loadDealers}
       />
+
+      <DealerActivityLogModal dealer={logsModalDealer} onClose={() => setLogsModalDealer(null)} />
     </div>
   );
 }

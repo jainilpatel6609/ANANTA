@@ -12,5 +12,6 @@ router.put('/:id', dealerController.updateDealer);
 router.delete('/:id', dealerController.deleteDealer);
 router.patch('/:id/toggle-status', dealerController.toggleDealerStatus);
 router.post('/:id/reset-password', dealerController.resetDealerPassword);
+router.get('/:id/logs', dealerController.getDealerActivityLogs);
 
 module.exports = router;

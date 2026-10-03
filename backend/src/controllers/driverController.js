@@ -3,6 +3,7 @@ const Order = require('../models/Order');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
 const SmsService = require('../services/smsService');
 const OtpService = require('../services/otpService');
+const { logDealerActivity } = require('../utils/dealerActivityLogger');
 
 // In-memory OTP storage for Driver onboarding phone verification
 const driverOtpStore = new Map();
@@ -200,6 +201,14 @@ const createDriver = async (req, res) => {
       isActive: true
     });
 
+    logDealerActivity({
+      dealerId,
+      category: 'DRIVER',
+      action: 'Added driver',
+      description: `Added driver "${driver.name}" (${driver.mobile})${driver.vehicleNumber ? ` — ${driver.vehicleNumber}` : ''} to the fleet.`,
+      actor: req.user
+    });
+
     return successResponse(res, 'Driver added successfully to your fleet.', { driver }, 201);
   } catch (error) {
     return errorResponse(res, error.message, 500);
@@ -269,7 +278,18 @@ const updateDriver = async (req, res) => {
     }
     if (notes !== undefined) driver.notes = notes.trim();
 
+    const changedFields = driver.modifiedPaths().filter((f) => f !== 'passwordHash');
     await driver.save();
+
+    if (changedFields.length > 0) {
+      logDealerActivity({
+        dealerId: driver.dealerId,
+        category: 'DRIVER',
+        action: 'Updated driver',
+        description: `Updated driver "${driver.name}" — changed: ${changedFields.join(', ')}.`,
+        actor: req.user
+      });
+    }
 
     return successResponse(res, 'Driver details updated successfully.', { driver });
   } catch (error) {
@@ -296,6 +316,14 @@ const toggleDriverStatus = async (req, res) => {
     driver.status = driver.status === 'AVAILABLE' ? 'INACTIVE' : 'AVAILABLE';
     await driver.save();
 
+    logDealerActivity({
+      dealerId: driver.dealerId,
+      category: 'DRIVER',
+      action: 'Changed driver status',
+      description: `Driver "${driver.name}" marked ${driver.status}.`,
+      actor: req.user
+    });
+
     return successResponse(res, `Driver status updated to ${driver.status}.`, { driver });
   } catch (error) {
     return errorResponse(res, error.message, 500);
@@ -321,6 +349,14 @@ const deleteDriver = async (req, res) => {
     driver.isActive = false;
     driver.status = 'INACTIVE';
     await driver.save();
+
+    logDealerActivity({
+      dealerId: driver.dealerId,
+      category: 'DRIVER',
+      action: 'Removed driver',
+      description: `Removed driver "${driver.name}" (${driver.mobile}) from the fleet.`,
+      actor: req.user
+    });
 
     return successResponse(res, 'Driver removed from your fleet.', { id });
   } catch (error) {
