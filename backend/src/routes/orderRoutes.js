@@ -21,6 +21,11 @@ router.get('/admin/escalations', authenticateToken, authorizeRoles('ADMIN'), ord
 router.post('/:id/admin-acknowledge', authenticateToken, authorizeRoles('ADMIN'), orderController.adminAcknowledgeAlert);
 router.post('/:id/reassign', authenticateToken, authorizeRoles('ADMIN'), orderController.adminReassignOrder);
 
+// Customer: respond to a dealer-declined order (pick a new dealer, or request a refund)
+router.get('/:id/reassign-options', authenticateToken, authorizeRoles('USER', 'ADMIN'), orderController.getReassignOptions);
+router.post('/:id/select-dealer', authenticateToken, authorizeRoles('USER', 'ADMIN'), orderController.selectNewDealer);
+router.post('/:id/request-refund', authenticateToken, authorizeRoles('USER', 'ADMIN'), orderController.requestRefund);
+
 // Common / Specific order lookup
 router.get('/:id', authenticateToken, orderController.getOrderById);
 

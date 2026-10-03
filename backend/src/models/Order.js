@@ -457,6 +457,32 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: ''
     },
+    // Set true the moment a dealer declines (instead of auto-re-routing to the next nearest
+    // dealer) -- the customer must then pick a new dealer themselves or request a refund.
+    // Cleared the moment either of those actions happens, or an Admin manually reassigns.
+    awaitingCustomerDealerChoice: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    refundRequested: {
+      type: Boolean,
+      default: false
+    },
+    refundRequestedAt: {
+      type: Date,
+      default: null
+    },
+    refundStatus: {
+      type: String,
+      enum: ['NONE', 'REQUESTED', 'PROCESSED'],
+      default: 'NONE',
+      index: true
+    },
+    refundProcessedAt: {
+      type: Date,
+      default: null
+    },
     dealerAlarmActive: {
       type: Boolean,
       default: false,

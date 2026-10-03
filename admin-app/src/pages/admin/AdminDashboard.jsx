@@ -227,13 +227,15 @@ export default function AdminDashboard() {
           icon={BadgeCheck}
           color="emerald"
         />
-        <StatsCard
-          title="Dealer Cancelled Orders"
-          value={overview?.dealerCancelledOrders || 0}
-          subtitle="Declined by a dealer, all-time"
-          icon={Ban}
-          color="rose"
-        />
+        <Link to="/dealer-cancelled-orders">
+          <StatsCard
+            title="Dealer Cancelled Orders"
+            value={overview?.dealerCancelledOrders || 0}
+            subtitle="Declined by a dealer, all-time"
+            icon={Ban}
+            color="rose"
+          />
+        </Link>
       </div>
 
       {/* 4. Order Escalation & Rejection Alerts Section */}

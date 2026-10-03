@@ -141,6 +141,16 @@ export default function MyOrders() {
                     GATE PASS
                   </span>
                   <StatusBadge status={order.orderStatus} size="sm" />
+                  {order.awaitingCustomerDealerChoice && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-black uppercase tracking-wider animate-pulse">
+                      Action Needed
+                    </span>
+                  )}
+                  {order.refundStatus === 'REQUESTED' && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-black uppercase tracking-wider">
+                      Refund Pending
+                    </span>
+                  )}
                   <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium flex items-center gap-1">
                     <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400" />
                     {formatDate(order.createdAt)}

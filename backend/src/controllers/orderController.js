@@ -649,12 +649,16 @@ const getDealerAvailableOrders = async (req, res) => {
 
     const isAdmin = req.user.role === 'ADMIN';
 
-    // Find orders that are confirmed/paid and pending dealer acceptance
+    // Find orders that are confirmed/paid and pending dealer acceptance. A dealer-declined
+    // order stays hidden from every dealer's pool (assignedDealerId is cleared, which would
+    // otherwise make it match the `assignedDealerId: null` branch below) until the customer
+    // explicitly picks a new dealer or requests a refund.
     const filter = {
       orderStatus: 'PLACED',
       dealerId: null,
       paymentStatus: 'PAID',
-      declinedBy: { $ne: req.user._id }
+      declinedBy: { $ne: req.user._id },
+      awaitingCustomerDealerChoice: { $ne: true }
     };
 
     if (!isAdmin) {
@@ -950,8 +954,12 @@ const declineOrder = async (req, res) => {
       return errorResponse(res, 'Unauthorized. You are not the assigned dealer for this order.', 403);
     }
 
+    const reason = (req.body.reason || '').trim();
+    if (!reason) {
+      return errorResponse(res, 'A reason is required to decline this order.', 400);
+    }
+
     const now = new Date();
-    const reason = (req.body.reason || 'Dealer declined order').trim();
 
     // 1. Record rejection in Order model
     order.dealerResponseStatus = 'REJECTED';
@@ -988,74 +996,26 @@ const declineOrder = async (req, res) => {
       orderId: order._id
     });
 
-    // 4. Reassign to the next nearest eligible dealer
-    const remainingDealers = await User.find({
-      role: 'DEALER',
-      isActive: true,
-      isDeleted: { $ne: true },
-      _id: { $nin: order.declinedBy }
-    });
-
-    let nextDealer = null;
-    let nextDistanceKm = null;
-
-    if (remainingDealers.length > 0 && order.latitude && order.longitude) {
-      const routing = await PincodeService.findNearestDealer(
-        { latitude: order.latitude, longitude: order.longitude },
-        remainingDealers
-      );
-      nextDealer = routing.nearestDealer;
-      nextDistanceKm = routing.distanceKm;
-    }
-
-    if (nextDealer) {
-      const newDeadline = new Date(now.getTime() + 15 * 60 * 1000);
-      order.assignedDealerId = nextDealer._id;
-      order.dealerDistanceKm = nextDistanceKm;
-      order.orderAssignedAt = now;
-      order.dealerResponseDeadline = newDeadline;
-      order.dealerResponseStatus = 'PENDING';
-      order.dealerAlarmActive = true; // Start Dealer B Alarm!
-      order.adminEscalationSent = false;
-
-      // Add new assignment to history
-      order.assignmentHistory.push({
-        dealerId: nextDealer._id,
-        dealerName: nextDealer.name,
-        dealerCompanyName: nextDealer.companyName,
-        dealerPincode: nextDealer.pincode,
-        dealerMobile: nextDealer.mobile,
-        distanceKm: nextDistanceKm,
-        assignedAt: now,
-        deadline: newDeadline,
-        response: 'PENDING'
-      });
-
-      // Notify Dealer B with fresh 15-minute response window
-      await NotificationService.send({
-        recipientId: nextDealer._id,
-        recipientRole: 'DEALER',
-        type: 'ORDER_PLACED',
-        title: '🚨 NEW ORDER ASSIGNED (Re-routed) 🚛',
-        message: `New re-routed order #${order.orderNumber}${nextDistanceKm !== null ? ` — ${nextDistanceKm} km away` : ''}: ${order.numberOfTractors || order.quantity} ${order.transportType || 'Vehicle'}(s) of ${order.productNameSnapshot}. Total: ₹${order.totalAmount.toLocaleString('en-IN')}. Please accept within 15 minutes.`,
-        orderId: order._id,
-        targetPhone: nextDealer.whatsappNumber || nextDealer.mobile
-      });
-    } else {
-      order.assignedDealerId = null;
-      order.dealerAlarmActive = false;
-    }
+    // 4. Hand control to the customer instead of auto-routing to another dealer -- they must
+    // explicitly pick a new dealer or request a refund.
+    order.assignedDealerId = null;
+    order.awaitingCustomerDealerChoice = true;
 
     await order.save();
 
+    await NotificationService.send({
+      recipientId: order.userId?._id || order.userId,
+      recipientRole: 'USER',
+      type: 'ORDER_REJECTED_NEEDS_ACTION',
+      title: 'Your order was declined by the dealer',
+      message: `Order #${order.orderNumber} was declined by the dealer. Reason: "${reason}". Please select a new dealer or request a refund.`,
+      orderId: order._id
+    });
+
     return successResponse(
       res,
-      'Order declined and recorded. Immediate alert sent to Admin. Order re-routed to next available dealer.',
-      {
-        orderId: order._id,
-        reassignedTo: nextDealer ? nextDealer.name : null,
-        nextDealerDistanceKm: nextDistanceKm
-      }
+      'Order declined and recorded. Admin alerted and customer notified to choose a new dealer or request a refund.',
+      { orderId: order._id }
     );
   } catch (error) {
     return errorResponse(res, error.message, 500);
@@ -1150,6 +1110,7 @@ const adminReassignOrder = async (req, res) => {
     order.adminAlarmActive = false;
     order.adminEscalationSent = false;
     order.adminAlertType = 'NONE';
+    order.awaitingCustomerDealerChoice = false;
 
     order.assignmentHistory.push({
       dealerId: targetDealer._id,
@@ -1312,6 +1273,212 @@ const enterTotalWeight = async (req, res) => {
   }
 };
 
+// @desc    Customer: list dealers they can re-assign a dealer-declined order to
+// @route   GET /api/orders/:id/reassign-options
+// @access  Private (Customer — must own the order)
+const getReassignOptions = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return errorResponse(res, 'Order not found.', 404);
+    }
+    if (order.userId.toString() !== req.user._id.toString()) {
+      return errorResponse(res, 'Unauthorized. This is not your order.', 403);
+    }
+    if (!order.awaitingCustomerDealerChoice) {
+      return errorResponse(res, 'This order is not awaiting a dealer choice.', 400);
+    }
+
+    const remainingDealers = await User.find({
+      role: 'DEALER',
+      isActive: true,
+      isDeleted: { $ne: true },
+      _id: { $nin: order.declinedBy }
+    });
+
+    const dealers = remainingDealers.map((dealer) => {
+      let distanceKm = null;
+      if (order.latitude && order.longitude && dealer.latitude && dealer.longitude) {
+        distanceKm = Math.round(
+          PincodeService.calculateHaversineDistanceKm(order.latitude, order.longitude, dealer.latitude, dealer.longitude) * 10
+        ) / 10;
+      }
+      return {
+        dealerId: dealer._id,
+        dealerCode: dealer.dealerCode || null,
+        city: dealer.city || null,
+        distanceKm
+      };
+    });
+
+    dealers.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
+
+    return successResponse(res, 'Available dealers retrieved.', { dealers });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+// @desc    Customer: pick a new dealer for an order the previous dealer declined.
+//          No repayment is needed -- the existing upfront payment carries over.
+// @route   POST /api/orders/:id/select-dealer
+// @access  Private (Customer — must own the order)
+const selectNewDealer = async (req, res) => {
+  try {
+    const { dealerId } = req.body;
+    if (!dealerId) {
+      return errorResponse(res, 'A dealerId is required.', 400);
+    }
+
+    const order = await Order.findById(req.params.id).populate('userId', 'name mobile whatsappNumber');
+    if (!order) {
+      return errorResponse(res, 'Order not found.', 404);
+    }
+    if (order.userId._id.toString() !== req.user._id.toString()) {
+      return errorResponse(res, 'Unauthorized. This is not your order.', 403);
+    }
+    if (!order.awaitingCustomerDealerChoice) {
+      return errorResponse(res, 'This order is not awaiting a dealer choice.', 400);
+    }
+    if (order.declinedBy.some((id) => id.toString() === dealerId)) {
+      return errorResponse(res, 'This dealer already declined this order. Please pick a different dealer.', 400);
+    }
+
+    const dealer = await User.findOne({ _id: dealerId, role: 'DEALER', isActive: true, isDeleted: { $ne: true } });
+    if (!dealer) {
+      return errorResponse(res, 'Selected dealer not found or inactive.', 404);
+    }
+
+    const now = new Date();
+    const deadline = new Date(now.getTime() + 15 * 60 * 1000);
+
+    let distanceKm = null;
+    if (order.latitude && order.longitude && dealer.latitude && dealer.longitude) {
+      distanceKm = PincodeService.calculateHaversineDistanceKm(order.latitude, order.longitude, dealer.latitude, dealer.longitude);
+    }
+
+    order.assignedDealerId = dealer._id;
+    order.dealerDistanceKm = distanceKm;
+    order.orderAssignedAt = now;
+    order.dealerResponseDeadline = deadline;
+    order.dealerResponseStatus = 'PENDING';
+    order.dealerAlarmActive = true;
+    order.adminEscalationSent = false;
+    order.adminAlarmActive = false;
+    order.awaitingCustomerDealerChoice = false;
+
+    order.assignmentHistory.push({
+      dealerId: dealer._id,
+      dealerName: dealer.name,
+      dealerCompanyName: dealer.companyName,
+      dealerPincode: dealer.pincode,
+      dealerMobile: dealer.mobile,
+      distanceKm,
+      assignedAt: now,
+      deadline,
+      response: 'PENDING'
+    });
+
+    await order.save();
+
+    await NotificationService.send({
+      recipientId: dealer._id,
+      recipientRole: 'DEALER',
+      type: 'ORDER_PLACED',
+      title: '🚛 NEW ORDER ASSIGNED (Customer Selected) 🚛',
+      message: `Order #${order.orderNumber}${distanceKm !== null ? ` — ${Math.round(distanceKm * 10) / 10} km away` : ''}: ${order.numberOfTractors || order.quantity} ${order.transportType || 'Vehicle'}(s) of ${order.productNameSnapshot}. Total: ₹${order.totalAmount.toLocaleString('en-IN')}. Please accept within 15 minutes.`,
+      orderId: order._id,
+      targetPhone: dealer.whatsappNumber || dealer.mobile
+    });
+
+    return successResponse(res, 'New dealer selected. No additional payment required — your order has been sent to them for acceptance.', { order });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+// @desc    Customer: request a refund instead of picking a new dealer, after a dealer decline
+// @route   POST /api/orders/:id/request-refund
+// @access  Private (Customer — must own the order)
+const requestRefund = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id).populate('userId', 'name mobile whatsappNumber');
+    if (!order) {
+      return errorResponse(res, 'Order not found.', 404);
+    }
+    if (order.userId._id.toString() !== req.user._id.toString()) {
+      return errorResponse(res, 'Unauthorized. This is not your order.', 403);
+    }
+    if (!order.awaitingCustomerDealerChoice) {
+      return errorResponse(res, 'This order is not awaiting a dealer choice.', 400);
+    }
+
+    order.awaitingCustomerDealerChoice = false;
+    order.refundRequested = true;
+    order.refundRequestedAt = new Date();
+    order.refundStatus = 'REQUESTED';
+    order.orderStatus = 'CANCELLED';
+    order.adminAlarmActive = false;
+    await order.save();
+
+    await NotificationService.send({
+      recipientRole: 'ADMIN',
+      type: 'REFUND_REQUESTED',
+      title: '💸 CUSTOMER REQUESTED REFUND',
+      message: `${order.userId.name} (${order.userId.mobile}) requested a refund of ₹${order.totalAmount.toLocaleString('en-IN')} for declined Order #${order.orderNumber}. Please process the refund.`,
+      orderId: order._id
+    });
+
+    return successResponse(res, 'Refund requested. Our team will process it shortly.', { order });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+// @desc    Admin: list all orders a dealer has ever declined, with reason & resolution status
+// @route   GET /api/admin/dealer-cancelled-orders
+// @access  Private (Admin)
+const getDealerCancelledOrders = async (req, res) => {
+  try {
+    // `declinedBy` is a permanent record of every dealer who ever declined this order, unlike
+    // `dealerResponseStatus` which gets reset back to PENDING once the customer picks a new
+    // dealer -- so this stays a complete history even after the order is resolved.
+    const orders = await Order.find({ declinedBy: { $exists: true, $not: { $size: 0 } } })
+      .populate('userId', 'name mobile email')
+      .populate('dealerRejectedBy', 'name companyName mobile pincode')
+      .populate('assignedDealerId', 'name companyName mobile pincode')
+      .sort({ dealerRejectedAt: -1 });
+
+    return successResponse(res, 'Dealer-cancelled orders retrieved.', { orders });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+// @desc    Admin: mark a customer's refund request as processed (paid back manually)
+// @route   PATCH /api/admin/orders/:id/refund-processed
+// @access  Private (Admin)
+const markRefundProcessed = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return errorResponse(res, 'Order not found.', 404);
+    }
+    if (order.refundStatus !== 'REQUESTED') {
+      return errorResponse(res, 'This order has no pending refund request.', 400);
+    }
+
+    order.refundStatus = 'PROCESSED';
+    order.refundProcessedAt = new Date();
+    order.paymentStatus = 'REFUNDED';
+    await order.save();
+
+    return successResponse(res, 'Refund marked as processed.', { order });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
 module.exports = {
   createOrder,
   getMyOrders,
@@ -1324,5 +1491,10 @@ module.exports = {
   getAllOrdersAdmin,
   getAdminEscalations,
   adminAcknowledgeAlert,
-  adminReassignOrder
+  adminReassignOrder,
+  getReassignOptions,
+  selectNewDealer,
+  requestRefund,
+  getDealerCancelledOrders,
+  markRefundProcessed
 };

@@ -5,6 +5,7 @@ import { orderService, paymentService } from '../../services';
 import StatusBadge from '../../components/StatusBadge';
 import DeliveryTimeline from '../../components/DeliveryTimeline';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import Modal from '../../components/Modal';
 import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport, isTractorOrder } from '../../utils/formatters';
 import {
   Package,
@@ -26,7 +27,11 @@ import {
   Weight,
   CreditCard,
   Loader2,
-  Zap
+  Zap,
+  AlertTriangle,
+  Building2,
+  Wallet,
+  CheckCircle2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -38,6 +43,14 @@ export default function OrderDetails() {
   const [copiedOtp, setCopiedOtp] = useState(false);
   const [payingFinal, setPayingFinal] = useState(false);
   const [razorpayKeyId, setRazorpayKeyId] = useState('rzp_test_mock_key');
+
+  // Dealer-declined-order resolution: customer picks a new dealer or requests a refund
+  const [showDealerPicker, setShowDealerPicker] = useState(false);
+  const [dealerOptions, setDealerOptions] = useState([]);
+  const [loadingDealerOptions, setLoadingDealerOptions] = useState(false);
+  const [selectedPickDealerId, setSelectedPickDealerId] = useState('');
+  const [submittingDealerPick, setSubmittingDealerPick] = useState(false);
+  const [requestingRefund, setRequestingRefund] = useState(false);
 
   const fetchOrder = async () => {
     try {
@@ -63,6 +76,54 @@ export default function OrderDetails() {
     const interval = setInterval(fetchOrder, 20000);
     return () => clearInterval(interval);
   }, [id]);
+
+  const openDealerPicker = async () => {
+    setShowDealerPicker(true);
+    setSelectedPickDealerId('');
+    setLoadingDealerOptions(true);
+    try {
+      const res = await orderService.getReassignOptions(order._id);
+      setDealerOptions(res.data?.dealers || []);
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to load available dealers.');
+    } finally {
+      setLoadingDealerOptions(false);
+    }
+  };
+
+  const handleSelectDealer = async () => {
+    if (!selectedPickDealerId) {
+      toast.error('Please select a dealer.');
+      return;
+    }
+    setSubmittingDealerPick(true);
+    try {
+      await orderService.selectNewDealer(order._id, selectedPickDealerId);
+      toast.success('New dealer selected! No additional payment needed — awaiting their acceptance.');
+      setShowDealerPicker(false);
+      fetchOrder();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to select dealer.');
+    } finally {
+      setSubmittingDealerPick(false);
+    }
+  };
+
+  const handleRequestRefund = async () => {
+    if (!window.confirm('Are you sure you want to cancel this order and request a refund? This cannot be undone.')) {
+      return;
+    }
+    setRequestingRefund(true);
+    try {
+      await orderService.requestRefund(order._id);
+      toast.success('Refund requested. Our team will process it shortly.');
+      fetchOrder();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to request refund.');
+    } finally {
+      setRequestingRefund(false);
+    }
+  };
 
   // Final payment (Total Weight x Rate Per Ton) -- entirely separate from the upfront booking
   // payment above; becomes due once the dealer enters the weighed tonnage.
@@ -202,6 +263,64 @@ export default function OrderDetails() {
           </div>
         </div>
       </div>
+
+      {/* Dealer Declined -- Customer must pick a new dealer or request a refund */}
+      {order.awaitingCustomerDealerChoice && (
+        <div className="bg-rose-50 border border-rose-200 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xs">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-black text-slate-900 font-display">Your order was declined by the dealer</h2>
+              <p className="text-xs text-slate-600 mt-1 font-medium">
+                Reason: <span className="italic">"{order.dealerRejectionReason || 'No reason provided'}"</span>
+              </p>
+              <p className="text-xs text-slate-500 mt-1">Please choose a new dealer or request a refund.</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            <button
+              type="button"
+              onClick={openDealerPicker}
+              className="flex-1 inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-sm active:scale-95 transition-all"
+            >
+              <Building2 className="w-4 h-4" />
+              <span>Select New Dealer</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleRequestRefund}
+              disabled={requestingRefund}
+              className="flex-1 inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs shadow-sm active:scale-95 transition-all disabled:opacity-50"
+            >
+              {requestingRefund ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wallet className="w-4 h-4" />}
+              <span>Get Payment Back</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Refund Requested / Processed Status */}
+      {order.refundStatus === 'REQUESTED' && (
+        <div className="bg-slate-50 border border-slate-200 rounded-3xl p-5 flex items-center gap-3 shadow-xs">
+          <Wallet className="w-5 h-5 text-amber-600 shrink-0" />
+          <div>
+            <h3 className="text-sm font-black text-slate-900">Refund requested</h3>
+            <p className="text-xs text-slate-500">Our team will process your refund of {formatINR(order.totalAmount)} shortly.</p>
+          </div>
+        </div>
+      )}
+      {order.refundStatus === 'PROCESSED' && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-5 flex items-center gap-3 shadow-xs">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          <div>
+            <h3 className="text-sm font-black text-slate-900">Refund processed</h3>
+            <p className="text-xs text-slate-500">{formatINR(order.totalAmount)} has been refunded.</p>
+          </div>
+        </div>
+      )}
 
       {/* Prominent Delivery Handover OTP Banner (if Out for delivery or OTP present) */}
       {(order.orderStatus === 'OUT_FOR_DELIVERY' || order.deliveryOtpDisplay) && (
@@ -588,6 +707,65 @@ export default function OrderDetails() {
           </div>
         </div>
       </div>
+
+      {/* Select New Dealer Modal */}
+      <Modal isOpen={showDealerPicker} onClose={() => setShowDealerPicker(false)} title="Select New Dealer" maxWidth="max-w-md">
+        {loadingDealerOptions ? (
+          <div className="flex items-center justify-center py-10 text-slate-400 text-sm gap-2">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>Finding available dealers...</span>
+          </div>
+        ) : dealerOptions.length === 0 ? (
+          <div className="text-center py-10 text-xs text-slate-400">
+            No other dealers are currently available for this order. Please request a refund instead.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {dealerOptions.map((d) => (
+                <label
+                  key={d.dealerId}
+                  className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
+                    selectedPickDealerId === d.dealerId
+                      ? 'border-amber-500 bg-amber-500/10'
+                      : 'border-slate-800 bg-slate-950 hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="pickDealer"
+                      value={d.dealerId}
+                      checked={selectedPickDealerId === d.dealerId}
+                      onChange={() => setSelectedPickDealerId(d.dealerId)}
+                      className="accent-amber-500"
+                    />
+                    <div>
+                      <div className="text-xs font-bold text-white">
+                        {d.dealerCode ? `Dealer ${d.dealerCode}` : 'Dealer'}
+                      </div>
+                      {d.city && <div className="text-[11px] text-slate-400">{d.city}</div>}
+                    </div>
+                  </div>
+                  {d.distanceKm !== null && (
+                    <span className="text-[11px] font-mono text-amber-400 font-bold">{d.distanceKm} km</span>
+                  )}
+                </label>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSelectDealer}
+              disabled={submittingDealerPick || !selectedPickDealerId}
+              className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-amber-500/20 disabled:opacity-50"
+            >
+              {submittingDealerPick ? <Loader2 className="w-4 h-4 animate-spin" /> : <Building2 className="w-4 h-4" />}
+              <span>Confirm Dealer — No Repayment Needed</span>
+            </button>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -48,7 +48,10 @@ export const orderService = {
   adminAcknowledge: (id) => api.post(`/orders/${id}/admin-acknowledge`),
   adminReassign: (id, targetDealerId) => api.post(`/orders/${id}/reassign`, { targetDealerId }),
   getAllAdmin: (params) => api.get('/admin/orders', { params }),
-  enterWeight: (id, totalWeight) => api.post(`/orders/${id}/weight`, { totalWeight })
+  enterWeight: (id, totalWeight) => api.post(`/orders/${id}/weight`, { totalWeight }),
+  getReassignOptions: (id) => api.get(`/orders/${id}/reassign-options`),
+  selectNewDealer: (id, dealerId) => api.post(`/orders/${id}/select-dealer`, { dealerId }),
+  requestRefund: (id) => api.post(`/orders/${id}/request-refund`)
 };
 
 export const deliveryService = {

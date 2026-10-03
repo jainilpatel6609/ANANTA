@@ -13,5 +13,7 @@ router.get('/reports', reportController.getReports);
 router.get('/reports/export', reportController.exportOrders);
 router.get('/orders', orderController.getAllOrdersAdmin);
 router.get('/products', productController.getAllProductsAdmin);
+router.get('/dealer-cancelled-orders', orderController.getDealerCancelledOrders);
+router.patch('/orders/:id/refund-processed', orderController.markRefundProcessed);
 
 module.exports = router;

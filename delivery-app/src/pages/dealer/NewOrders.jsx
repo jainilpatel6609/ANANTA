@@ -200,11 +200,16 @@ export default function NewOrders() {
     e.preventDefault();
     if (!rejectingOrder) return;
 
+    if (!rejectReason.trim()) {
+      toast.error('Please enter a reason for declining this order.');
+      return;
+    }
+
     setSubmittingReject(true);
     try {
-      await orderService.declineOrder(rejectingOrder._id, rejectReason || 'Depot capacity full / Unavailable');
+      await orderService.declineOrder(rejectingOrder._id, rejectReason.trim());
       clearAlarm();
-      toast.success('Order declined. Super Admin has been immediately alerted for dispatch re-routing.');
+      toast.success('Order declined. Admin alerted and customer notified to choose a new dealer or refund.');
       setOrders((prev) => prev.filter((o) => o._id !== rejectingOrder._id));
       setRejectingOrder(null);
     } catch (err) {
@@ -644,16 +649,17 @@ export default function NewOrders() {
                 Immediate Super Admin Alert Notice
               </div>
               <p className="text-[11px] text-slate-300">
-                Declining this order will immediately notify the Super Admin and re-route the delivery to the next nearest regional depot.
+                Declining this order will immediately notify the Super Admin and let the customer choose a new dealer or request a refund. Your reason will be shown to both of them.
               </p>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-300">
-                Reason for Declining (Optional):
+                Reason for Declining *
               </label>
               <textarea
                 rows={3}
+                required
                 placeholder="e.g. Depot aggregate stock currently depleted, tractors booked on prior dispatch, etc."
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
@@ -671,8 +677,8 @@ export default function NewOrders() {
               </button>
               <button
                 type="submit"
-                disabled={submittingReject}
-                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-lg shadow-red-600/30"
+                disabled={submittingReject || !rejectReason.trim()}
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-lg shadow-red-600/30 disabled:opacity-50"
               >
                 {submittingReject ? (
                   <>

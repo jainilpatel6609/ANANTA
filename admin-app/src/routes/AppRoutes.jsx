@@ -26,6 +26,7 @@ import DeliveryMonitoring from '../pages/admin/DeliveryMonitoring';
 import Reports from '../pages/admin/Reports';
 import AdminProfile from '../pages/admin/AdminProfile';
 import HelpCenter from '../pages/admin/HelpCenter';
+import DealerCancelledOrders from '../pages/admin/DealerCancelledOrders';
 
 export default function AppRoutes() {
   return (
@@ -53,6 +54,7 @@ export default function AppRoutes() {
           <Route path="/deliveries" element={<DeliveryMonitoring />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/help-center" element={<HelpCenter />} />
+          <Route path="/dealer-cancelled-orders" element={<DealerCancelledOrders />} />
           <Route path="/profile" element={<AdminProfile />} />
           <Route path="/settings" element={<AdminProfile />} />
         </Route>

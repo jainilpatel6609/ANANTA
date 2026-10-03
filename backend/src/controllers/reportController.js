@@ -50,10 +50,10 @@ const getDashboardStats = async (req, res) => {
         { $match: { paymentStatus: 'PAID' } },
         { $group: { _id: '$category', totalQuantity: { $sum: '$quantity' }, totalAmount: { $sum: '$totalAmount' }, count: { $sum: 1 } } }
       ]),
-      // "Dealer Cancelled" = a dealer explicitly declined the order (dealerResponseStatus stays
-      // on the order even after it's later reassigned/accepted elsewhere, so this is an all-time
-      // count of decline events, not a current-status count).
-      Order.countDocuments({ dealerResponseStatus: 'REJECTED' })
+      // "Dealer Cancelled" = at least one dealer declined this order, ever. `declinedBy` is a
+      // permanent record -- unlike `dealerResponseStatus`, which resets to PENDING once the
+      // customer picks a new dealer -- so this count never drops as orders get resolved.
+      Order.countDocuments({ declinedBy: { $exists: true, $not: { $size: 0 } } })
     ]);
 
     const totalRevenue = revenueResult[0]?.totalRevenue || 0;

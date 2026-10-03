@@ -21,6 +21,8 @@ const notificationSchema = new mongoose.Schema(
         'DEALER_DECLINED_ORDER',
         'DEALER_NO_RESPONSE_ESCALATION',
         'ORDER_REASSIGNED',
+        'ORDER_REJECTED_NEEDS_ACTION',
+        'REFUND_REQUESTED',
         'DRIVER_ASSIGNED',
         'OUT_FOR_DELIVERY',
         'DELIVERY_OTP',
