@@ -1,17 +1,41 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { Bell, CheckCheck, Package, Clock, Truck, ShieldCheck, KeyRound, AlertCircle } from 'lucide-react';
 import { formatDate } from '../../utils/formatters';
 import EmptyState from '../../components/EmptyState';
 
+// This page is shared by both the customer ("/user/notifications") and dealer
+// ("/dealer/notifications") routes -- a click must never cross into the other
+// role's portal, so the destination is picked based on the logged-in role.
+const DEALER_DESTINATION_BY_TYPE = {
+  ORDER_PLACED: '/dealer/new-orders',
+  DEALER_NO_RESPONSE_ESCALATION: '/dealer/new-orders',
+  ORDER_REASSIGNED: '/dealer/new-orders',
+  ORDER_ACCEPTED: '/dealer/accepted',
+  DRIVER_ASSIGNED: '/dealer/active',
+  OUT_FOR_DELIVERY: '/dealer/active',
+  DELIVERY_OTP: '/dealer/active',
+  ORDER_DELIVERED: '/dealer/completed',
+  ORDER_CANCELLED: '/dealer/completed',
+  DEALER_DECLINED_ORDER: '/dealer/new-orders'
+};
+
 export default function UserNotifications() {
+  const { user } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
 
   const handleNotificationClick = (n) => {
     if (!n.isRead) markAsRead(n._id);
-    if (n.orderId) navigate(`/user/orders/${n.orderId}`);
+    if (!n.orderId) return;
+
+    if (user?.role === 'DEALER') {
+      navigate(DEALER_DESTINATION_BY_TYPE[n.type] || '/dealer/accepted');
+    } else {
+      navigate(`/user/orders/${n.orderId}`);
+    }
   };
 
   // Helper to pick contextual icon based on notification content
