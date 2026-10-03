@@ -30,7 +30,10 @@ import {
   Volume2,
   VolumeX,
   Loader2,
-  UserCheck
+  UserCheck,
+  Activity,
+  BadgeCheck,
+  Ban
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -201,7 +204,39 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* 3. Order Escalation & Rejection Alerts Section */}
+      {/* 3. Today's Operations Snapshot */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatsCard
+          title="Today's Active Orders"
+          value={todaySummary?.active || 0}
+          subtitle="Placed, accepted & out for delivery"
+          icon={Activity}
+          color="blue"
+        />
+        <StatsCard
+          title="Total Orders"
+          value={overview?.totalOrders || 0}
+          subtitle="All-time lifecycle records"
+          icon={Package}
+          color="purple"
+        />
+        <StatsCard
+          title="Today's Delivered Orders"
+          value={todaySummary?.delivered || 0}
+          subtitle="Completed with OTP today"
+          icon={BadgeCheck}
+          color="emerald"
+        />
+        <StatsCard
+          title="Dealer Cancelled Orders"
+          value={overview?.dealerCancelledOrders || 0}
+          subtitle="Declined by a dealer, all-time"
+          icon={Ban}
+          color="rose"
+        />
+      </div>
+
+      {/* 4. Order Escalation & Rejection Alerts Section */}
       {escalations.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">

@@ -24,7 +24,8 @@ const getDashboardStats = async (req, res) => {
       todayOrders,
       statusCounts,
       recentOrders,
-      categoryStats
+      categoryStats,
+      dealerCancelledOrders
     ] = await Promise.all([
       Order.countDocuments(),
       User.countDocuments({ role: 'USER' }),
@@ -48,7 +49,11 @@ const getDashboardStats = async (req, res) => {
       Order.aggregate([
         { $match: { paymentStatus: 'PAID' } },
         { $group: { _id: '$category', totalQuantity: { $sum: '$quantity' }, totalAmount: { $sum: '$totalAmount' }, count: { $sum: 1 } } }
-      ])
+      ]),
+      // "Dealer Cancelled" = a dealer explicitly declined the order (dealerResponseStatus stays
+      // on the order even after it's later reassigned/accepted elsewhere, so this is an all-time
+      // count of decline events, not a current-status count).
+      Order.countDocuments({ dealerResponseStatus: 'REJECTED' })
     ]);
 
     const totalRevenue = revenueResult[0]?.totalRevenue || 0;
@@ -62,6 +67,9 @@ const getDashboardStats = async (req, res) => {
       outForDelivery: todayOrders.filter((o) => o.orderStatus === 'OUT_FOR_DELIVERY').length,
       delivered: todayOrders.filter((o) => o.orderStatus === 'DELIVERED').length,
       cancelled: todayOrders.filter((o) => o.orderStatus === 'CANCELLED').length,
+      active: todayOrders.filter((o) =>
+        ['PENDING_PAYMENT', 'PLACED', 'ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)
+      ).length,
       revenue: todayOrders
         .filter((o) => o.paymentStatus === 'PAID')
         .reduce((sum, o) => sum + o.totalAmount, 0)
@@ -78,7 +86,8 @@ const getDashboardStats = async (req, res) => {
         totalUsers,
         totalDealers,
         totalRevenue,
-        totalTonnage
+        totalTonnage,
+        dealerCancelledOrders
       },
       todaySummary,
       statusCounts: statusMap,
