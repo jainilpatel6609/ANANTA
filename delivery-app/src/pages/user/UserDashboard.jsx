@@ -59,8 +59,10 @@ export default function UserDashboard() {
 
   // Real metrics only -- new customers with no orders yet must see zeros, not demo data.
   const displayTotalOrders = orders.length;
-  const displayPending = orders.filter((o) => ['PENDING_PAYMENT', 'PLACED'].includes(o.orderStatus)).length;
-  const displayInTransit = orders.filter((o) => ['ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length;
+  // Counts mirror MyOrders' tab filters exactly (PENDING / ACTIVE) so the numbers shown here
+  // match what the customer sees after tapping through to that filtered list.
+  const displayPending = orders.filter((o) => o.orderStatus === 'PENDING_PAYMENT').length;
+  const displayInTransit = orders.filter((o) => ['PLACED', 'ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length;
   const displayDelivered = orders.filter((o) => o.orderStatus === 'DELIVERED').length;
 
   const activeOrder = orders.find((o) => ['ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus));
@@ -200,7 +202,10 @@ export default function UserDashboard() {
       {/* 3. ORDER STATUS OVERVIEW (Pill Row) */}
       <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs p-4 sm:p-5">
         <div className="grid grid-cols-3 divide-x divide-slate-200">
-          <div className="flex flex-col items-center text-center gap-1.5 px-1">
+          <Link
+            to="/user/orders?status=PENDING"
+            className="flex flex-col items-center text-center gap-1.5 px-1 active:scale-95 transition-transform cursor-pointer"
+          >
             <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center">
               <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
@@ -208,9 +213,12 @@ export default function UserDashboard() {
             <span className="text-base sm:text-xl font-black text-slate-900 font-mono tracking-tight">
               {displayPending}
             </span>
-          </div>
+          </Link>
 
-          <div className="flex flex-col items-center text-center gap-1.5 px-1">
+          <Link
+            to="/user/orders?status=ACTIVE"
+            className="flex flex-col items-center text-center gap-1.5 px-1 active:scale-95 transition-transform cursor-pointer"
+          >
             <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center">
               <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
@@ -218,9 +226,12 @@ export default function UserDashboard() {
             <span className="text-base sm:text-xl font-black text-slate-900 font-mono tracking-tight">
               {displayInTransit}
             </span>
-          </div>
+          </Link>
 
-          <div className="flex flex-col items-center text-center gap-1.5 px-1">
+          <Link
+            to="/user/orders?status=DELIVERED"
+            className="flex flex-col items-center text-center gap-1.5 px-1 active:scale-95 transition-transform cursor-pointer"
+          >
             <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center">
               <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
@@ -228,7 +239,7 @@ export default function UserDashboard() {
             <span className="text-base sm:text-xl font-black text-slate-900 font-mono tracking-tight">
               {displayDelivered}
             </span>
-          </div>
+          </Link>
         </div>
       </div>
 

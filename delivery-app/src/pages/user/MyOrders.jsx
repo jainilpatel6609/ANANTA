@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { orderService } from '../../services';
 import StatusBadge from '../../components/StatusBadge';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -7,11 +7,17 @@ import EmptyState from '../../components/EmptyState';
 import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport } from '../../utils/formatters';
 import { Package, Search, ArrowRight, Truck, Calendar, FileText, MapPin, PlusCircle } from 'lucide-react';
 
+const VALID_STATUS_FILTERS = ['ALL', 'ACTIVE', 'DELIVERED', 'PENDING'];
+
 export default function MyOrders() {
+  const [searchParams] = useSearchParams();
+  const initialStatus = searchParams.get('status');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState(
+    VALID_STATUS_FILTERS.includes(initialStatus) ? initialStatus : 'ALL'
+  );
 
   useEffect(() => {
     const loadOrders = async () => {
