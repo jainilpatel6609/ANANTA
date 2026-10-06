@@ -12,7 +12,10 @@ const VALID_STATUS_FILTERS = ['ALL', 'ACTIVE', 'DELIVERED', 'PENDING'];
 export default function MyOrders() {
   const [searchParams] = useSearchParams();
   const initialStatus = searchParams.get('status');
-  const onlyToday = searchParams.get('today') === '1';
+  // `period=today|week` is the current param; `today=1` is kept working for old links.
+  const periodParam = searchParams.get('period');
+  const onlyToday = searchParams.get('today') === '1' || periodParam === 'today';
+  const onlyWeek = periodParam === 'week';
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -42,6 +45,7 @@ export default function MyOrders() {
 
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
+  const startOfWeek = new Date(startOfToday.getTime() - 6 * 24 * 60 * 60 * 1000);
 
   const filteredOrders = orders.filter((o) => {
     const matchSearch =
@@ -55,9 +59,12 @@ export default function MyOrders() {
       (statusFilter === 'DELIVERED' && o.orderStatus === 'DELIVERED') ||
       (statusFilter === 'PENDING' && o.orderStatus === 'PENDING_PAYMENT');
 
-    const matchToday = !onlyToday || (o.createdAt && new Date(o.createdAt) >= startOfToday);
+    const matchPeriod =
+      (!onlyToday && !onlyWeek) ||
+      (onlyToday && o.createdAt && new Date(o.createdAt) >= startOfToday) ||
+      (onlyWeek && o.createdAt && new Date(o.createdAt) >= startOfWeek);
 
-    return matchSearch && matchStatus && matchToday;
+    return matchSearch && matchStatus && matchPeriod;
   });
 
   return (

@@ -26,31 +26,41 @@ import {
   KeyRound,
   X,
   Copy,
-  Check
+  Check,
+  RefreshCw
 } from 'lucide-react';
 
 export default function UserDashboard() {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [copiedOrderId, setCopiedOrderId] = useState(null);
+  const [period, setPeriod] = useState('TODAY');
+
+  const fetchOrders = async () => {
+    try {
+      const res = await orderService.getMyOrders();
+      if (res.data?.orders) {
+        setOrders(res.data.orders);
+      }
+    } catch (err) {
+      console.error('Failed to load user orders:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const res = await orderService.getMyOrders();
-        if (res.data?.orders) {
-          setOrders(res.data.orders);
-        }
-      } catch (err) {
-        console.error('Failed to load user orders:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchOrders();
   }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchOrders();
+  };
 
   if (loading) {
     return <LoadingSpinner message="Loading contractor portal..." />;
@@ -59,17 +69,18 @@ export default function UserDashboard() {
   // Real metrics only -- new customers with no orders yet must see zeros, not demo data.
   const displayTotalOrders = orders.length;
 
-  // Pending/Ongoing/Delivered pills reset every day -- they only count orders placed today,
-  // not all-time totals.
+  // Pending/Ongoing/Delivered counts reset every day, or roll over the last 7 days in Week view
+  // -- never all-time totals.
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
-  const todayOrders = orders.filter((o) => o.createdAt && new Date(o.createdAt) >= startOfToday);
+  const startOfPeriod = period === 'WEEK' ? new Date(startOfToday.getTime() - 6 * 24 * 60 * 60 * 1000) : startOfToday;
+  const periodOrders = orders.filter((o) => o.createdAt && new Date(o.createdAt) >= startOfPeriod);
 
   // Counts mirror MyOrders' tab filters exactly (PENDING / ACTIVE) so the numbers shown here
   // match what the customer sees after tapping through to that filtered list.
-  const displayPending = todayOrders.filter((o) => o.orderStatus === 'PENDING_PAYMENT').length;
-  const displayInTransit = todayOrders.filter((o) => ['PLACED', 'ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length;
-  const displayDelivered = todayOrders.filter((o) => o.orderStatus === 'DELIVERED').length;
+  const displayPending = periodOrders.filter((o) => o.orderStatus === 'PENDING_PAYMENT').length;
+  const displayInTransit = periodOrders.filter((o) => ['PLACED', 'ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length;
+  const displayDelivered = periodOrders.filter((o) => o.orderStatus === 'DELIVERED').length;
 
   const displayOrders = orders.slice(0, 5);
 
@@ -193,47 +204,100 @@ export default function UserDashboard() {
         </div>
       </div>
 
-      {/* 3. ORDER STATUS OVERVIEW (Pill Row) */}
-      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs p-4 sm:p-5">
-        <div className="grid grid-cols-3 divide-x divide-slate-200">
+      {/* 3. ORDER STATUS OVERVIEW */}
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs p-4 sm:p-5 space-y-4">
+        {/* Header + Today/Week toggle */}
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm sm:text-base font-black text-slate-900 font-display tracking-tight">
+              Order Status Overview
+            </h2>
+            <p className="text-[10px] sm:text-xs text-slate-400 font-medium mt-0.5">
+              Consolidated site delivery ledger
+            </p>
+          </div>
+          <div className="inline-flex items-center bg-slate-100 rounded-full p-0.5 text-[10px] sm:text-xs font-bold shrink-0">
+            <button
+              type="button"
+              onClick={() => setPeriod('TODAY')}
+              className={`px-3 py-1.5 rounded-full transition-all ${
+                period === 'TODAY' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'
+              }`}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriod('WEEK')}
+              className={`px-3 py-1.5 rounded-full transition-all ${
+                period === 'WEEK' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'
+              }`}
+            >
+              Week
+            </button>
+          </div>
+        </div>
+
+        {/* Stat columns */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           <Link
-            to="/user/orders?status=PENDING&today=1"
-            className="flex flex-col items-center text-center gap-1.5 px-1 active:scale-95 transition-transform cursor-pointer"
+            to={`/user/orders?status=PENDING&period=${period.toLowerCase()}`}
+            className="flex flex-col items-center text-center gap-1 p-2.5 sm:p-3 rounded-2xl bg-rose-50/50 border border-rose-100 active:scale-95 transition-transform cursor-pointer"
           >
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center">
-              <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-rose-600 border border-rose-200 flex items-center justify-center shadow-xs">
+              <Clock className="w-4 h-4" />
             </div>
-            <span className="text-[10px] sm:text-[11px] text-slate-500 font-semibold">Pending Order</span>
-            <span className="text-base sm:text-xl font-black text-slate-900 font-mono tracking-tight">
+            <span className="text-[10px] sm:text-[11px] text-slate-700 font-bold mt-1">Pending</span>
+            <span className="text-lg sm:text-xl font-black text-slate-900 font-mono tracking-tight">
               {displayPending}
             </span>
+            <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium">Confirmation</span>
           </Link>
 
           <Link
-            to="/user/orders?status=ACTIVE&today=1"
-            className="flex flex-col items-center text-center gap-1.5 px-1 active:scale-95 transition-transform cursor-pointer"
+            to={`/user/orders?status=ACTIVE&period=${period.toLowerCase()}`}
+            className="flex flex-col items-center text-center gap-1 p-2.5 sm:p-3 rounded-2xl bg-sky-50/50 border border-sky-100 active:scale-95 transition-transform cursor-pointer"
           >
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center">
-              <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-sky-600 border border-sky-200 flex items-center justify-center shadow-xs">
+              <Truck className="w-4 h-4" />
             </div>
-            <span className="text-[10px] sm:text-[11px] text-slate-500 font-semibold">Ongoing Order</span>
-            <span className="text-base sm:text-xl font-black text-slate-900 font-mono tracking-tight">
+            <span className="text-[10px] sm:text-[11px] text-slate-700 font-bold mt-1">Ongoing</span>
+            <span className="text-lg sm:text-xl font-black text-slate-900 font-mono tracking-tight">
               {displayInTransit}
             </span>
+            <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium">In Transit</span>
           </Link>
 
           <Link
-            to="/user/orders?status=DELIVERED&today=1"
-            className="flex flex-col items-center text-center gap-1.5 px-1 active:scale-95 transition-transform cursor-pointer"
+            to={`/user/orders?status=DELIVERED&period=${period.toLowerCase()}`}
+            className="flex flex-col items-center text-center gap-1 p-2.5 sm:p-3 rounded-2xl bg-emerald-50/50 border border-emerald-100 active:scale-95 transition-transform cursor-pointer"
           >
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center">
-              <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-emerald-600 border border-emerald-200 flex items-center justify-center shadow-xs">
+              <CheckCircle2 className="w-4 h-4" />
             </div>
-            <span className="text-[10px] sm:text-[11px] text-slate-500 font-semibold">Delivered Order</span>
-            <span className="text-base sm:text-xl font-black text-slate-900 font-mono tracking-tight">
+            <span className="text-[10px] sm:text-[11px] text-slate-700 font-bold mt-1">Delivered</span>
+            <span className="text-lg sm:text-xl font-black text-slate-900 font-mono tracking-tight">
               {displayDelivered}
             </span>
+            <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium">Ready Slip</span>
           </Link>
+        </div>
+
+        {/* Sync status footer */}
+        <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-100">
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-500 font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <span>All weighbridge channels synchronized</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-bold text-amber-600 hover:text-amber-700 disabled:opacity-50 shrink-0"
+          >
+            <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
         </div>
       </div>
 
