@@ -18,7 +18,6 @@ import {
   Sparkles,
   MapPin,
   ChevronRight,
-  ShoppingCart,
   Target,
   FileText,
   PhoneCall,
@@ -133,21 +132,7 @@ export default function UserDashboard() {
           QUICK OPERATIONS
         </div>
         <div className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
-          {/* 1. Order Material */}
-          <Link
-            to="/user/create-order"
-            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-amber-400/80 hover:shadow-md transition-all shrink-0 min-w-[150px] sm:min-w-[170px]"
-          >
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold shrink-0">
-              <ShoppingCart className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-xs font-bold text-slate-900">Order Material</div>
-              <div className="text-[10px] text-slate-500 font-medium">Sand & aggregate</div>
-            </div>
-          </Link>
-
-          {/* 2. Verify Delivery OTP */}
+          {/* 1. Verify Delivery OTP */}
           <button
             type="button"
             onClick={() => setShowOtpModal(true)}
@@ -162,7 +147,7 @@ export default function UserDashboard() {
             </div>
           </button>
 
-          {/* 3. Track Vehicle */}
+          {/* 2. Track Vehicle */}
           <Link
             to="/user/orders"
             className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-sky-400/80 hover:shadow-md transition-all shrink-0 min-w-[145px] sm:min-w-[165px]"
@@ -176,7 +161,7 @@ export default function UserDashboard() {
             </div>
           </Link>
 
-          {/* 4. Challan Slips */}
+          {/* 3. Challan Slips */}
           <Link
             to="/user/orders"
             className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-purple-400/80 hover:shadow-md transition-all shrink-0 min-w-[145px] sm:min-w-[165px]"
@@ -190,7 +175,7 @@ export default function UserDashboard() {
             </div>
           </Link>
 
-          {/* 5. Dispatch Support */}
+          {/* 4. Dispatch Support */}
           <a
             href="tel:9800001111"
             className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-rose-400/80 hover:shadow-md transition-all shrink-0 min-w-[145px] sm:min-w-[165px]"
