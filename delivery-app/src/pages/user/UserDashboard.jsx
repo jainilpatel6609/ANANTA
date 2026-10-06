@@ -2,11 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { orderService } from '../../services';
-import StatusBadge from '../../components/StatusBadge';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport } from '../../utils/formatters';
 import {
-  Package,
   Truck,
   PlusCircle,
   ArrowRight,
@@ -16,14 +13,10 @@ import {
   CheckCircle,
   Clock,
   Sparkles,
-  MapPin,
-  ChevronRight,
   Target,
   FileText,
   PhoneCall,
-  Navigation,
   ShieldCheck,
-  KeyRound,
   X,
   Copy,
   Check,
@@ -65,11 +58,7 @@ export default function UserDashboard() {
     return <LoadingSpinner message="Loading contractor portal..." />;
   }
 
-  // Real metrics only -- new customers with no orders yet must see zeros, not demo data.
-  const displayTotalOrders = orders.length;
-
-  // Pending/Ongoing/Delivered counts reset every day, or roll over the last 7 days in Week view
-  // -- never all-time totals.
+  // Pending/Ongoing/Delivered counts reset every day -- never all-time totals.
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
   const todayOrders = orders.filter((o) => o.createdAt && new Date(o.createdAt) >= startOfToday);
@@ -79,8 +68,6 @@ export default function UserDashboard() {
   const displayPending = todayOrders.filter((o) => o.orderStatus === 'PENDING_PAYMENT').length;
   const displayInTransit = todayOrders.filter((o) => ['PLACED', 'ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length;
   const displayDelivered = todayOrders.filter((o) => o.orderStatus === 'DELIVERED').length;
-
-  const displayOrders = orders.slice(0, 5);
 
   // Every order currently out for delivery with a live Gate Pass OTP -- not just one, so a
   // customer running multiple dispatches at once sees each order's own code against its number.
@@ -282,118 +269,7 @@ export default function UserDashboard() {
         </div>
       </div>
 
-      {/* 4. ACTIVE DISPATCH TRACKER (Exact Order Card Matching Screenshot) */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between px-1">
-          <div>
-            <h2 className="text-base font-black text-slate-900 font-display tracking-tight">
-              Active Dispatch Tracker
-            </h2>
-            <p className="text-[11px] text-slate-500 font-medium">
-              Real-time fleet location & gate pass
-            </p>
-          </div>
-          <Link
-            to="/user/orders"
-            className="text-xs font-black text-amber-600 hover:text-amber-700 flex items-center gap-0.5 active:scale-95 transition-all"
-          >
-            <span>View All ({displayTotalOrders})</span>
-            <ChevronRight className="w-4 h-4 stroke-[2.5]" />
-          </Link>
-        </div>
-
-        {/* Order Cards */}
-        <div className="space-y-3">
-          {displayOrders.length === 0 && (
-            <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs text-center space-y-2">
-              <Package className="w-8 h-8 text-slate-300 mx-auto" />
-              <p className="text-sm font-bold text-slate-700">No orders yet</p>
-              <p className="text-xs text-slate-500">Place your first material order to see it tracked here.</p>
-            </div>
-          )}
-          {displayOrders.map((order) => {
-            const orderLink = `/user/orders/${order._id}`;
-
-            return (
-              <div
-                key={order._id}
-                className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all space-y-3"
-              >
-                {/* Card Top Row: Order ID, Gate Pass Pill, Status, Date */}
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-black text-xs sm:text-sm text-slate-900">
-                      #{order.orderNumber}
-                    </span>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-black uppercase tracking-wider">
-                      GATE PASS
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <StatusBadge status={order.orderStatus} size="sm" />
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      {formatDate(order.createdAt)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Material & Specs */}
-                <div className="flex items-start justify-between gap-3 pt-2 border-t border-slate-100">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold shrink-0">
-                      <Truck className="w-5 h-5 stroke-[2.2]" />
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="text-sm font-black text-slate-900 truncate font-display">
-                        {order.productNameSnapshot}
-                      </h4>
-                      <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
-                        {formatOrderTransport(order)} • {formatOrderQuantity(order)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-sm sm:text-base font-black text-slate-900 font-mono">
-                      {formatINR(order.totalAmount)}
-                    </div>
-                    <div className="text-[10px] text-emerald-600 font-bold uppercase">
-                      {order.paymentStatus || 'PAID'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Delivery Site Address */}
-                <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 rounded-xl px-3 py-2 border border-slate-100/80">
-                  <MapPin className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span className="truncate font-medium">{order.shippingAddress}</span>
-                </div>
-
-                {/* Action Buttons: Track Fleet GPS + Gate Pass OTP */}
-                <div className="flex items-center gap-2 pt-1">
-                  <Link
-                    to={orderLink}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-xs active:scale-95 transition-all"
-                  >
-                    <Navigation className="w-3.5 h-3.5 fill-slate-950" />
-                    <span>Track Fleet GPS</span>
-                  </Link>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowOtpModal(true)}
-                    className="inline-flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-200 active:scale-95 transition-all shrink-0"
-                  >
-                    <KeyRound className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Gate Pass OTP</span>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 5. DELIVERY OTP MODAL */}
+      {/* 4. DELIVERY OTP MODAL */}
       {showOtpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4 relative">
