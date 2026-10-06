@@ -59,11 +59,9 @@ export default function UserDashboard() {
 
   // Real metrics only -- new customers with no orders yet must see zeros, not demo data.
   const displayTotalOrders = orders.length;
+  const displayPending = orders.filter((o) => ['PENDING_PAYMENT', 'PLACED'].includes(o.orderStatus)).length;
   const displayInTransit = orders.filter((o) => ['ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length;
   const displayDelivered = orders.filter((o) => o.orderStatus === 'DELIVERED').length;
-  const displayTotalSpend = orders
-    .filter((o) => o.paymentStatus === 'PAID')
-    .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
   const activeOrder = orders.find((o) => ['ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus));
   const displayOrders = orders.slice(0, 5);
@@ -199,98 +197,37 @@ export default function UserDashboard() {
         </div>
       </div>
 
-      {/* 3. DISPATCH & BILLING OVERVIEW (2x2 Grid Matching Screenshot) */}
-      <div className="space-y-2.5">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-[11px] font-black uppercase tracking-wider text-slate-400">
-            DISPATCH & BILLING OVERVIEW
-          </h2>
-          <span className="text-[10px] text-slate-400 font-medium">
-            Synced with weighbridge ERP
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 sm:gap-3">
-          {/* Card 1: TOTAL SUPPLY VALUE */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-            <div className="flex items-start justify-between gap-1 mb-2">
-              <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
-                TOTAL SUPPLY VALUE
-              </span>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 text-[9px] font-black shrink-0">
-                +14.2% MoM
-              </span>
+      {/* 3. ORDER STATUS OVERVIEW (Pill Row) */}
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs p-4 sm:p-5">
+        <div className="grid grid-cols-3 divide-x divide-slate-100">
+          <div className="flex flex-col items-center text-center gap-1.5 px-1">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="text-xl sm:text-2xl font-black text-slate-900 font-mono tracking-tight">
-                {formatINR(displayTotalSpend)}
-              </div>
-              <div className="text-[10px] sm:text-xs text-slate-400 font-medium mt-0.5">
-                Billed & settled orders
-              </div>
-            </div>
+            <span className="text-[10px] sm:text-[11px] text-slate-500 font-semibold">Pending Order</span>
+            <span className="text-base sm:text-xl font-black text-slate-900 font-mono tracking-tight">
+              {displayPending}
+            </span>
           </div>
 
-          {/* Card 2: IN TRANSIT */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-5 border border-sky-100 shadow-xs flex flex-col justify-between">
-            <div className="flex items-start justify-between gap-1 mb-2">
-              <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
-                IN TRANSIT
-              </span>
-              <div className="w-6 h-6 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
-                <Truck className="w-3.5 h-3.5 stroke-[2.5]" />
-              </div>
+          <div className="flex flex-col items-center text-center gap-1.5 px-1">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center">
+              <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="text-xl sm:text-2xl font-black text-slate-900 font-mono tracking-tight">
-                {displayInTransit}
-              </div>
-              <div className="inline-flex items-center gap-1 text-[10px] sm:text-xs text-emerald-600 font-semibold mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>All on schedule</span>
-              </div>
-            </div>
+            <span className="text-[10px] sm:text-[11px] text-slate-500 font-semibold">Ongoing Order</span>
+            <span className="text-base sm:text-xl font-black text-slate-900 font-mono tracking-tight">
+              {displayInTransit}
+            </span>
           </div>
 
-          {/* Card 3: TOTAL ORDERS */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-            <div className="flex items-start justify-between gap-1 mb-2">
-              <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
-                TOTAL ORDERS
-              </span>
-              <div className="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                <Package className="w-3.5 h-3.5 stroke-[2.5]" />
-              </div>
+          <div className="flex flex-col items-center text-center gap-1.5 px-1">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center">
+              <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="text-xl sm:text-2xl font-black text-slate-900 font-mono tracking-tight">
-                {displayTotalOrders}
-              </div>
-              <div className="text-[10px] sm:text-xs text-slate-400 font-medium mt-0.5">
-                All-time bookings
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: DELIVERED */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-            <div className="flex items-start justify-between gap-1 mb-2">
-              <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
-                DELIVERED
-              </span>
-              <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
-              </div>
-            </div>
-            <div>
-              <div className="text-xl sm:text-2xl font-black text-slate-900 font-mono tracking-tight">
-                {displayDelivered}
-              </div>
-              <div className="inline-flex items-center gap-1 text-[10px] sm:text-xs text-emerald-600 font-semibold mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>OTP Signed</span>
-              </div>
-            </div>
+            <span className="text-[10px] sm:text-[11px] text-slate-500 font-semibold">Delivered Order</span>
+            <span className="text-base sm:text-xl font-black text-slate-900 font-mono tracking-tight">
+              {displayDelivered}
+            </span>
           </div>
         </div>
       </div>
