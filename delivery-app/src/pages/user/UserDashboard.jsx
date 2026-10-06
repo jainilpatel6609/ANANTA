@@ -23,7 +23,9 @@ import {
   X,
   Copy,
   Check,
-  RefreshCw
+  RefreshCw,
+  Scale,
+  ExternalLink
 } from 'lucide-react';
 
 export default function UserDashboard() {
@@ -35,6 +37,8 @@ export default function UserDashboard() {
   const [copiedOrderId, setCopiedOrderId] = useState(null);
   const [showTrackModal, setShowTrackModal] = useState(false);
   const [trackOrderId, setTrackOrderId] = useState(null);
+  const [showChallanModal, setShowChallanModal] = useState(false);
+  const [challanOrderId, setChallanOrderId] = useState(null);
 
   const fetchOrders = async () => {
     try {
@@ -92,6 +96,15 @@ export default function UserDashboard() {
   const openTrackModal = () => {
     setTrackOrderId(null);
     setShowTrackModal(true);
+  };
+
+  // Orders that actually have a weighbridge slip photo uploaded by the dealer.
+  const challanOrders = orders.filter((o) => o.waybridgePhotoUrl);
+  const challanOrder = challanOrders.find((o) => o._id === challanOrderId) || null;
+
+  const openChallanModal = () => {
+    setChallanOrderId(null);
+    setShowChallanModal(true);
   };
 
   // Extract first name for greeting
@@ -175,18 +188,19 @@ export default function UserDashboard() {
           </button>
 
           {/* 3. Challan Slips */}
-          <Link
-            to="/user/orders"
-            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-purple-400/80 hover:shadow-md transition-all min-w-0"
+          <button
+            type="button"
+            onClick={openChallanModal}
+            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-purple-400/80 hover:shadow-md transition-all min-w-0 text-left"
           >
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold shrink-0">
               <FileText className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="text-xs font-bold text-slate-900 truncate">Challan Slips</div>
-              <div className="text-[10px] text-slate-500 font-medium truncate">Weighbridge PDF</div>
+              <div className="text-[10px] text-slate-500 font-medium truncate">Weighbridge slip photo</div>
             </div>
-          </Link>
+          </button>
 
           {/* 4. Dispatch Support */}
           <a
@@ -435,6 +449,114 @@ export default function UserDashboard() {
                 </div>
 
                 <DeliveryTimeline order={trackOrder} />
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 6. CHALLAN SLIPS MODAL -- pick an order, then see only its weighbridge slip photo */}
+      {showChallanModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 relative max-h-[85vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setShowChallanModal(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {!challanOrder ? (
+              <>
+                <div className="flex items-center gap-3 pr-8">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center font-bold">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900 font-display">Challan Slips</h3>
+                    <p className="text-xs text-slate-500">Select an order to view its weighbridge slip</p>
+                  </div>
+                </div>
+
+                {challanOrders.length === 0 ? (
+                  <div className="bg-slate-50 rounded-2xl p-5 text-center border border-slate-100">
+                    <p className="text-sm font-bold text-slate-700">No weighbridge slips yet</p>
+                    <p className="text-xs text-slate-500 mt-1">Once a dealer uploads a weighbridge slip for your order, it'll appear here.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {challanOrders.map((o) => (
+                      <button
+                        key={o._id}
+                        type="button"
+                        onClick={() => setChallanOrderId(o._id)}
+                        className="w-full flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-100 transition-all text-left"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono font-black text-xs text-slate-900">#{o.orderNumber}</span>
+                            <StatusBadge status={o.orderStatus} size="sm" />
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                            {o.productNameSnapshot} • {formatOrderQuantity(o)}
+                          </p>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-slate-400 shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setChallanOrderId(null)}
+                  className="text-xs font-bold text-slate-500 hover:text-slate-700 inline-flex items-center gap-1"
+                >
+                  <ArrowRight className="w-3.5 h-3.5 rotate-180" />
+                  <span>Back to orders</span>
+                </button>
+
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <h3 className="text-xs font-black text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <Scale className="w-4 h-4 text-purple-600" />
+                    <span>Weighbridge Slip — #{challanOrder.orderNumber}</span>
+                  </h3>
+                  {challanOrder.totalWeight && (
+                    <span className="text-xs text-slate-500 font-mono shrink-0">
+                      <span className="text-slate-900 font-black">{challanOrder.totalWeight} Ton</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="relative group rounded-2xl overflow-hidden border border-slate-200">
+                  <img
+                    src={challanOrder.waybridgePhotoUrl}
+                    alt="Weighbridge Slip Photo"
+                    className="w-full max-h-96 object-contain bg-slate-50"
+                  />
+                  <a
+                    href={challanOrder.waybridgePhotoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-xs font-bold text-white transition-opacity gap-1.5"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    View Full Size
+                  </a>
+                </div>
+
+                <a
+                  href={challanOrder.waybridgePhotoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs active:scale-98 transition-all"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Open / Download</span>
+                </a>
               </>
             )}
           </div>
