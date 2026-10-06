@@ -34,7 +34,7 @@ export default function UserDashboard() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showOtpModal, setShowOtpModal] = useState(false);
-  const [copiedOtp, setCopiedOtp] = useState(false);
+  const [copiedOrderId, setCopiedOrderId] = useState(null);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -71,15 +71,17 @@ export default function UserDashboard() {
   const displayInTransit = todayOrders.filter((o) => ['PLACED', 'ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length;
   const displayDelivered = todayOrders.filter((o) => o.orderStatus === 'DELIVERED').length;
 
-  const activeOrder = orders.find((o) => ['ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus));
   const displayOrders = orders.slice(0, 5);
-  const currentOtp = activeOrder?.deliveryOtp || null;
 
-  const handleCopyOtp = () => {
-    if (!currentOtp) return;
-    navigator.clipboard.writeText(currentOtp);
-    setCopiedOtp(true);
-    setTimeout(() => setCopiedOtp(false), 2000);
+  // Every order currently out for delivery with a live Gate Pass OTP -- not just one, so a
+  // customer running multiple dispatches at once sees each order's own code against its number.
+  const activeOtpOrders = orders.filter((o) => o.orderStatus === 'OUT_FOR_DELIVERY' && o.deliveryOtpDisplay);
+
+  const handleCopyOtp = (otp, orderId) => {
+    if (!otp) return;
+    navigator.clipboard.writeText(otp);
+    setCopiedOrderId(orderId);
+    setTimeout(() => setCopiedOrderId(null), 2000);
   };
 
   // Extract first name for greeting
@@ -368,32 +370,36 @@ export default function UserDashboard() {
               </div>
             </div>
 
-            {currentOtp ? (
+            {activeOtpOrders.length > 0 ? (
               <>
-                <div className="bg-slate-900 text-white rounded-2xl p-5 text-center space-y-2">
-                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                    VERIFICATION CODE
-                  </div>
-                  <div className="text-3xl font-mono font-black text-amber-400 tracking-[0.3em]">
-                    {currentOtp}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleCopyOtp}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-colors"
-                  >
-                    {copiedOtp ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="text-emerald-400">Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        <span>Copy Code</span>
-                      </>
-                    )}
-                  </button>
+                <div className="space-y-3 max-h-80 overflow-y-auto">
+                  {activeOtpOrders.map((o) => (
+                    <div key={o._id} className="bg-slate-900 text-white rounded-2xl p-5 text-center space-y-2">
+                      <div className="text-[11px] font-bold text-amber-400 uppercase tracking-widest font-mono">
+                        #{o.orderNumber}
+                      </div>
+                      <div className="text-3xl font-mono font-black text-amber-400 tracking-[0.3em]">
+                        {o.deliveryOtpDisplay}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyOtp(o.deliveryOtpDisplay, o._id)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-colors"
+                      >
+                        {copiedOrderId === o._id ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="text-emerald-400">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copy Code</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ))}
                 </div>
 
                 <div className="text-[11px] text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-100 leading-relaxed font-medium">
