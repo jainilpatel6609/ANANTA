@@ -37,7 +37,6 @@ export default function UserDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [copiedOrderId, setCopiedOrderId] = useState(null);
-  const [period, setPeriod] = useState('TODAY');
 
   const fetchOrders = async () => {
     try {
@@ -73,14 +72,13 @@ export default function UserDashboard() {
   // -- never all-time totals.
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
-  const startOfPeriod = period === 'WEEK' ? new Date(startOfToday.getTime() - 6 * 24 * 60 * 60 * 1000) : startOfToday;
-  const periodOrders = orders.filter((o) => o.createdAt && new Date(o.createdAt) >= startOfPeriod);
+  const todayOrders = orders.filter((o) => o.createdAt && new Date(o.createdAt) >= startOfToday);
 
   // Counts mirror MyOrders' tab filters exactly (PENDING / ACTIVE) so the numbers shown here
   // match what the customer sees after tapping through to that filtered list.
-  const displayPending = periodOrders.filter((o) => o.orderStatus === 'PENDING_PAYMENT').length;
-  const displayInTransit = periodOrders.filter((o) => ['PLACED', 'ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length;
-  const displayDelivered = periodOrders.filter((o) => o.orderStatus === 'DELIVERED').length;
+  const displayPending = todayOrders.filter((o) => o.orderStatus === 'PENDING_PAYMENT').length;
+  const displayInTransit = todayOrders.filter((o) => ['PLACED', 'ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length;
+  const displayDelivered = todayOrders.filter((o) => o.orderStatus === 'DELIVERED').length;
 
   const displayOrders = orders.slice(0, 5);
 
@@ -206,7 +204,7 @@ export default function UserDashboard() {
 
       {/* 3. ORDER STATUS OVERVIEW */}
       <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs p-4 sm:p-5 space-y-4">
-        {/* Header + Today/Week toggle */}
+        {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <div>
             <h2 className="text-sm sm:text-base font-black text-slate-900 font-display tracking-tight">
@@ -216,32 +214,15 @@ export default function UserDashboard() {
               Consolidated site delivery ledger
             </p>
           </div>
-          <div className="inline-flex items-center bg-slate-100 rounded-full p-0.5 text-[10px] sm:text-xs font-bold shrink-0">
-            <button
-              type="button"
-              onClick={() => setPeriod('TODAY')}
-              className={`px-3 py-1.5 rounded-full transition-all ${
-                period === 'TODAY' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'
-              }`}
-            >
-              Today
-            </button>
-            <button
-              type="button"
-              onClick={() => setPeriod('WEEK')}
-              className={`px-3 py-1.5 rounded-full transition-all ${
-                period === 'WEEK' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'
-              }`}
-            >
-              Week
-            </button>
-          </div>
+          <span className="px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 text-[10px] sm:text-xs font-bold shrink-0">
+            Today
+          </span>
         </div>
 
         {/* Stat columns */}
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           <Link
-            to={`/user/orders?status=PENDING&period=${period.toLowerCase()}`}
+            to="/user/orders?status=PENDING&period=today"
             className="flex flex-col items-center text-center gap-1 p-2.5 sm:p-3 rounded-2xl bg-rose-50/50 border border-rose-100 active:scale-95 transition-transform cursor-pointer"
           >
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-rose-600 border border-rose-200 flex items-center justify-center shadow-xs">
@@ -255,7 +236,7 @@ export default function UserDashboard() {
           </Link>
 
           <Link
-            to={`/user/orders?status=ACTIVE&period=${period.toLowerCase()}`}
+            to="/user/orders?status=ACTIVE&period=today"
             className="flex flex-col items-center text-center gap-1 p-2.5 sm:p-3 rounded-2xl bg-sky-50/50 border border-sky-100 active:scale-95 transition-transform cursor-pointer"
           >
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-sky-600 border border-sky-200 flex items-center justify-center shadow-xs">
@@ -269,7 +250,7 @@ export default function UserDashboard() {
           </Link>
 
           <Link
-            to={`/user/orders?status=DELIVERED&period=${period.toLowerCase()}`}
+            to="/user/orders?status=DELIVERED&period=today"
             className="flex flex-col items-center text-center gap-1 p-2.5 sm:p-3 rounded-2xl bg-emerald-50/50 border border-emerald-100 active:scale-95 transition-transform cursor-pointer"
           >
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-emerald-600 border border-emerald-200 flex items-center justify-center shadow-xs">
