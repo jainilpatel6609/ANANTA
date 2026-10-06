@@ -12,6 +12,7 @@ const VALID_STATUS_FILTERS = ['ALL', 'ACTIVE', 'DELIVERED', 'PENDING'];
 export default function MyOrders() {
   const [searchParams] = useSearchParams();
   const initialStatus = searchParams.get('status');
+  const onlyToday = searchParams.get('today') === '1';
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -39,6 +40,9 @@ export default function MyOrders() {
     return <LoadingSpinner message="Fetching material order history..." />;
   }
 
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
   const filteredOrders = orders.filter((o) => {
     const matchSearch =
       o.orderNumber?.toLowerCase().includes(search.toLowerCase()) ||
@@ -51,7 +55,9 @@ export default function MyOrders() {
       (statusFilter === 'DELIVERED' && o.orderStatus === 'DELIVERED') ||
       (statusFilter === 'PENDING' && o.orderStatus === 'PENDING_PAYMENT');
 
-    return matchSearch && matchStatus;
+    const matchToday = !onlyToday || (o.createdAt && new Date(o.createdAt) >= startOfToday);
+
+    return matchSearch && matchStatus && matchToday;
   });
 
   return (

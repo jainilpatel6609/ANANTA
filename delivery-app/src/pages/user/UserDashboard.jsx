@@ -59,11 +59,18 @@ export default function UserDashboard() {
 
   // Real metrics only -- new customers with no orders yet must see zeros, not demo data.
   const displayTotalOrders = orders.length;
+
+  // Pending/Ongoing/Delivered pills reset every day -- they only count orders placed today,
+  // not all-time totals.
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const todayOrders = orders.filter((o) => o.createdAt && new Date(o.createdAt) >= startOfToday);
+
   // Counts mirror MyOrders' tab filters exactly (PENDING / ACTIVE) so the numbers shown here
   // match what the customer sees after tapping through to that filtered list.
-  const displayPending = orders.filter((o) => o.orderStatus === 'PENDING_PAYMENT').length;
-  const displayInTransit = orders.filter((o) => ['PLACED', 'ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length;
-  const displayDelivered = orders.filter((o) => o.orderStatus === 'DELIVERED').length;
+  const displayPending = todayOrders.filter((o) => o.orderStatus === 'PENDING_PAYMENT').length;
+  const displayInTransit = todayOrders.filter((o) => ['PLACED', 'ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length;
+  const displayDelivered = todayOrders.filter((o) => o.orderStatus === 'DELIVERED').length;
 
   const activeOrder = orders.find((o) => ['ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus));
   const displayOrders = orders.slice(0, 5);
@@ -203,7 +210,7 @@ export default function UserDashboard() {
       <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs p-4 sm:p-5">
         <div className="grid grid-cols-3 divide-x divide-slate-200">
           <Link
-            to="/user/orders?status=PENDING"
+            to="/user/orders?status=PENDING&today=1"
             className="flex flex-col items-center text-center gap-1.5 px-1 active:scale-95 transition-transform cursor-pointer"
           >
             <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center">
@@ -216,7 +223,7 @@ export default function UserDashboard() {
           </Link>
 
           <Link
-            to="/user/orders?status=ACTIVE"
+            to="/user/orders?status=ACTIVE&today=1"
             className="flex flex-col items-center text-center gap-1.5 px-1 active:scale-95 transition-transform cursor-pointer"
           >
             <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center">
@@ -229,7 +236,7 @@ export default function UserDashboard() {
           </Link>
 
           <Link
-            to="/user/orders?status=DELIVERED"
+            to="/user/orders?status=DELIVERED&today=1"
             className="flex flex-col items-center text-center gap-1.5 px-1 active:scale-95 transition-transform cursor-pointer"
           >
             <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center">
