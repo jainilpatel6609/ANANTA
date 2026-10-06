@@ -137,66 +137,66 @@ export default function UserDashboard() {
         </div>
       </div>
 
-      {/* 2. QUICK OPERATIONS (Horizontal Swipeable Row) */}
+      {/* 2. QUICK OPERATIONS (2x2 Grid, No Scroll) */}
       <div className="space-y-2">
         <div className="text-[11px] font-black uppercase tracking-wider text-slate-400 px-1">
           QUICK OPERATIONS
         </div>
-        <div className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="grid grid-cols-2 gap-2.5">
           {/* 1. Verify Delivery OTP */}
           <button
             type="button"
             onClick={() => setShowOtpModal(true)}
-            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-emerald-400/80 hover:shadow-md transition-all shrink-0 min-w-[155px] sm:min-w-[175px] text-left"
+            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-emerald-400/80 hover:shadow-md transition-all text-left min-w-0"
           >
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">
               <CheckCircle className="w-5 h-5" />
             </div>
-            <div>
-              <div className="text-xs font-bold text-slate-900">Verify Delivery OTP</div>
-              <div className="text-[10px] text-slate-500 font-medium">Confirm receipt</div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-slate-900 truncate">Verify Delivery OTP</div>
+              <div className="text-[10px] text-slate-500 font-medium truncate">Confirm receipt</div>
             </div>
           </button>
 
           {/* 2. Track Vehicle */}
           <Link
             to="/user/orders"
-            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-sky-400/80 hover:shadow-md transition-all shrink-0 min-w-[145px] sm:min-w-[165px]"
+            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-sky-400/80 hover:shadow-md transition-all min-w-0"
           >
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold shrink-0">
               <Target className="w-5 h-5" />
             </div>
-            <div>
-              <div className="text-xs font-bold text-slate-900">Track Vehicle</div>
-              <div className="text-[10px] text-slate-500 font-medium">Live GPS telemetry</div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-slate-900 truncate">Track Vehicle</div>
+              <div className="text-[10px] text-slate-500 font-medium truncate">Live GPS telemetry</div>
             </div>
           </Link>
 
           {/* 3. Challan Slips */}
           <Link
             to="/user/orders"
-            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-purple-400/80 hover:shadow-md transition-all shrink-0 min-w-[145px] sm:min-w-[165px]"
+            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-purple-400/80 hover:shadow-md transition-all min-w-0"
           >
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold shrink-0">
               <FileText className="w-5 h-5" />
             </div>
-            <div>
-              <div className="text-xs font-bold text-slate-900">Challan Slips</div>
-              <div className="text-[10px] text-slate-500 font-medium">Weighbridge PDF</div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-slate-900 truncate">Challan Slips</div>
+              <div className="text-[10px] text-slate-500 font-medium truncate">Weighbridge PDF</div>
             </div>
           </Link>
 
           {/* 4. Dispatch Support */}
           <a
             href="tel:9800001111"
-            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-rose-400/80 hover:shadow-md transition-all shrink-0 min-w-[145px] sm:min-w-[165px]"
+            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-rose-400/80 hover:shadow-md transition-all min-w-0"
           >
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold shrink-0">
               <PhoneCall className="w-5 h-5" />
             </div>
-            <div>
-              <div className="text-xs font-bold text-slate-900">Dispatch Support</div>
-              <div className="text-[10px] text-slate-500 font-medium">24x7 control room</div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-slate-900 truncate">Dispatch Support</div>
+              <div className="text-[10px] text-slate-500 font-medium truncate">24x7 control room</div>
             </div>
           </a>
         </div>
