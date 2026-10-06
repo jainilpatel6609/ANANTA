@@ -199,7 +199,7 @@ export default function UserDashboard() {
 
       {/* 3. ORDER STATUS OVERVIEW (Pill Row) */}
       <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs p-4 sm:p-5">
-        <div className="grid grid-cols-3 divide-x divide-slate-100">
+        <div className="grid grid-cols-3 divide-x divide-slate-200">
           <div className="flex flex-col items-center text-center gap-1.5 px-1">
             <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center">
               <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
