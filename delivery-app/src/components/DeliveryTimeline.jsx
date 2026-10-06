@@ -54,11 +54,11 @@ export default function DeliveryTimeline({ order }) {
 
   if (order.orderStatus === 'CANCELLED') {
     return (
-      <div className="p-4 rounded-2xl bg-rose-950/20 border border-rose-800/40 text-rose-300 flex items-center gap-3 text-xs">
-        <XCircle className="w-5 h-5 text-rose-400 shrink-0" />
+      <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center gap-3 text-xs">
+        <XCircle className="w-5 h-5 text-rose-500 shrink-0" />
         <div>
           <span className="font-semibold block">Order Cancelled</span>
-          <span className="text-slate-400">This order dispatch has been stopped and marked cancelled.</span>
+          <span className="text-slate-500">This order dispatch has been stopped and marked cancelled.</span>
         </div>
       </div>
     );
@@ -67,7 +67,7 @@ export default function DeliveryTimeline({ order }) {
   return (
     <div className="py-2">
       {/* Mobile Vertical Flow */}
-      <div className="md:hidden space-y-5 relative before:absolute before:left-5 before:top-4 before:bottom-4 before:w-0.5 before:bg-slate-800">
+      <div className="md:hidden space-y-5 relative before:absolute before:left-5 before:top-4 before:bottom-4 before:w-0.5 before:bg-slate-200">
         {steps.map((step) => {
           const StepIcon = step.icon;
           return (
@@ -75,10 +75,10 @@ export default function DeliveryTimeline({ order }) {
               <div
                 className={`w-10 h-10 rounded-2xl flex items-center justify-center border transition-all shrink-0 shadow-sm ${
                   step.isCompleted
-                    ? 'bg-emerald-700/80 border-emerald-500/60 text-white'
+                    ? 'bg-emerald-600 border-emerald-500 text-white'
                     : step.isActive
-                    ? 'bg-amber-600 border-amber-400 text-white'
-                    : 'bg-slate-900 border-slate-800 text-slate-500'
+                    ? 'bg-amber-500 border-amber-400 text-white'
+                    : 'bg-slate-50 border-slate-200 text-slate-400'
                 }`}
               >
                 {step.isCompleted ? <Check className="w-4 h-4 stroke-[2.5]" /> : <StepIcon className="w-4 h-4" />}
@@ -88,18 +88,18 @@ export default function DeliveryTimeline({ order }) {
                 <div className="flex items-center justify-between">
                   <h4
                     className={`text-xs sm:text-sm font-semibold tracking-tight ${
-                      step.isCompleted ? 'text-white' : step.isActive ? 'text-amber-300 font-bold' : 'text-slate-400'
+                      step.isCompleted ? 'text-slate-900' : step.isActive ? 'text-amber-700 font-bold' : 'text-slate-400'
                     }`}
                   >
                     {step.title}
                   </h4>
                   {step.isActive && (
-                    <span className="px-2 py-0.5 rounded-full bg-amber-950/40 text-amber-300 border border-amber-800/40 text-[10px] font-semibold uppercase">
+                    <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-semibold uppercase">
                       In Progress
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{step.desc}</p>
+                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{step.desc}</p>
               </div>
             </div>
           );
@@ -108,7 +108,7 @@ export default function DeliveryTimeline({ order }) {
 
       {/* Desktop Horizontal Stepper */}
       <div className="hidden md:block relative">
-        <div className="absolute top-5 left-12 right-12 h-0.5 bg-slate-800 -translate-y-1/2 z-0" />
+        <div className="absolute top-5 left-12 right-12 h-0.5 bg-slate-200 -translate-y-1/2 z-0" />
         <div className="flex justify-between items-start">
           {steps.map((step) => {
             const StepIcon = step.icon;
@@ -117,10 +117,10 @@ export default function DeliveryTimeline({ order }) {
                 <div
                   className={`w-10 h-10 rounded-2xl flex items-center justify-center border transition-all shadow-sm mb-3 ${
                     step.isCompleted
-                      ? 'bg-emerald-700/80 border-emerald-500/60 text-white'
+                      ? 'bg-emerald-600 border-emerald-500 text-white'
                       : step.isActive
-                      ? 'bg-amber-600 border-amber-400 text-white'
-                      : 'bg-slate-900 border-slate-800 text-slate-500'
+                      ? 'bg-amber-500 border-amber-400 text-white'
+                      : 'bg-slate-50 border-slate-200 text-slate-400'
                   }`}
                 >
                   {step.isCompleted ? <Check className="w-4 h-4 stroke-[2.5]" /> : <StepIcon className="w-4 h-4" />}
@@ -128,12 +128,12 @@ export default function DeliveryTimeline({ order }) {
 
                 <h4
                   className={`text-xs font-semibold tracking-tight ${
-                    step.isCompleted ? 'text-white' : step.isActive ? 'text-amber-300 font-bold' : 'text-slate-400'
+                    step.isCompleted ? 'text-slate-900' : step.isActive ? 'text-amber-700 font-bold' : 'text-slate-400'
                   }`}
                 >
                   {step.title}
                 </h4>
-                <p className="text-[11px] text-slate-400 mt-1 max-w-[140px] leading-relaxed">{step.desc}</p>
+                <p className="text-[11px] text-slate-500 mt-1 max-w-[140px] leading-relaxed">{step.desc}</p>
               </div>
             );
           })}

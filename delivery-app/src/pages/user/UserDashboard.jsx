@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { orderService } from '../../services';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import StatusBadge from '../../components/StatusBadge';
+import DeliveryTimeline from '../../components/DeliveryTimeline';
+import { formatOrderQuantity } from '../../utils/formatters';
 import {
   Truck,
   PlusCircle,
@@ -30,6 +33,8 @@ export default function UserDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [copiedOrderId, setCopiedOrderId] = useState(null);
+  const [showTrackModal, setShowTrackModal] = useState(false);
+  const [trackOrderId, setTrackOrderId] = useState(null);
 
   const fetchOrders = async () => {
     try {
@@ -78,6 +83,15 @@ export default function UserDashboard() {
     navigator.clipboard.writeText(otp);
     setCopiedOrderId(orderId);
     setTimeout(() => setCopiedOrderId(null), 2000);
+  };
+
+  // Orders currently in the delivery pipeline -- these are the only ones worth live-tracking.
+  const activeTrackOrders = orders.filter((o) => ['PLACED', 'ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus));
+  const trackOrder = activeTrackOrders.find((o) => o._id === trackOrderId) || null;
+
+  const openTrackModal = () => {
+    setTrackOrderId(null);
+    setShowTrackModal(true);
   };
 
   // Extract first name for greeting
@@ -146,9 +160,10 @@ export default function UserDashboard() {
           </button>
 
           {/* 2. Track Vehicle */}
-          <Link
-            to="/user/orders"
-            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-sky-400/80 hover:shadow-md transition-all min-w-0"
+          <button
+            type="button"
+            onClick={openTrackModal}
+            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-sky-400/80 hover:shadow-md transition-all min-w-0 text-left"
           >
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold shrink-0">
               <Target className="w-5 h-5" />
@@ -157,7 +172,7 @@ export default function UserDashboard() {
               <div className="text-xs font-bold text-slate-900 truncate">Track Vehicle</div>
               <div className="text-[10px] text-slate-500 font-medium truncate">Live GPS telemetry</div>
             </div>
-          </Link>
+          </button>
 
           {/* 3. Challan Slips */}
           <Link
@@ -341,6 +356,87 @@ export default function UserDashboard() {
             >
               Done
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 5. TRACK VEHICLE MODAL -- pick an active order, then see only its live tracking */}
+      {showTrackModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 relative max-h-[85vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setShowTrackModal(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {!trackOrder ? (
+              <>
+                <div className="flex items-center gap-3 pr-8">
+                  <div className="w-10 h-10 rounded-2xl bg-sky-500/10 text-sky-600 flex items-center justify-center font-bold">
+                    <Target className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900 font-display">Track Vehicle</h3>
+                    <p className="text-xs text-slate-500">Select an active order to track</p>
+                  </div>
+                </div>
+
+                {activeTrackOrders.length === 0 ? (
+                  <div className="bg-slate-50 rounded-2xl p-5 text-center border border-slate-100">
+                    <p className="text-sm font-bold text-slate-700">No active orders right now</p>
+                    <p className="text-xs text-slate-500 mt-1">Once an order is placed and dispatched, you can track it here.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {activeTrackOrders.map((o) => (
+                      <button
+                        key={o._id}
+                        type="button"
+                        onClick={() => setTrackOrderId(o._id)}
+                        className="w-full flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-100 transition-all text-left"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono font-black text-xs text-slate-900">#{o.orderNumber}</span>
+                            <StatusBadge status={o.orderStatus} size="sm" />
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                            {o.productNameSnapshot} • {formatOrderQuantity(o)}
+                          </p>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-slate-400 shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setTrackOrderId(null)}
+                  className="text-xs font-bold text-slate-500 hover:text-slate-700 inline-flex items-center gap-1"
+                >
+                  <ArrowRight className="w-3.5 h-3.5 rotate-180" />
+                  <span>Back to active orders</span>
+                </button>
+
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <h3 className="text-xs font-black text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-amber-600" />
+                    <span>Live Dispatch Tracking — #{trackOrder.orderNumber}</span>
+                  </h3>
+                  <span className="text-xs text-slate-500 font-mono shrink-0">
+                    Status: <span className="text-slate-900 font-black">{trackOrder.orderStatus}</span>
+                  </span>
+                </div>
+
+                <DeliveryTimeline order={trackOrder} />
+              </>
+            )}
           </div>
         </div>
       )}
