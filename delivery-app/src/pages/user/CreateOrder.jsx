@@ -47,6 +47,26 @@ export default function CreateOrder() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  // Material & Vehicle, Location/Grain & Capacity, and Delivery (old steps 1-6) are now one
+  // single scrollable page -- the customer fills everything top to bottom without a Continue
+  // tap between them. Select Dealer and Summary & Pay stay standalone, since each depends on
+  // the answers gathered on that first page (dealers are fetched only once delivery location
+  // is known). Computed here (above the `if (loading) return` below) rather than near the
+  // JSX return, because effects defined before that early return close over these -- declaring
+  // them after it would leave `currentGroupIndex` permanently uninitialized (TDZ) inside any
+  // effect closure created during a loading render, throwing the moment that effect runs.
+  const stepGroups = [
+    { ids: [1, 2, 3, 4, 5, 6], title: 'Order Details', icon: Truck },
+    { ids: [7], title: 'Select Dealer', icon: Building2 },
+    { ids: [8], title: 'Summary & Pay', icon: CreditCard }
+  ];
+
+  const currentGroupIndex = Math.max(0, stepGroups.findIndex((g) => g.ids.includes(step)));
+  const currentGroup = stepGroups[currentGroupIndex];
+  const showStep = (n) => currentGroup.ids.includes(n);
+  const goToGroup = (idx) => setStep(stepGroups[idx].ids[0]);
+  const progressPercent = Math.round(((currentGroupIndex + 1) / stepGroups.length) * 100);
+
   // Dynamic Data from Backend
   const [materials, setMaterials] = useState([]);
   const [locations, setLocations] = useState([]);
@@ -775,23 +795,6 @@ export default function CreateOrder() {
   if (loading) {
     return <LoadingSpinner message="Initializing dynamic material catalog..." />;
   }
-
-  // Material & Vehicle, Location/Grain & Capacity, and Delivery (old steps 1-6) are now one
-  // single scrollable page -- the customer fills everything top to bottom without a Continue
-  // tap between them. Select Dealer and Summary & Pay stay standalone, since each depends on
-  // the answers gathered on that first page (dealers are fetched only once delivery location
-  // is known).
-  const stepGroups = [
-    { ids: [1, 2, 3, 4, 5, 6], title: 'Order Details', icon: Truck },
-    { ids: [7], title: 'Select Dealer', icon: Building2 },
-    { ids: [8], title: 'Summary & Pay', icon: CreditCard }
-  ];
-
-  const currentGroupIndex = Math.max(0, stepGroups.findIndex((g) => g.ids.includes(step)));
-  const currentGroup = stepGroups[currentGroupIndex];
-  const showStep = (n) => currentGroup.ids.includes(n);
-  const goToGroup = (idx) => setStep(stepGroups[idx].ids[0]);
-  const progressPercent = Math.round(((currentGroupIndex + 1) / stepGroups.length) * 100);
 
   return (
     <div className="max-w-5xl mx-auto space-y-3 sm:space-y-6 lg:space-y-8 pb-8 sm:pb-16">
