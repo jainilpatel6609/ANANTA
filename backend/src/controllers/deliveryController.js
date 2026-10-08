@@ -325,8 +325,26 @@ const dispatchOrder = async (req, res) => {
       }
     }
 
-    // Generate secure 6-digit Delivery OTP
-    const { rawOtp, otpHash, expiresAt } = await OtpService.generateOtp(1440); // 24 hours
+    // Only generate a fresh Delivery OTP on the initial ACCEPTED -> OUT_FOR_DELIVERY
+    // dispatch. A dealer re-confirming/correcting driver or vehicle details on an order
+    // that's already OUT_FOR_DELIVERY (with a still-valid OTP) must never silently swap
+    // out the code the customer has already been shown -- that's exactly what caused
+    // drivers to see "Invalid Delivery OTP" on a code the customer was reading correctly.
+    const hasValidOtp =
+      order.orderStatus === 'OUT_FOR_DELIVERY' &&
+      order.deliveryOtpHash &&
+      order.deliveryOtpExpiresAt &&
+      new Date(order.deliveryOtpExpiresAt) > new Date();
+
+    let rawOtp = order.deliveryOtpDisplay;
+    if (!hasValidOtp) {
+      const generated = await OtpService.generateOtp(1440); // 24 hours
+      rawOtp = generated.rawOtp;
+      order.deliveryOtpHash = generated.otpHash;
+      order.deliveryOtpDisplay = generated.rawOtp;
+      order.deliveryOtpExpiresAt = generated.expiresAt;
+      order.otpAttempts = 0;
+    }
 
     order.driverId = driverDoc ? driverDoc._id : order.driverId;
     order.driverName = finalDriverName;
@@ -334,12 +352,8 @@ const dispatchOrder = async (req, res) => {
     order.vehicleNumber = finalVehicleNumber;
     order.riverRoyaltyUrl = riverRoyaltyUrl;
     order.waybridgePhotoUrl = waybridgePhotoUrl;
-    order.deliveryOtpHash = otpHash;
-    order.deliveryOtpDisplay = rawOtp;
-    order.deliveryOtpExpiresAt = expiresAt;
-    order.otpAttempts = 0;
     order.orderStatus = 'OUT_FOR_DELIVERY';
-    order.outForDeliveryAt = new Date();
+    order.outForDeliveryAt = order.outForDeliveryAt || new Date();
     order.driverAssignedAt = order.driverAssignedAt || new Date();
     order.driverTaskDispatchedAt = new Date();
 
