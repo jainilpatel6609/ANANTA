@@ -113,7 +113,14 @@ export default function UserDashboard() {
   };
 
   // Order History: completed order invoices, filterable by Today / This Month / Site.
-  const getOrderSite = (o) => o.shippingDetails?.city || o.shippingAddress?.split(',')[0]?.trim() || 'Other';
+  // Site location = the exact site/society/plot name the customer typed at checkout
+  // (shippingDetails.addressLine1, the first segment of the full shipping address) --
+  // not the broad city, since multiple deliveries can share a city but differ by site.
+  const getOrderSite = (o) =>
+    o.shippingDetails?.addressLine1?.trim() ||
+    o.shippingAddress?.split(',')[0]?.trim() ||
+    o.shippingDetails?.city ||
+    'Other';
 
   const deliveredOrders = orders.filter((o) => o.orderStatus === 'DELIVERED');
   const siteOptions = Array.from(new Set(deliveredOrders.map((o) => getOrderSite(o)))).sort();
