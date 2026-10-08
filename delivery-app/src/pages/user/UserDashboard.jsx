@@ -5,7 +5,7 @@ import { orderService } from '../../services';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import StatusBadge from '../../components/StatusBadge';
 import DeliveryTimeline from '../../components/DeliveryTimeline';
-import { formatOrderQuantity } from '../../utils/formatters';
+import { formatOrderQuantity, formatDate, formatINR } from '../../utils/formatters';
 import {
   Truck,
   PlusCircle,
@@ -25,7 +25,9 @@ import {
   Check,
   RefreshCw,
   Scale,
-  ExternalLink
+  ExternalLink,
+  History,
+  MapPin
 } from 'lucide-react';
 
 export default function UserDashboard() {
@@ -39,6 +41,9 @@ export default function UserDashboard() {
   const [trackOrderId, setTrackOrderId] = useState(null);
   const [showChallanModal, setShowChallanModal] = useState(false);
   const [challanOrderId, setChallanOrderId] = useState(null);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [historyPeriod, setHistoryPeriod] = useState('ALL');
+  const [historySite, setHistorySite] = useState('ALL');
 
   const fetchOrders = async () => {
     try {
@@ -105,6 +110,31 @@ export default function UserDashboard() {
   const openChallanModal = () => {
     setChallanOrderId(null);
     setShowChallanModal(true);
+  };
+
+  // Order History: completed order invoices, filterable by Today / This Month / Site.
+  const getOrderSite = (o) => o.shippingDetails?.city || o.shippingAddress?.split(',')[0]?.trim() || 'Other';
+
+  const deliveredOrders = orders.filter((o) => o.orderStatus === 'DELIVERED');
+  const siteOptions = Array.from(new Set(deliveredOrders.map((o) => getOrderSite(o)))).sort();
+
+  const historyStartOfToday = new Date();
+  historyStartOfToday.setHours(0, 0, 0, 0);
+  const historyStartOfMonth = new Date(historyStartOfToday.getFullYear(), historyStartOfToday.getMonth(), 1);
+
+  const historyOrders = deliveredOrders
+    .filter((o) => {
+      if (historyPeriod === 'ALL') return true;
+      const ref = new Date(o.deliveryVerifiedAt || o.deliveredAt || o.createdAt);
+      return historyPeriod === 'TODAY' ? ref >= historyStartOfToday : ref >= historyStartOfMonth;
+    })
+    .filter((o) => historySite === 'ALL' || getOrderSite(o) === historySite)
+    .sort((a, b) => new Date(b.deliveredAt || b.createdAt) - new Date(a.deliveredAt || a.createdAt));
+
+  const openHistoryModal = () => {
+    setHistoryPeriod('ALL');
+    setHistorySite('ALL');
+    setShowHistoryModal(true);
   };
 
   // Extract first name for greeting
@@ -215,6 +245,21 @@ export default function UserDashboard() {
               <div className="text-[10px] text-slate-500 font-medium truncate">24x7 control room</div>
             </div>
           </a>
+
+          {/* 5. Order History */}
+          <button
+            type="button"
+            onClick={openHistoryModal}
+            className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-indigo-400/80 hover:shadow-md transition-all min-w-0 text-left"
+          >
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shrink-0">
+              <History className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-slate-900 truncate">Order History</div>
+              <div className="text-[10px] text-slate-500 font-medium truncate">Completed order invoices</div>
+            </div>
+          </button>
         </div>
       </div>
 
@@ -558,6 +603,103 @@ export default function UserDashboard() {
                   <span>Open / Download</span>
                 </a>
               </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 7. ORDER HISTORY MODAL -- completed order invoices, filterable by Today/Month/Site */}
+      {showHistoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 relative max-h-[85vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setShowHistoryModal(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-3 pr-8">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center font-bold">
+                <History className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900 font-display">Order History</h3>
+                <p className="text-xs text-slate-500">Completed order invoices</p>
+              </div>
+            </div>
+
+            {/* Period Filter */}
+            <div className="inline-flex items-center bg-slate-100 rounded-full p-0.5 text-[10px] sm:text-xs font-bold w-full">
+              {[
+                { id: 'ALL', label: 'All Time' },
+                { id: 'MONTH', label: 'This Month' },
+                { id: 'TODAY', label: 'Today' }
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setHistoryPeriod(p.id)}
+                  className={`flex-1 px-3 py-1.5 rounded-full transition-all ${
+                    historyPeriod === p.id ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Site Filter */}
+            {siteOptions.length > 0 && (
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <select
+                  value={historySite}
+                  onChange={(e) => setHistorySite(e.target.value)}
+                  className="app-select w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 font-medium focus:outline-none focus:border-amber-500 focus:bg-white"
+                >
+                  <option value="ALL">All Site Locations</option>
+                  {siteOptions.map((site) => (
+                    <option key={site} value={site}>{site}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Invoice List */}
+            {historyOrders.length === 0 ? (
+              <div className="bg-slate-50 rounded-2xl p-5 text-center border border-slate-100">
+                <p className="text-sm font-bold text-slate-700">No completed orders found</p>
+                <p className="text-xs text-slate-500 mt-1">Try a different filter, or check back once a delivery is completed.</p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {historyOrders.map((o) => (
+                  <Link
+                    key={o._id}
+                    to={`/user/orders/${o._id}/invoice`}
+                    onClick={() => setShowHistoryModal(false)}
+                    className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-100 transition-all"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono font-black text-xs text-slate-900">#{o.orderNumber}</span>
+                        <span className="text-[10px] text-slate-400">{formatDate(o.deliveredAt || o.createdAt)}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                        {o.productNameSnapshot} • {getOrderSite(o)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs font-black text-slate-900 font-mono">{formatINR(o.totalAmount)}</span>
+                      <FileText className="w-4 h-4 text-indigo-500" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
             )}
           </div>
         </div>
