@@ -35,7 +35,8 @@ import {
   Zap,
   X,
   Phone,
-  ChevronRight
+  ChevronRight,
+  Search
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -86,6 +87,11 @@ export default function CreateOrder() {
   // Delivery & Shipping Form
   const todayStr = new Date().toISOString().split('T')[0];
   const [deliveryDate, setDeliveryDate] = useState(todayStr);
+
+  // Previously used delivery sites (from this customer's own past orders), so a repeat order
+  // to the same site doesn't need the shipping address re-typed from scratch.
+  const [previousSites, setPreviousSites] = useState([]);
+  const [selectedPreviousSiteId, setSelectedPreviousSiteId] = useState('');
 
   const [shippingDetails, setShippingDetails] = useState({
     fullName: user?.name || '',
@@ -173,6 +179,31 @@ export default function CreateOrder() {
     };
 
     fetchGlobalData();
+  }, []);
+
+  // Load this customer's past delivery sites (deduplicated by address) so a repeat order to
+  // the same site can autofill instead of retyping. Best-effort -- failure here shouldn't
+  // block placing a new order, so errors are swallowed silently.
+  useEffect(() => {
+    const fetchPreviousSites = async () => {
+      try {
+        const res = await orderService.getMyOrders();
+        const pastOrders = res.data?.orders || [];
+        const seen = new Set();
+        const sites = [];
+        for (const o of pastOrders) {
+          const addr = o.shippingDetails?.addressLine1?.trim();
+          if (!addr || seen.has(addr.toLowerCase())) continue;
+          seen.add(addr.toLowerCase());
+          sites.push(o);
+        }
+        setPreviousSites(sites);
+      } catch (err) {
+        // Non-critical -- the customer can still fill the address manually.
+      }
+    };
+
+    fetchPreviousSites();
   }, []);
 
   // Whenever selectedVehicleType, selectedMaterialId, or material category changes, fetch strictly scoped locations and configs
@@ -550,6 +581,49 @@ export default function CreateOrder() {
       });
       toast.success('Location pin set. Please type your delivery address below.');
     }
+  };
+
+  // Autofills the entire delivery address (and confirms coordinates) from a past order to the
+  // same site, so the customer never has to retype a shipping address they've already used.
+  const handleSelectPreviousSite = (orderId) => {
+    setSelectedPreviousSiteId(orderId);
+    if (!orderId) return;
+
+    const site = previousSites.find((o) => o._id === orderId);
+    if (!site) return;
+
+    const sd = site.shippingDetails || {};
+    setShippingDetails({
+      fullName: sd.fullName || shippingDetails.fullName,
+      mobile: sd.mobile || shippingDetails.mobile,
+      addressLine1: sd.addressLine1 || '',
+      addressLine2: sd.addressLine2 || '',
+      area: sd.area || '',
+      city: sd.city || '',
+      state: sd.state || 'Gujarat',
+      pincode: sd.pincode || site.pincode || '',
+      landmark: sd.landmark || ''
+    });
+
+    if (sd.placeId) setPlaceId(sd.placeId);
+    if (sd.placeName) setPlaceName(sd.placeName);
+    if (site.deliveryInstructions) setDeliveryInstructions(site.deliveryInstructions);
+
+    if (typeof site.latitude === 'number' && typeof site.longitude === 'number') {
+      setCoordinates({ lat: site.latitude, lng: site.longitude });
+      setCoordinatesConfirmed(true);
+    }
+
+    const pin = sd.pincode || site.pincode;
+    if (pin && /^[1-9][0-9]{5}$/.test(pin)) {
+      setPincodeValidation({ valid: true, message: '✓ Verified PIN Code', loading: false });
+    }
+
+    setMapStatus({
+      type: 'success',
+      text: `✓ Loaded saved site: ${sd.addressLine1}${sd.area ? `, ${sd.area}` : ''}.`
+    });
+    toast.success('Delivery details filled from your previous order at this site.');
   };
 
   const handlePincodeChange = async (val) => {
@@ -1451,6 +1525,35 @@ export default function CreateOrder() {
               <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">Delivery Site Details & Schedule</h2>
               <p className="text-[11px] sm:text-sm text-slate-500">Specify drop-off coordinates, schedule date, and recipient contact info.</p>
             </div>
+
+            {/* Search a previously-used delivery site to autofill everything below */}
+            {previousSites.length > 0 && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">
+                  Search a Previous Delivery Site (Optional)
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Search className="w-4 h-4" />
+                  </div>
+                  <select
+                    value={selectedPreviousSiteId}
+                    onChange={(e) => handleSelectPreviousSite(e.target.value)}
+                    className="app-select w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 font-medium focus:outline-none focus:border-amber-500 focus:bg-white"
+                  >
+                    <option value="">-- Select a site you've ordered to before --</option>
+                    {previousSites.map((o) => (
+                      <option key={o._id} value={o._id}>
+                        {o.shippingDetails?.addressLine1}
+                        {o.shippingDetails?.area ? `, ${o.shippingDetails.area}` : ''}
+                        {o.shippingDetails?.city ? `, ${o.shippingDetails.city}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p className="text-[10px] text-slate-400">Selecting a site fills in the address, contact, and location below automatically.</p>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
               {/* Customer Name */}
