@@ -5,7 +5,7 @@ import StatusBadge from '../../components/StatusBadge';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
 import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport } from '../../utils/formatters';
-import { Package, Search, ArrowRight, Truck, Calendar, FileText, MapPin, PlusCircle } from 'lucide-react';
+import { Package, Search, ArrowRight, Truck, Calendar, FileText, MapPin } from 'lucide-react';
 
 const VALID_STATUS_FILTERS = ['ALL', 'ACTIVE', 'DELIVERED', 'PENDING'];
 
@@ -63,23 +63,13 @@ export default function MyOrders() {
   return (
     <div className="space-y-3 sm:space-y-6 select-none max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
-        <div>
-          <h1 className="text-lg sm:text-3xl font-black text-slate-900 font-display tracking-tight">
-            My Material Orders
-          </h1>
-          <p className="text-[11px] sm:text-sm text-slate-500 font-medium">
-            Track delivery progress, driver contacts, and gate pass OTPs
-          </p>
-        </div>
-
-        <Link
-          to="/user/create-order"
-          className="inline-flex items-center gap-2 px-4 py-2.5 sm:px-5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs transition-all shadow-md shadow-amber-500/25 active:scale-95 self-start min-h-[44px]"
-        >
-          <PlusCircle className="w-4 h-4 stroke-[2.5]" />
-          <span>New Order</span>
-        </Link>
+      <div>
+        <h1 className="text-lg sm:text-3xl font-black text-slate-900 font-display tracking-tight">
+          My Material Orders
+        </h1>
+        <p className="text-[11px] sm:text-sm text-slate-500 font-medium">
+          Track delivery progress, driver contacts, and gate pass OTPs
+        </p>
       </div>
 
       {/* Filters & Search Bar */}
