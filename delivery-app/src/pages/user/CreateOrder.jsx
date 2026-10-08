@@ -27,10 +27,8 @@ import {
   Truck,
   Tractor,
   Package,
-  Calendar,
   Layers,
   Building2,
-  Sparkles,
   Info,
   Clock,
   Check,
@@ -390,9 +388,11 @@ export default function CreateOrder() {
     }
   };
 
-  // Debounced auto-search when user modifies address fields in Step 6
+  // Debounced auto-search when user modifies address fields. The delivery-address fields
+  // (Step 6) render together with Steps 1-5 inside the first wizard group now, so this gates
+  // on the group rather than the old single-step number.
   useEffect(() => {
-    if (step !== 6) return;
+    if (currentGroupIndex !== 0) return;
 
     // A genuine user edit to the address invalidates whatever coordinates were confirmed
     // before -- re-confirmation is required (see the Continue-button guard) before this order
@@ -409,7 +409,7 @@ export default function CreateOrder() {
 
     return () => clearTimeout(timer);
   }, [
-    step,
+    currentGroupIndex,
     shippingDetails.addressLine1,
     shippingDetails.area,
     shippingDetails.city,
@@ -776,36 +776,16 @@ export default function CreateOrder() {
     return <LoadingSpinner message="Initializing dynamic material catalog..." />;
   }
 
-  // Grouped into fewer full-screen "pages" so the customer isn't forced through
-  // a separate Continue tap for every single quick pick. Steps 1+2 (Material +
-  // Vehicle) and 3+4+5 (Location/Grain + Quality/Trolley + Capacity) are each
-  // quick single-card choices, so they're shown together as one page. Delivery,
-  // Select Dealer, and Summary stay standalone -- each is substantial on its own
-  // and depends on the answers gathered before it (e.g. dealers are fetched
-  // only once delivery location is known).
-  const stepGroups = isAggregate
-    ? selectedVehicleType === 'DUMPER'
-      ? [
-          { ids: [1, 2], title: 'Material & Vehicle', icon: Truck },
-          { ids: [3, 4, 5], title: 'Location & Capacity', icon: Sparkles },
-          { ids: [6], title: 'Delivery', icon: Calendar },
-          { ids: [7], title: 'Select Dealer', icon: Building2 },
-          { ids: [8], title: 'Summary & Pay', icon: CreditCard }
-        ]
-      : [
-          { ids: [1, 2], title: 'Material & Vehicle', icon: Truck },
-          { ids: [3, 4, 5], title: 'Grain Size & Quantity', icon: Sparkles },
-          { ids: [6], title: 'Delivery', icon: Calendar },
-          { ids: [7], title: 'Select Dealer', icon: Building2 },
-          { ids: [8], title: 'Summary & Pay', icon: CreditCard }
-        ]
-    : [
-        { ids: [1, 2], title: 'Material & Vehicle', icon: Truck },
-        { ids: [3, 4, 5], title: 'Specifications & Capacity', icon: Sparkles },
-        { ids: [6], title: 'Delivery', icon: Calendar },
-        { ids: [7], title: 'Select Dealer', icon: Building2 },
-        { ids: [8], title: 'Summary & Pay', icon: CreditCard }
-      ];
+  // Material & Vehicle, Location/Grain & Capacity, and Delivery (old steps 1-6) are now one
+  // single scrollable page -- the customer fills everything top to bottom without a Continue
+  // tap between them. Select Dealer and Summary & Pay stay standalone, since each depends on
+  // the answers gathered on that first page (dealers are fetched only once delivery location
+  // is known).
+  const stepGroups = [
+    { ids: [1, 2, 3, 4, 5, 6], title: 'Order Details', icon: Truck },
+    { ids: [7], title: 'Select Dealer', icon: Building2 },
+    { ids: [8], title: 'Summary & Pay', icon: CreditCard }
+  ];
 
   const currentGroupIndex = Math.max(0, stepGroups.findIndex((g) => g.ids.includes(step)));
   const currentGroup = stepGroups[currentGroupIndex];
@@ -833,7 +813,7 @@ export default function CreateOrder() {
               STEP {currentGroupIndex + 1} OF {stepGroups.length}
             </div>
             <h1 className="text-sm sm:text-xl font-black text-slate-900 font-display tracking-tight mt-0.5 truncate">
-              {currentGroupIndex <= 1 ? 'Material & Logistics' : 'Delivery & Settlement'}
+              {currentGroup.title}
             </h1>
           </div>
 
@@ -848,10 +828,7 @@ export default function CreateOrder() {
 
         {/* Row 2: Progress Status Line */}
         <div className="space-y-1 sm:space-y-1.5 pt-0.5 sm:pt-1">
-          <div className="flex items-center justify-between text-[10px] sm:text-xs">
-            <span className="font-bold text-slate-600">
-              Stage {currentGroupIndex <= 1 ? '1 / 2' : '2 / 2'}
-            </span>
+          <div className="flex items-center justify-end text-[10px] sm:text-xs">
             <span className="px-2 py-0.5 sm:px-3 rounded-full bg-amber-50 text-amber-800 text-[10px] sm:text-xs font-black border border-amber-200/60">
               {progressPercent}% Completed
             </span>
@@ -1036,7 +1013,7 @@ export default function CreateOrder() {
         {showStep(3) && (
           isAggregate && selectedVehicleType === 'TRACTOR' ? (
             /* AGGREGATE + TRACTOR: DIRECT GRAIN SIZE SELECTION (NO QUARRY LOCATION) */
-            <div className="space-y-3 sm:space-y-6">
+            <div className="space-y-3 sm:space-y-6 pt-4 sm:pt-6 mt-1 border-t border-slate-200">
               <div>
                 <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">Select Aggregate Grain Size</h2>
                 <p className="text-[11px] sm:text-sm text-slate-500">Choose calibrated basalt aggregate grain size for local tractor delivery.</p>
@@ -1083,7 +1060,7 @@ export default function CreateOrder() {
             </div>
           ) : (
             /* DUMPER (ALL) OR SAND TRACTOR: LOCATION SELECTION */
-            <div className="space-y-3 sm:space-y-6">
+            <div className="space-y-3 sm:space-y-6 pt-4 sm:pt-6 mt-1 border-t border-slate-200">
               <div>
                 <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">
                   {isAggregate ? 'Select Aggregate Quarry Location' : 'Select Sourcing Location'}
@@ -1466,7 +1443,7 @@ export default function CreateOrder() {
 
         {/* ================= STEP 6: SHIPPING & DELIVERY DETAILS ================= */}
         {showStep(6) && (
-          <div className="space-y-3 sm:space-y-6">
+          <div className="space-y-3 sm:space-y-6 pt-4 sm:pt-6 mt-1 border-t border-slate-200">
             <div>
               <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">Delivery Site Details & Schedule</h2>
               <p className="text-[11px] sm:text-sm text-slate-500">Specify drop-off coordinates, schedule date, and recipient contact info.</p>
@@ -1864,7 +1841,7 @@ export default function CreateOrder() {
               type="button"
               disabled={isConfirmingLocation}
               onClick={async () => {
-                if (step === 6) {
+                if (currentGroupIndex === 0) {
                   if (!shippingDetails.fullName || !shippingDetails.mobile || !shippingDetails.addressLine1) {
                     toast.error('Please complete all required delivery details.');
                     return;
@@ -1907,7 +1884,7 @@ export default function CreateOrder() {
 
                   fetchDealersForOrder(coordsToUse);
                 }
-                if (step === 7) {
+                if (currentGroupIndex === 1) {
                   if (dealers.length > 0 && !selectedDealerId) {
                     toast.error('Please select a dealer to continue.');
                     return;
