@@ -55,10 +55,6 @@ export default function UserLayout() {
               <span className="font-black text-xs font-display text-slate-900 tracking-tight leading-none truncate">
                 ANANTA TRADERS
               </span>
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200/80 text-[9px] font-bold leading-none shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                PRO
-              </span>
             </div>
             <span className="text-[9px] text-amber-600 font-black uppercase tracking-wider block mt-0.5 leading-none">
               CONTRACTOR PORTAL
