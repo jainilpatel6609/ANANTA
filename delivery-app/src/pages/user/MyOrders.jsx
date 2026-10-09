@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { orderService } from '../../services';
-import StatusBadge from '../../components/StatusBadge';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
-import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport } from '../../utils/formatters';
-import { Package, Search, ArrowRight, Truck, Calendar, FileText, MapPin } from 'lucide-react';
+import { Search, ChevronRight } from 'lucide-react';
 
 const VALID_STATUS_FILTERS = ['ALL', 'ACTIVE', 'DELIVERED', 'PENDING'];
 
@@ -128,84 +126,30 @@ export default function MyOrders() {
           onAction={() => window.location.assign('/user/create-order')}
         />
       ) : (
-        <div className="grid grid-cols-1 gap-2.5 sm:gap-3.5">
+        <div className="grid grid-cols-1 gap-2 sm:gap-2.5">
           {filteredOrders.map((order) => (
-            <div
+            <Link
               key={order._id}
-              className="bg-white border border-slate-200/80 hover:border-slate-300 rounded-xl sm:rounded-3xl p-3 sm:p-5 transition-all shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-5 group"
+              to={`/user/orders/${order._id}`}
+              className="bg-white border border-slate-200/80 hover:border-amber-300 hover:shadow-md rounded-xl sm:rounded-2xl px-4 py-3.5 sm:px-5 sm:py-4 transition-all shadow-xs flex items-center justify-between gap-3 active:scale-[0.99]"
             >
-              <div className="space-y-1.5 sm:space-y-2.5 min-w-0">
-                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5">
-                  <span className="font-mono font-black text-slate-900 text-xs sm:text-sm">
-                    #{order.orderNumber}
+              <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
+                <span className="font-mono font-black text-slate-900 text-sm sm:text-base">
+                  #{order.orderNumber}
+                </span>
+                {order.awaitingCustomerDealerChoice && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-black uppercase tracking-wider animate-pulse">
+                    Action Needed
                   </span>
-                  <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-black uppercase tracking-wider">
-                    GATE PASS
+                )}
+                {order.refundStatus === 'REQUESTED' && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-black uppercase tracking-wider">
+                    Refund Pending
                   </span>
-                  <StatusBadge status={order.orderStatus} size="sm" />
-                  {order.awaitingCustomerDealerChoice && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-black uppercase tracking-wider animate-pulse">
-                      Action Needed
-                    </span>
-                  )}
-                  {order.refundStatus === 'REQUESTED' && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-black uppercase tracking-wider">
-                      Refund Pending
-                    </span>
-                  )}
-                  <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium flex items-center gap-1">
-                    <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400" />
-                    {formatDate(order.createdAt)}
-                  </span>
-                </div>
-
-                <div>
-                  <h3 className="font-black text-slate-900 text-sm sm:text-base font-display">
-                    {order.productNameSnapshot}
-                  </h3>
-                  <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 font-medium">
-                    <span className="text-amber-700 font-bold">{formatOrderQuantity(order)}</span> • {formatOrderTransport(order)}{' '}
-                    {order.sandLocation ? `• Sand from ${order.sandLocation}` : ''}
-                    {order.aggregateType ? `• Grade: ${order.aggregateType}` : ''}
-                  </p>
-                </div>
-
-                <div className="text-[11px] sm:text-xs text-slate-600 flex items-center gap-1.5 bg-slate-50 rounded-lg sm:rounded-xl px-2.5 py-1 sm:px-3 sm:py-1.5 border border-slate-100">
-                  <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600 shrink-0" />
-                  <span className="truncate max-w-md font-medium">{order.shippingAddress}</span>
-                </div>
+                )}
               </div>
-
-              {/* Right Side Info & Action Buttons */}
-              <div className="flex items-center justify-between lg:justify-end gap-3 sm:gap-5 pt-2 sm:pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100 shrink-0">
-                <div className="text-left lg:text-right">
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold block">
-                    Total Amount
-                  </span>
-                  <span className="text-lg sm:text-xl font-black text-slate-900 font-mono">
-                    {formatINR(order.totalAmount)}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Link
-                    to={`/user/orders/${order._id}/invoice`}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 border border-slate-200 transition-all active:scale-95 shadow-2xs"
-                    title="Download / View Tax Invoice"
-                  >
-                    <FileText className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Invoice</span>
-                  </Link>
-                  <Link
-                    to={`/user/orders/${order._id}`}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-xs font-black text-slate-950 transition-all active:scale-95 shadow-xs"
-                  >
-                    <span>Track & OTP</span>
-                    <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
-                  </Link>
-                </div>
-              </div>
-            </div>
+              <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+            </Link>
           ))}
         </div>
       )}
