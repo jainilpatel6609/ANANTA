@@ -982,14 +982,14 @@ export default function CreateOrder() {
                   <div
                     key={m._id}
                     onClick={() => setSelectedMaterialId(m._id)}
-                    className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-5 border transition-all flex items-center gap-3 bg-white ${
+                    className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-4 border transition-all flex items-center gap-3 bg-white ${
                       isSelected
                         ? 'border-amber-300 shadow-sm ring-2 ring-amber-500/15'
                         : 'border-slate-200/80 hover:border-slate-300 shadow-xs'
                     }`}
                   >
                     <div
-                      className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                      className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 transition-colors ${
                         isSelected
                           ? 'bg-amber-500 text-white'
                           : isSand
@@ -1031,18 +1031,18 @@ export default function CreateOrder() {
                 <p className="text-xs text-rose-600">Please try again later or contact our dispatch team.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2.5 sm:gap-6">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
                 {vehicleSettings.dumperEnabled && (
                   <div
                     onClick={() => setSelectedVehicleType('DUMPER')}
-                    className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-6 border transition-all flex items-center gap-3 ${
+                    className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-4 border transition-all flex items-center gap-3 ${
                       selectedVehicleType === 'DUMPER'
                         ? 'border-amber-300 bg-amber-50/30 shadow-sm ring-2 ring-amber-500/15'
                         : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                     }`}
                   >
                     <div
-                      className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
+                      className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
                         selectedVehicleType === 'DUMPER' ? 'bg-amber-500 text-white' : 'bg-blue-50 text-blue-600'
                       }`}
                     >
@@ -1060,14 +1060,14 @@ export default function CreateOrder() {
                 {vehicleSettings.tractorEnabled && (
                   <div
                     onClick={() => setSelectedVehicleType('TRACTOR')}
-                    className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-6 border transition-all flex items-center gap-3 ${
+                    className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-4 border transition-all flex items-center gap-3 ${
                       selectedVehicleType === 'TRACTOR'
                         ? 'border-amber-300 bg-amber-50/30 shadow-sm ring-2 ring-amber-500/15'
                         : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                     }`}
                   >
                     <div
-                      className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
+                      className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
                         selectedVehicleType === 'TRACTOR' ? 'bg-amber-500 text-white' : 'bg-emerald-50 text-emerald-600'
                       }`}
                     >
@@ -1112,14 +1112,14 @@ export default function CreateOrder() {
                     <div
                       key={grain}
                       onClick={() => setSelectedAggregateType(grain)}
-                      className={`cursor-pointer rounded-lg sm:rounded-2xl p-2.5 sm:p-5 border transition-all flex items-center gap-3 ${
+                      className={`cursor-pointer rounded-lg sm:rounded-2xl p-2.5 sm:p-4 border transition-all flex items-center gap-3 ${
                         isSelected
                           ? 'border-amber-300 bg-amber-50/30 shadow-sm ring-2 ring-amber-500/15'
                           : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                       }`}
                     >
                       <div
-                        className={`w-6 h-6 sm:w-9 sm:h-9 rounded-md sm:rounded-xl flex items-center justify-center shrink-0 ${
+                        className={`w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-xl flex items-center justify-center shrink-0 ${
                           isSelected ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-600'
                         }`}
                       >
@@ -1156,14 +1156,14 @@ export default function CreateOrder() {
                     <div
                       key={loc._id}
                       onClick={() => setSelectedLocationId(loc._id)}
-                      className={`cursor-pointer rounded-lg sm:rounded-2xl p-2.5 sm:p-5 border transition-all flex items-center gap-3 ${
+                      className={`cursor-pointer rounded-lg sm:rounded-2xl p-2.5 sm:p-4 border transition-all flex items-center gap-3 ${
                         isSelected
                           ? 'border-amber-300 bg-amber-50/30 shadow-sm ring-2 ring-amber-500/15'
                           : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                       }`}
                     >
                       <div
-                        className={`w-6 h-6 sm:w-9 sm:h-9 rounded-md sm:rounded-xl flex items-center justify-center shrink-0 ${
+                        className={`w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-xl flex items-center justify-center shrink-0 ${
                           isSelected ? 'bg-amber-500 text-white' : 'bg-violet-50 text-violet-600'
                         }`}
                       >
@@ -1205,7 +1205,7 @@ export default function CreateOrder() {
 
             {selectedVehicleType === 'TRACTOR' ? (
               /* TRACTOR TROLLEY TYPE CARDS (BOTH AGGREGATE & SAND) */
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4">
                 {activeVehicleConfigs.map((cfg) => {
                   const isSelected = cfg._id === selectedCapacityId || cfg.optionName === selectedOptionName;
                   const isDouble = cfg.optionName === 'Double Patiya';
@@ -1234,7 +1234,7 @@ export default function CreateOrder() {
                         setSelectedOptionName(cfg.optionName);
                         setSelectedCapacityId(cfg._id);
                       }}
-                      className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-6 border transition-all flex items-center justify-between gap-3 ${
+                      className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-4 border transition-all flex items-center justify-between gap-3 ${
                         isSelected
                           ? 'border-amber-300 bg-amber-50/30 shadow-sm ring-2 ring-amber-500/15'
                           : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
@@ -1273,14 +1273,14 @@ export default function CreateOrder() {
                       <div
                         key={grain}
                         onClick={() => setSelectedAggregateType(grain)}
-                        className={`cursor-pointer rounded-xl sm:rounded-3xl p-2.5 sm:p-5 border transition-all flex items-center gap-3 bg-white ${
+                        className={`cursor-pointer rounded-xl sm:rounded-3xl p-2.5 sm:p-4 border transition-all flex items-center gap-3 bg-white ${
                           isSelected
                             ? 'border-amber-300 shadow-sm ring-2 ring-amber-500/15'
                             : 'border-slate-200/80 hover:border-slate-300 shadow-xs'
                         }`}
                       >
                         <div
-                          className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
                             isSelected ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-600'
                           }`}
                         >
@@ -1306,14 +1306,14 @@ export default function CreateOrder() {
                     <div
                       key={opt}
                       onClick={() => setSelectedOptionName(opt)}
-                      className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-6 border transition-all flex items-center gap-3 ${
+                      className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-4 border transition-all flex items-center gap-3 ${
                         isSelected
                           ? 'border-amber-300 bg-amber-50/30 shadow-sm ring-2 ring-amber-500/15'
                           : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                       }`}
                     >
                       <div
-                        className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
+                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
                           isSelected ? 'bg-amber-500 text-white' : 'bg-sky-50 text-sky-600'
                         }`}
                       >
@@ -1424,14 +1424,14 @@ export default function CreateOrder() {
                           setSelectedCapacityId(cap._id);
                           if (cap.optionName) setSelectedOptionName(cap.optionName);
                         }}
-                        className={`cursor-pointer rounded-lg sm:rounded-2xl p-2.5 sm:p-5 border transition-all flex items-center gap-3 ${
+                        className={`cursor-pointer rounded-lg sm:rounded-2xl p-2.5 sm:p-4 border transition-all flex items-center gap-3 ${
                           isSelected
                             ? 'border-amber-300 bg-amber-50/30 shadow-sm ring-2 ring-amber-500/15'
                             : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                         }`}
                       >
                         <div
-                          className={`w-6 h-6 sm:w-9 sm:h-9 rounded-md sm:rounded-xl flex items-center justify-center shrink-0 ${
+                          className={`w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-xl flex items-center justify-center shrink-0 ${
                             isSelected ? 'bg-amber-500 text-white' : 'bg-blue-50 text-blue-600'
                           }`}
                         >
