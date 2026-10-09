@@ -957,12 +957,12 @@ export default function CreateOrder() {
         </div>
       </div>
 
-      {/* Wizard Step Content Card */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8 shadow-xs">
-        
+      {/* Wizard Step Content -- each section below is its own card */}
+      <div className="space-y-4 sm:space-y-6">
+
         {/* ================= STEP 1: MATERIAL SELECTION (Exact match to screenshot) ================= */}
         {showStep(1) && (
-          <div className="space-y-3 sm:space-y-5">
+          <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xs space-y-3 sm:space-y-5">
             <div>
               <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-0.5">
                 Select Construction Material
@@ -1016,7 +1016,7 @@ export default function CreateOrder() {
 
         {/* ================= STEP 2: VEHICLE TYPE SELECTION (DUMPER VS TRACTOR) ================= */}
         {showStep(2) && (
-          <div className="space-y-3 sm:space-y-6 pt-4 sm:pt-6 mt-1 border-t border-slate-200">
+          <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xs space-y-3 sm:space-y-6">
             <div>
               <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">Select Delivery Vehicle Type</h2>
               <p className="text-[11px] sm:text-sm text-slate-500">
@@ -1090,7 +1090,7 @@ export default function CreateOrder() {
         {showStep(3) && (
           isAggregate && selectedVehicleType === 'TRACTOR' ? (
             /* AGGREGATE + TRACTOR: DIRECT GRAIN SIZE SELECTION (NO QUARRY LOCATION) */
-            <div className="space-y-3 sm:space-y-6 pt-4 sm:pt-6 mt-1 border-t border-slate-200">
+            <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xs space-y-3 sm:space-y-6">
               <div>
                 <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">Select Aggregate Grain Size</h2>
                 <p className="text-[11px] sm:text-sm text-slate-500">Choose calibrated basalt aggregate grain size for local tractor delivery.</p>
@@ -1137,7 +1137,7 @@ export default function CreateOrder() {
             </div>
           ) : (
             /* DUMPER (ALL) OR SAND TRACTOR: LOCATION SELECTION */
-            <div className="space-y-3 sm:space-y-6 pt-4 sm:pt-6 mt-1 border-t border-slate-200">
+            <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xs space-y-3 sm:space-y-6">
               <div>
                 <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">
                   {isAggregate ? 'Select Aggregate Quarry Location' : 'Select Sourcing Location'}
@@ -1185,7 +1185,7 @@ export default function CreateOrder() {
 
         {/* ================= STEP 4: TROLLEY (FOR TRACTOR) OR GRAIN SIZE / QUALITY (FOR DUMPER) ================= */}
         {showStep(4) && (
-          <div className="space-y-3 sm:space-y-6 pt-4 sm:pt-6 mt-1 border-t border-slate-200">
+          <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xs space-y-3 sm:space-y-6">
             <div>
               <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">
                 {selectedVehicleType === 'TRACTOR'
@@ -1365,7 +1365,7 @@ export default function CreateOrder() {
 
         {/* ================= STEP 5: QUANTITY & UNITS ================= */}
         {showStep(5) && (
-          <div className="space-y-3 sm:space-y-6 pt-4 sm:pt-6 mt-1 border-t border-slate-200">
+          <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xs space-y-3 sm:space-y-6">
             <div>
               <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">
                 {selectedVehicleType === 'DUMPER' ? 'Select Vehicle Capacity & Units' : 'Tractor Dispatch Capacity & Units'}
@@ -1520,7 +1520,7 @@ export default function CreateOrder() {
 
         {/* ================= STEP 6: SHIPPING & DELIVERY DETAILS ================= */}
         {showStep(6) && (
-          <div className="space-y-3 sm:space-y-6 pt-4 sm:pt-6 mt-1 border-t border-slate-200">
+          <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xs space-y-3 sm:space-y-6">
             <div>
               <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">Delivery Site Details & Schedule</h2>
               <p className="text-[11px] sm:text-sm text-slate-500">Specify drop-off coordinates, schedule date, and recipient contact info.</p>
@@ -1705,7 +1705,7 @@ export default function CreateOrder() {
 
         {/* ================= STEP 7: SELECT DEALER ================= */}
         {showStep(7) && (
-          <div className="space-y-3 sm:space-y-6">
+          <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xs space-y-3 sm:space-y-6">
             <div>
               <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">Select Dealer</h2>
               <p className="text-[11px] sm:text-sm text-slate-500">
@@ -1778,7 +1778,7 @@ export default function CreateOrder() {
 
         {/* ================= STEP 8: ORDER SUMMARY & REVIEW ================= */}
         {showStep(8) && (
-          <div className="space-y-3 sm:space-y-6">
+          <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xs space-y-3 sm:space-y-6">
             <div>
               <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">Review Order Summary</h2>
               <p className="text-[11px] sm:text-sm text-slate-500">Verify all material specifications and delivery coordinates before payment.</p>
@@ -1928,7 +1928,7 @@ export default function CreateOrder() {
         )}
 
         {/* Wizard Controls */}
-        <div className="flex items-center justify-between pt-3 sm:pt-5 border-t border-slate-200 gap-2.5 sm:gap-3">
+        <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xs flex items-center justify-between gap-2.5 sm:gap-3">
           {currentGroupIndex > 0 ? (
             <button
               type="button"
