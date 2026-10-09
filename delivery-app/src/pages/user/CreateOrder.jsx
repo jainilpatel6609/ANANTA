@@ -1234,53 +1234,16 @@ export default function CreateOrder() {
                         setSelectedOptionName(cfg.optionName);
                         setSelectedCapacityId(cfg._id);
                       }}
-                      className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-6 border transition-all space-y-2 sm:space-y-4 ${
+                      className={`cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-6 border transition-all flex items-center justify-between gap-3 ${
                         isSelected
                           ? 'border-amber-300 bg-amber-50/30 shadow-sm ring-2 ring-amber-500/15'
                           : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                          Trailer
-                        </span>
-                        <div
-                          className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${
-                            isSelected ? 'bg-amber-500 text-white' : 'bg-emerald-50 text-emerald-600'
-                          }`}
-                        >
-                          {isSelected ? (
-                            <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
-                          ) : (
-                            <Tractor className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                          )}
-                        </div>
-                      </div>
-
-                      <div>
-                        <h3 className="text-base sm:text-xl font-black text-slate-900 font-display">{cfg.optionName}</h3>
-                        <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1">
-                          {cfg.optionName === 'Single Patiya'
-                            ? 'Standard single trailer tractor trolley'
-                            : 'Heavy double trailer tractor trolley'}
-                        </p>
-                      </div>
-
-                      <div className="p-2.5 sm:p-3.5 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200 space-y-0.5">
-                        <span className="text-base sm:text-lg font-black font-mono text-amber-700 block">
-                          ~{cfg.approximateTon} Tons
-                        </span>
-                        <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                          APPROX LOAD CAPACITY
-                        </span>
-                      </div>
-
-                      <div className="flex items-baseline justify-between pt-2 sm:pt-3 border-t border-slate-100 text-[11px] sm:text-xs">
-                        <span className="text-slate-600 font-bold">Price / Vehicle:</span>
-                        <span className="text-base sm:text-lg font-black font-mono text-emerald-700">
-                          {formatINR(itemUnitPrice)}
-                        </span>
-                      </div>
+                      <h3 className="text-base sm:text-xl font-black text-slate-900 font-display">{cfg.optionName}</h3>
+                      <span className="text-base sm:text-lg font-black font-mono text-emerald-700 shrink-0">
+                        {formatINR(itemUnitPrice)}
+                      </span>
                     </div>
                   );
                 })}
