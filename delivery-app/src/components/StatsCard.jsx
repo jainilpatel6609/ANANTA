@@ -1,7 +1,8 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
-export default function StatsCard({ title, value, subtitle, icon: Icon, trend, trendDirection = 'up', color = 'brand' }) {
+export default function StatsCard({ title, value, subtitle, icon: Icon, trend, trendDirection = 'up', color = 'brand', to }) {
   const colorMap = {
     brand: {
       badge: 'bg-amber-50 border-amber-200 text-amber-600',
@@ -26,9 +27,13 @@ export default function StatsCard({ title, value, subtitle, icon: Icon, trend, t
   };
 
   const currentTheme = colorMap[color] || colorMap.brand;
+  const Wrapper = to ? Link : 'div';
 
   return (
-    <div className={`relative overflow-hidden bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs transition-all duration-150 ${currentTheme.border} group`}>
+    <Wrapper
+      {...(to ? { to } : {})}
+      className={`relative overflow-hidden bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs transition-all duration-150 ${currentTheme.border} group ${to ? 'cursor-pointer hover:shadow-md active:scale-[0.98]' : ''}`}
+    >
       <div className="relative z-10">
         <div className="flex items-center justify-between gap-3">
           <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider truncate">
@@ -63,6 +68,6 @@ export default function StatsCard({ title, value, subtitle, icon: Icon, trend, t
           </p>
         )}
       </div>
-    </div>
+    </Wrapper>
   );
 }

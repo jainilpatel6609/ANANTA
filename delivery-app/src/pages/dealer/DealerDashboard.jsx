@@ -130,6 +130,7 @@ export default function DealerDashboard() {
           subtitle="Awaiting acceptance"
           icon={Inbox}
           color="brand"
+          to="/dealer/new-orders"
         />
         <StatsCard
           title="Accepted Orders"
@@ -137,6 +138,7 @@ export default function DealerDashboard() {
           subtitle="Assign driver & slips"
           icon={CheckCircle}
           color="purple"
+          to="/dealer/accepted"
         />
         <StatsCard
           title="Out For Delivery"
@@ -144,6 +146,7 @@ export default function DealerDashboard() {
           subtitle="En route • Awaiting OTP"
           icon={Truck}
           color="blue"
+          to="/dealer/active"
         />
         <StatsCard
           title="Completed"
@@ -151,6 +154,7 @@ export default function DealerDashboard() {
           subtitle="OTP verified on-site"
           icon={ShieldCheck}
           color="emerald"
+          to="/dealer/completed"
         />
       </div>
 
