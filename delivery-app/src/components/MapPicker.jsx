@@ -904,7 +904,7 @@ export default function MapPicker({
           ) : (
             <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
           )}
-          <span className="font-medium leading-relaxed">{activeStatus.text}</span>
+          <span className="font-medium leading-snug line-clamp-2 min-w-0">{activeStatus.text}</span>
         </div>
       )}
 
