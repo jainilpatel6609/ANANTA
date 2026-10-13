@@ -2044,8 +2044,8 @@ export default function CreateOrder() {
 
       {/* ================= SELECT DELIVERY LOCATION ON MAP MODAL ================= */}
       {showMapModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-slate-950/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[85vh] sm:max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-100 sticky top-0 bg-white z-10">
               <h3 className="text-sm sm:text-base font-black text-slate-900 font-display">
                 Select Delivery Location
