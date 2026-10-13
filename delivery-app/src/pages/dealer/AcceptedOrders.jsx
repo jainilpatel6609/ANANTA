@@ -24,7 +24,8 @@ import {
   CheckCircle2,
   Navigation,
   Clock,
-  Weight
+  Weight,
+  ChevronDown
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -54,6 +55,9 @@ export default function AcceptedOrders() {
   // Dumper "Transporter" step: reviewing weighbridge photos and entering Total Weight
   const [weightInputs, setWeightInputs] = useState({}); // { [orderId]: '30' }
   const [enteringWeightOrderId, setEnteringWeightOrderId] = useState(null);
+
+  // Orders are listed collapsed by order number; tap to expand full details
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
 
   const loadData = async () => {
     try {
@@ -261,13 +265,19 @@ export default function AcceptedOrders() {
                 ? `https://www.google.com/maps/dir/?api=1&destination=${order.latitude},${order.longitude}`
                 : `https://maps.google.com`;
 
+            const isExpanded = expandedOrderId === order._id;
+
             return (
               <div
                 key={order._id}
                 className="bg-white border border-slate-200/80 hover:border-slate-300 transition-all rounded-2xl sm:rounded-3xl p-3 sm:p-7 space-y-3 sm:space-y-6 shadow-xs relative overflow-hidden"
               >
-                {/* Header */}
-                <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 border-b border-slate-100 pb-2.5 sm:pb-4">
+                {/* Header -- tap to expand/collapse full order details */}
+                <button
+                  type="button"
+                  onClick={() => setExpandedOrderId(isExpanded ? null : order._id)}
+                  className="w-full flex flex-wrap items-center justify-between gap-2 sm:gap-3 border-b border-slate-100 pb-2.5 sm:pb-4 text-left cursor-pointer"
+                >
                   <div className="space-y-0.5 sm:space-y-1">
                     <div className="flex items-center gap-2 sm:gap-3">
                       <span className="text-sm sm:text-lg font-black text-slate-900 font-mono">#{order.orderNumber}</span>
@@ -276,14 +286,19 @@ export default function AcceptedOrders() {
                     <span className="hidden sm:block text-xs text-slate-500">Accepted: {formatDate(order.acceptedAt || order.updatedAt)}</span>
                   </div>
 
-                  <div className="text-right">
-                    <span className="text-slate-500 block uppercase font-bold text-[9px] sm:text-[10px] tracking-wider">
-                      Order Value
-                    </span>
-                    <span className="text-sm sm:text-lg font-black text-amber-600 font-mono">{formatINR(order.totalAmount)}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <span className="text-slate-500 block uppercase font-bold text-[9px] sm:text-[10px] tracking-wider">
+                        Order Value
+                      </span>
+                      <span className="text-sm sm:text-lg font-black text-amber-600 font-mono">{formatINR(order.totalAmount)}</span>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                   </div>
-                </div>
+                </button>
 
+                {!isExpanded ? null : (
+                <>
                 {/* Grid Details */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4 text-xs">
                   {/* Material & Fleet */}
@@ -438,6 +453,8 @@ export default function AcceptedOrders() {
                     <Clock className="w-4 h-4 text-amber-600 shrink-0" />
                     <span>Waiting for driver to upload the pickup photos.</span>
                   </div>
+                )}
+                </>
                 )}
               </div>
             );
