@@ -4,12 +4,13 @@ import StatusBadge from '../../components/StatusBadge';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
 import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport } from '../../utils/formatters';
-import { ShieldCheck, Calendar, Search, Truck, ExternalLink, Package } from 'lucide-react';
+import { ShieldCheck, Calendar, Search, Truck, ExternalLink, Package, ChevronDown } from 'lucide-react';
 
 export default function CompletedDeliveries() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
 
   useEffect(() => {
     const loadCompleted = async () => {
@@ -77,22 +78,32 @@ export default function CompletedDeliveries() {
         />
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {filteredOrders.map((order) => (
+          {filteredOrders.map((order) => {
+            const isExpanded = expandedOrderId === order._id;
+            return (
             <div
               key={order._id}
               className="bg-white border border-slate-200/80 hover:border-slate-300 transition-all rounded-3xl p-5 sm:p-6 space-y-4 shadow-xs"
             >
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <button
+                type="button"
+                onClick={() => setExpandedOrderId(isExpanded ? null : order._id)}
+                className="w-full flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3 text-left cursor-pointer"
+              >
                 <div className="flex items-center gap-3">
                   <span className="font-mono font-bold text-slate-900 text-base">#{order.orderNumber}</span>
                   <StatusBadge status={order.orderStatus} />
                 </div>
-                <div className="text-xs text-emerald-600 font-bold flex items-center gap-1.5 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>Verified: {formatDate(order.deliveryVerifiedAt || order.deliveredAt)}</span>
+                <div className="flex items-center gap-3">
+                  <div className="text-xs text-emerald-600 font-bold flex items-center gap-1.5 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Verified: {formatDate(order.deliveryVerifiedAt || order.deliveredAt)}</span>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </div>
-              </div>
+              </button>
 
+              {isExpanded && (
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
                 <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
                   <span className="text-slate-500 block text-[10px] font-bold uppercase tracking-wider">Material & Tonnage</span>
@@ -120,8 +131,10 @@ export default function CompletedDeliveries() {
                   </span>
                 </div>
               </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
