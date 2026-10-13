@@ -802,30 +802,22 @@ export default function MapPicker({
   const activeStatus = statusMessage || internalStatus;
 
   return (
-    <div className="space-y-3">
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-        <label className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-          <MapPin className="w-4 h-4 text-amber-600" />
-          <span>Set Exact Delivery Location on Google Maps</span>
-        </label>
-
-        {/* Sync Manual Address to Map Button */}
-        <button
-          type="button"
-          onClick={handleSyncAddress}
-          disabled={isSearching || locatingActive || isReverseGeocoding}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all shadow-sm disabled:opacity-50 active:scale-95 cursor-pointer"
-          title="Sync manual address to map location"
-        >
-          {isSearching || isReverseGeocoding ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <Navigation className="w-3.5 h-3.5 rotate-45" />
-          )}
-          <span>{isSearching || isReverseGeocoding ? 'Locating on Map...' : 'Sync Address to Map'}</span>
-        </button>
-      </div>
+    <div className="space-y-2">
+      {/* Sync Manual Address to Map Button */}
+      <button
+        type="button"
+        onClick={handleSyncAddress}
+        disabled={isSearching || locatingActive || isReverseGeocoding}
+        className="w-full inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all shadow-sm disabled:opacity-50 active:scale-95 cursor-pointer"
+        title="Sync manual address to map location"
+      >
+        {isSearching || isReverseGeocoding ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        ) : (
+          <Navigation className="w-3.5 h-3.5 rotate-45" />
+        )}
+        <span>{isSearching || isReverseGeocoding ? 'Locating on Map...' : 'Sync Address to Map'}</span>
+      </button>
 
       {/* Search Input & Suggestions Container */}
       <div className="relative z-30">
@@ -846,7 +838,7 @@ export default function MapPicker({
               if (suggestions.length > 0) setShowSuggestions(true);
             }}
             placeholder="Search site address, landmark, highway, or area..."
-            className="w-full pl-10 pr-10 py-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all shadow-sm"
+            className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all shadow-sm"
           />
           {searchValue && (
             <button
@@ -897,7 +889,7 @@ export default function MapPicker({
       {/* Status Feedback Banner */}
       {activeStatus && activeStatus.text && (
         <div
-          className={`p-3 rounded-xl border flex items-start gap-2.5 text-xs transition-all shadow-sm ${
+          className={`p-2 sm:p-2.5 rounded-xl border flex items-start gap-2 text-[11px] sm:text-xs transition-all shadow-sm ${
             activeStatus.type === 'success'
               ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
               : activeStatus.type === 'warning'
@@ -916,8 +908,8 @@ export default function MapPicker({
         </div>
       )}
 
-      {/* Google Maps Container (Spacious 380px+ height) */}
-      <div className="h-80 sm:h-[400px] w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm relative z-10 select-none bg-slate-100">
+      {/* Google Maps Container */}
+      <div className="h-52 sm:h-72 w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm relative z-10 select-none bg-slate-100">
         <div ref={mapContainerRef} className="h-full w-full" />
 
         {/* Loading Spinner overlay before Google Maps mounts */}
@@ -956,14 +948,9 @@ export default function MapPicker({
         </div>
       </div>
 
-      {/* Helper Footer */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-slate-500 px-1">
-        <span>💡 Drag the marker or tap on map to pinpoint exact unloading spot.</span>
-        <span className="font-mono text-slate-600">
-          Lat: <strong className="text-amber-700 font-bold">{coordinates?.lat ? Number(coordinates.lat).toFixed(5) : '—'}</strong>
-          , Lng:{' '}
-          <strong className="text-amber-700 font-bold">{coordinates?.lng ? Number(coordinates.lng).toFixed(5) : '—'}</strong>
-        </span>
+      {/* Helper Footer -- coordinates already shown live on the map pill above */}
+      <div className="text-[10px] sm:text-[11px] text-slate-500 px-1">
+        💡 Drag the marker or tap on map to pinpoint exact unloading spot.
       </div>
     </div>
   );

@@ -2045,8 +2045,8 @@ export default function CreateOrder() {
       {/* ================= SELECT DELIVERY LOCATION ON MAP MODAL ================= */}
       {showMapModal && (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-slate-950/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[85vh] sm:max-h-[92vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-100 sticky top-0 bg-white z-10">
+          <div className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-2.5 sm:py-3 border-b border-slate-100 sticky top-0 bg-white z-10">
               <h3 className="text-sm sm:text-base font-black text-slate-900 font-display">
                 Select Delivery Location
               </h3>
@@ -2059,7 +2059,7 @@ export default function CreateOrder() {
               </button>
             </div>
 
-            <div className="p-4 sm:p-5 space-y-4">
+            <div className="p-3 sm:p-4 space-y-2.5">
               <MapPicker
                 coordinates={coordinates}
                 onLocationChange={handleMapLocationChange}
@@ -2075,7 +2075,7 @@ export default function CreateOrder() {
               <button
                 type="button"
                 onClick={() => setShowMapModal(false)}
-                className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-sm active:scale-95 transition-all"
+                className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-sm active:scale-95 transition-all"
               >
                 Confirm Location
               </button>
