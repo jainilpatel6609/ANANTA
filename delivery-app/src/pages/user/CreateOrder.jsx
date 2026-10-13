@@ -124,6 +124,10 @@ export default function CreateOrder() {
   const [placeName, setPlaceName] = useState('');
   const [gpsAccuracy, setGpsAccuracy] = useState(null);
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
+  // The interactive map only opens inside this modal on demand -- keeping it off the page by
+  // default means a customer scrolling past it can never accidentally drag/pan the map and
+  // shift their pinned location.
+  const [showMapModal, setShowMapModal] = useState(false);
 
   // Dealer Selection (transport cost = dealer's configured rate for this Material+Location x distance to shipping address)
   const [dealers, setDealers] = useState([]);
@@ -1656,19 +1660,46 @@ export default function CreateOrder() {
               </div>
             </div>
 
-            {/* Two-Way GPS / Address Interactive Map Picker */}
-            <div className="space-y-2 pt-3 border-t border-slate-200">
-              <MapPicker
-                coordinates={coordinates}
-                onLocationChange={handleMapLocationChange}
-                onGPSDetect={handleDetectGPS}
-                onFindOnMap={() => handleFindOnMap(true)}
-                onSuggestionSelect={handleSuggestionSelect}
-                isSearching={isSearchingMap}
-                isLocating={isLocatingGPS}
-                statusMessage={mapStatus}
-                zoom={16}
-              />
+            {/* Map location trigger -- opens the interactive map in a modal instead of
+                embedding it inline, so scrolling the page can never accidentally pan the
+                map and shift the pinned delivery location. */}
+            <div className="pt-3 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => setShowMapModal(true)}
+                className={`w-full flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all text-left ${
+                  coordinatesConfirmed
+                    ? 'border-emerald-300 bg-emerald-50/40 hover:border-emerald-400'
+                    : 'border-amber-300 bg-amber-50/40 hover:border-amber-400'
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      coordinatesConfirmed ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
+                    }`}
+                  >
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-xs sm:text-sm font-black text-slate-900">
+                      {coordinatesConfirmed ? 'Delivery Location Set' : 'Select Exact Delivery Location'}
+                    </h4>
+                    <p className="text-[10px] sm:text-xs text-slate-500 truncate">
+                      {coordinatesConfirmed
+                        ? `Lat: ${coordinates.lat.toFixed(5)}, Lng: ${coordinates.lng.toFixed(5)} — tap to change`
+                        : 'Pin the exact spot on Google Maps for accurate dispatch'}
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold ${
+                    coordinatesConfirmed ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
+                  }`}
+                >
+                  {coordinatesConfirmed ? 'Change' : 'Select on Map'}
+                </span>
+              </button>
             </div>
           </div>
         )}
@@ -2010,6 +2041,48 @@ export default function CreateOrder() {
           )}
         </div>
       </div>
+
+      {/* ================= SELECT DELIVERY LOCATION ON MAP MODAL ================= */}
+      {showMapModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-100 sticky top-0 bg-white z-10">
+              <h3 className="text-sm sm:text-base font-black text-slate-900 font-display">
+                Select Delivery Location
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowMapModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-5 space-y-4">
+              <MapPicker
+                coordinates={coordinates}
+                onLocationChange={handleMapLocationChange}
+                onGPSDetect={handleDetectGPS}
+                onFindOnMap={() => handleFindOnMap(true)}
+                onSuggestionSelect={handleSuggestionSelect}
+                isSearching={isSearchingMap}
+                isLocating={isLocatingGPS}
+                statusMessage={mapStatus}
+                zoom={16}
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowMapModal(false)}
+                className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-sm active:scale-95 transition-all"
+              >
+                Confirm Location
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ================= PAYMENT CONFIRMATION & DEMO MODE MODAL ================= */}
       {showPaymentModal && createdOrder && (
