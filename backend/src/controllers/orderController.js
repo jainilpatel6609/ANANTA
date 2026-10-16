@@ -739,6 +739,67 @@ const getDealerDeliveries = async (req, res) => {
   }
 };
 
+// @desc    Dealer's Dumper sales report -- delivered Dumper orders grouped by Vehicle
+//          Number, for the requested period (week/month/year)
+// @route   GET /api/orders/dealer/reports/sales-by-vehicle
+// @access  Private (Dealer)
+const getDealerVehicleSalesReport = async (req, res) => {
+  try {
+    const { period = 'month' } = req.query;
+    const now = new Date();
+    let startDate;
+
+    if (period === 'week') {
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 7);
+    } else if (period === 'year') {
+      startDate = new Date(now.getFullYear(), 0, 1);
+    } else {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+    startDate.setHours(0, 0, 0, 0);
+
+    const vehicles = await Order.aggregate([
+      {
+        $match: {
+          dealerId: req.user._id,
+          orderStatus: 'DELIVERED',
+          vehicleTypeSnapshot: 'DUMPER',
+          deliveredAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: { $cond: [{ $eq: ['$vehicleNumber', ''] }, 'Unassigned', '$vehicleNumber'] },
+          totalOrders: { $sum: 1 },
+          totalTonnage: { $sum: { $ifNull: ['$totalWeight', 0] } },
+          totalSales: {
+            $sum: {
+              $cond: [{ $eq: ['$finalPaymentStatus', 'PAID'] }, '$finalPaymentAmount', '$totalAmount']
+            }
+          },
+          driverName: { $last: '$driverName' }
+        }
+      },
+      { $sort: { totalSales: -1 } }
+    ]);
+
+    return successResponse(res, 'Dealer vehicle sales report retrieved.', {
+      period,
+      startDate,
+      vehicles: vehicles.map((v) => ({
+        vehicleNumber: v._id,
+        totalOrders: v.totalOrders,
+        totalTonnage: v.totalTonnage,
+        totalSales: v.totalSales,
+        driverName: v.driverName
+      }))
+    });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
 // @desc    Dealer Atomically Accepts an Order (Prevents Race Conditions)
 // @route   POST /api/orders/:id/accept
 // @access  Private (Dealer)
@@ -1485,6 +1546,7 @@ module.exports = {
   getOrderById,
   getDealerAvailableOrders,
   getDealerDeliveries,
+  getDealerVehicleSalesReport,
   acceptOrder,
   declineOrder,
   enterTotalWeight,

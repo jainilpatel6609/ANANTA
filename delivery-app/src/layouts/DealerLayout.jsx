@@ -17,7 +17,8 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
-  Route as RouteIcon
+  Route as RouteIcon,
+  FileBarChart
 } from 'lucide-react';
 
 export default function DealerLayout() {
@@ -34,6 +35,7 @@ export default function DealerLayout() {
     { name: 'Driver Fleet', path: '/dealer/drivers', icon: Users },
     { name: 'My Dumpers', path: '/dealer/dumpers', icon: Truck },
     { name: 'Archive', path: '/dealer/completed', icon: History },
+    { name: 'Reports', path: '/dealer/reports', icon: FileBarChart },
     { name: 'Transport Rates', path: '/dealer/transport-config', icon: RouteIcon },
     { name: 'Depot Profile', path: '/dealer/profile', icon: User }
   ];

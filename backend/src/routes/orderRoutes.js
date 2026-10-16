@@ -11,6 +11,7 @@ router.get('/my-orders', authenticateToken, authorizeRoles('USER', 'DEALER', 'AD
 // Dealer routes
 router.get('/dealer/available', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), orderController.getDealerAvailableOrders);
 router.get('/dealer/my-deliveries', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), orderController.getDealerDeliveries);
+router.get('/dealer/reports/sales-by-vehicle', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), orderController.getDealerVehicleSalesReport);
 router.post('/:id/accept', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), orderController.acceptOrder);
 router.post('/:id/decline', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), orderController.declineOrder);
 router.post('/:id/reject', authenticateToken, authorizeRoles('DEALER', 'ADMIN'), orderController.declineOrder);

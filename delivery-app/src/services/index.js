@@ -41,6 +41,7 @@ export const orderService = {
   getOrderById: (id) => api.get(`/orders/${id}`),
   getDealerAvailable: () => api.get('/orders/dealer/available'),
   getDealerDeliveries: (status) => api.get('/orders/dealer/my-deliveries', { params: { status } }),
+  getDealerVehicleSalesReport: (period) => api.get('/orders/dealer/reports/sales-by-vehicle', { params: { period } }),
   acceptOrder: (id, payload) => api.post(`/orders/${id}/accept`, payload || {}),
   declineOrder: (id, reason) => api.post(`/orders/${id}/decline`, { reason }),
   rejectOrder: (id, reason) => api.post(`/orders/${id}/reject`, { reason }),
