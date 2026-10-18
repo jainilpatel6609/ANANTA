@@ -679,12 +679,6 @@ const getDealerAvailableOrders = async (req, res) => {
         { assignedDealerId: null },
         { dealerResponseDeadline: { $lte: new Date() } } // Expired 15-min SLA orders open to all active dealers
       ];
-
-      // A newly registered dealer should never see the pre-existing order backlog -- only
-      // orders placed on or after their own registration date.
-      if (dealer?.createdAt) {
-        filter.createdAt = { $gte: dealer.createdAt };
-      }
     }
 
     const orders = await Order.find(filter)
@@ -709,13 +703,26 @@ const getDealerAvailableOrders = async (req, res) => {
     const filteredAndEnriched = [];
 
     for (const order of orders) {
-      if (
-        dealerConfigKeys &&
-        ['Sand', 'Aggregate'].includes(order.category) &&
-        order.sandLocation &&
-        !dealerConfigKeys.has(`${order.category}|${order.sandLocation.trim().toLowerCase()}`)
-      ) {
-        continue;
+      const isDirectlyAssigned =
+        order.assignedDealerId &&
+        order.assignedDealerId._id.toString() === req.user._id.toString();
+
+      // The registration-date floor and rate-config requirement below exist to keep the OPEN
+      // pool (unassigned orders, or orders nobody has claimed) scoped to what a dealer should
+      // actually see -- they must never hide an order the customer, or a reassignment, routed
+      // directly to this exact dealer (e.g. after the original dealer declined).
+      if (!isAdmin && !isDirectlyAssigned) {
+        if (dealer?.createdAt && order.createdAt < dealer.createdAt) {
+          continue;
+        }
+        if (
+          dealerConfigKeys &&
+          ['Sand', 'Aggregate'].includes(order.category) &&
+          order.sandLocation &&
+          !dealerConfigKeys.has(`${order.category}|${order.sandLocation.trim().toLowerCase()}`)
+        ) {
+          continue;
+        }
       }
 
       let distanceToDealer = order.dealerDistanceKm;
@@ -728,9 +735,6 @@ const getDealerAvailableOrders = async (req, res) => {
         );
       }
 
-      const isDirectlyAssigned =
-        order.assignedDealerId &&
-        order.assignedDealerId._id.toString() === req.user._id.toString();
       const isWithin5km = distanceToDealer !== null && distanceToDealer <= MAX_DISPATCH_RADIUS_KM;
 
       // Always include if assigned to this dealer, or if within 5km, or if open pool.
