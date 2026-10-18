@@ -680,10 +680,32 @@ const getDealerAvailableOrders = async (req, res) => {
       .populate('assignedDealerId', 'name companyName pincode mobile')
       .sort({ createdAt: -1 });
 
+    // A dealer must have an active transport rate configured for this order's exact Material +
+    // Sourcing Location before they can see or accept it -- even if, at order creation time, no
+    // dealer had a matching rate and the system fell back to assigning it to the nearest active
+    // dealer regardless of config (that fallback should not let an unconfigured dealer dispatch
+    // material they never set a rate for; admin can still reassign stuck orders manually).
+    let dealerConfigKeys = null;
+    if (!isAdmin) {
+      const dealerConfigs = await DealerTransportConfig.find({ dealerId: req.user._id, isActive: true });
+      dealerConfigKeys = new Set(
+        dealerConfigs.map((c) => `${c.material}|${c.locationName.trim().toLowerCase()}`)
+      );
+    }
+
     const MAX_DISPATCH_RADIUS_KM = 5.0;
     const filteredAndEnriched = [];
 
     for (const order of orders) {
+      if (
+        dealerConfigKeys &&
+        ['Sand', 'Aggregate'].includes(order.category) &&
+        order.sandLocation &&
+        !dealerConfigKeys.has(`${order.category}|${order.sandLocation.trim().toLowerCase()}`)
+      ) {
+        continue;
+      }
+
       let distanceToDealer = order.dealerDistanceKm;
       if (dealerLat && dealerLng && order.latitude && order.longitude) {
         distanceToDealer = PincodeService.calculateHaversineDistanceKm(
