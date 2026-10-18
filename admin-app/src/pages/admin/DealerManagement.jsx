@@ -413,7 +413,14 @@ export default function DealerManagement() {
                 {dealers.map((dealer) => (
                   <tr key={dealer._id} className="hover:bg-slate-800/40 transition-colors">
                     <td className="px-4 py-3.5">
-                      <div className="font-bold text-white text-sm">{dealer.companyName || dealer.name}</div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-white text-sm">{dealer.companyName || dealer.name}</span>
+                        {dealer.dealerCode && (
+                          <span className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-400 font-mono font-bold text-[10px] border border-slate-700">
+                            {dealer.dealerCode}
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[10px] text-slate-400">Rep: {dealer.name}</div>
                     </td>
                     <td className="px-4 py-3.5">
