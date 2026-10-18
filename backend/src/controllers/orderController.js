@@ -667,6 +667,12 @@ const getDealerAvailableOrders = async (req, res) => {
         { assignedDealerId: null },
         { dealerResponseDeadline: { $lte: new Date() } } // Expired 15-min SLA orders open to all active dealers
       ];
+
+      // A newly registered dealer should never see the pre-existing order backlog -- only
+      // orders placed on or after their own registration date.
+      if (dealer?.createdAt) {
+        filter.createdAt = { $gte: dealer.createdAt };
+      }
     }
 
     const orders = await Order.find(filter)
