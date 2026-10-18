@@ -1996,7 +1996,7 @@ export default function CreateOrder() {
                     toast.error('Please select a dealer to continue.');
                     return;
                   }
-                  if (selectedVehicleType === 'DUMPER' && dealers.length === 0) {
+                  if (dealers.length === 0) {
                     toast.error('No dealer currently offers a rate for this Material + Location. Please go back and choose a different sourcing location.');
                     return;
                   }

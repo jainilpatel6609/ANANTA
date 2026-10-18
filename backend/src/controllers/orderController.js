@@ -439,6 +439,18 @@ const createOrder = async (req, res) => {
       }
     }
 
+    // Sand/Aggregate orders must resolve to a dealer with an actual configured rate for this
+    // Material + Location -- without this, the `nearestDealer` fallback above would silently
+    // assign the order to a dealer who never set a rate for it (letting it appear in a pool
+    // they shouldn't be able to see/accept, and for TRACTOR, charging ₹0 transport).
+    if (transportMaterial && (dealerRatePerKm === null || distanceKm === null)) {
+      return errorResponse(
+        res,
+        `No dealer currently offers a transport rate for ${transportMaterial} from ${finalLocationName || 'this location'}. Please choose a different sourcing location or select another dealer.`,
+        400
+      );
+    }
+
     if (dealerRatePerKm !== null && distanceKm !== null) {
       deliveryCharge = Math.round(dealerRatePerKm * distanceKm * 100) / 100;
     }
