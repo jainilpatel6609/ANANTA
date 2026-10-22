@@ -152,6 +152,8 @@ export default function CreateOrder() {
   const selectedDealerForSummary = dealers.find((d) => d.dealerId === selectedDealerId) || null;
   // Dumper's entire charge: Distance(km) x the selected dealer's Rate/KM = Rate Per Ton.
   const dumperRatePerTon = selectedVehicleType === 'DUMPER' ? (selectedDealerForSummary?.transportCost ?? null) : null;
+  // Tractor's material price is now the selected dealer's own configured Patiya rate.
+  const tractorRatePerUnit = selectedVehicleType === 'TRACTOR' ? (selectedDealerForSummary?.ratePerTractor ?? null) : null;
 
   // Fetch initial global data (materials and visibility settings)
   useEffect(() => {
@@ -299,25 +301,10 @@ export default function CreateOrder() {
     // is known this early in the wizard, kept for the spec summary display.
     approxTotalTonnage = (selectedCapacity.approximateTon || 25) * dumperQuantity;
   } else if (selectedVehicleType === 'TRACTOR' && selectedCapacity) {
-    const isDoublePatiya = selectedOptionName === 'Double Patiya' || selectedCapacity?.optionName === 'Double Patiya' || selectedCapacity?.name === 'Double Patiya';
-    let locationPrice = null;
-    if (selectedLocation) {
-      if (isDoublePatiya && selectedLocation.doublePatiyaPrice !== undefined && selectedLocation.doublePatiyaPrice !== null) {
-        locationPrice = Number(selectedLocation.doublePatiyaPrice);
-      } else if (!isDoublePatiya && selectedLocation.singlePatiyaPrice !== undefined && selectedLocation.singlePatiyaPrice !== null) {
-        locationPrice = Number(selectedLocation.singlePatiyaPrice);
-      }
-    }
-    let flatRate = locationPrice || selectedCapacity.flatPrice || (isDoublePatiya ? 4500 : 2350);
-    if (isAggregate && selectedMaterial?.tractorGrainPricing?.length && selectedAggregateType) {
-      const match = selectedMaterial.tractorGrainPricing.find(
-        (g) => g.name && g.name.toLowerCase().trim() === selectedAggregateType.toLowerCase().trim()
-      );
-      if (match) {
-        flatRate = isDoublePatiya ? (match.priceDoublePatiya || 5400) : (match.priceSinglePatiya || 2800);
-      }
-    }
-    unitPrice = flatRate;
+    // Tractor material price is now the selected dealer's own configured Patiya rate
+    // (Step 7), resolved below via `tractorRatePerUnit` -- it stays 0 here, same as Dumper,
+    // until a dealer is chosen. Only capacity (tonnage) is known this early in the wizard.
+    unitPrice = tractorRatePerUnit || 0;
     approxTotalTonnage = (selectedCapacity.approximateTon || 3.5) * tractorQuantity;
     subtotal = Math.round(unitPrice * tractorQuantity);
   }
@@ -710,6 +697,10 @@ export default function CreateOrder() {
         // Dumper bookings only list dealers with a currently-available dumper of this wheel type
         ...(selectedVehicleType === 'DUMPER' && selectedCapacity?.wheelCount
           ? { wheelCount: selectedCapacity.wheelCount }
+          : {}),
+        // Tractor bookings only list dealers who've set their own rate for this Patiya type
+        ...(selectedVehicleType === 'TRACTOR'
+          ? { tractorType: selectedOptionName === 'Double Patiya' ? 'Double Patiya' : 'Single Patiya' }
           : {})
       });
       const list = res.data?.dealers || [];
@@ -1212,24 +1203,6 @@ export default function CreateOrder() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4">
                 {activeVehicleConfigs.map((cfg) => {
                   const isSelected = cfg._id === selectedCapacityId || cfg.optionName === selectedOptionName;
-                  const isDouble = cfg.optionName === 'Double Patiya';
-                  let locationPrice = null;
-                  if (selectedLocation) {
-                    if (isDouble && selectedLocation.doublePatiyaPrice !== undefined && selectedLocation.doublePatiyaPrice !== null) {
-                      locationPrice = Number(selectedLocation.doublePatiyaPrice);
-                    } else if (!isDouble && selectedLocation.singlePatiyaPrice !== undefined && selectedLocation.singlePatiyaPrice !== null) {
-                      locationPrice = Number(selectedLocation.singlePatiyaPrice);
-                    }
-                  }
-                  let itemUnitPrice = locationPrice || cfg.flatPrice || (isDouble ? 4500 : 2350);
-                  if (isAggregate && selectedMaterial?.tractorGrainPricing?.length && selectedAggregateType) {
-                    const match = selectedMaterial.tractorGrainPricing.find(
-                      (g) => g.name && g.name.toLowerCase().trim() === selectedAggregateType.toLowerCase().trim()
-                    );
-                    if (match) {
-                      itemUnitPrice = isDouble ? (match.priceDoublePatiya || 5400) : (match.priceSinglePatiya || 2800);
-                    }
-                  }
 
                   return (
                     <div
@@ -1246,8 +1219,8 @@ export default function CreateOrder() {
                     >
                       <h3 className="text-base sm:text-xl font-black text-slate-900 font-display">{cfg.optionName}</h3>
                       <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-                        <span className="text-base sm:text-lg font-black font-mono text-emerald-700">
-                          {formatINR(itemUnitPrice)}
+                        <span className="text-[10px] sm:text-xs font-medium text-slate-400">
+                          Price shown after dealer selection
                         </span>
                         {isSelected && (
                           <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0">
@@ -1710,8 +1683,15 @@ export default function CreateOrder() {
             <div>
               <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">Select Dealer</h2>
               <p className="text-[11px] sm:text-sm text-slate-500">
-                {selectedVehicleType === 'DUMPER' ? 'Rate Per Ton' : 'Transport cost'} = dealer&apos;s rate per KM for {selectedMaterial?.category}
-                {selectedLocation?.name && !(isAggregate && selectedVehicleType === 'TRACTOR') ? ` (${selectedLocation.name})` : ''} &times; road distance to your shipping address.
+                {selectedVehicleType === 'DUMPER'
+                  ? "Rate Per Ton = dealer's rate per KM for " +
+                    selectedMaterial?.category +
+                    (selectedLocation?.name ? ` (${selectedLocation.name})` : '') +
+                    ' × road distance to your shipping address.'
+                  : "Rate/Tractor is the dealer's own selling rate for this Patiya type; Transport is their rate per KM for " +
+                    selectedMaterial?.category +
+                    (selectedLocation?.name && !isAggregate ? ` (${selectedLocation.name})` : '') +
+                    ' × road distance to your shipping address.'}
               </p>
             </div>
 
@@ -1726,7 +1706,7 @@ export default function CreateOrder() {
                 {selectedLocation?.name ? ` from ${selectedLocation.name}` : ''}.{' '}
                 {selectedVehicleType === 'DUMPER'
                   ? `A Dumper booking needs a dealer with a configured rate for this location and an available ${selectedCapacity?.wheelCount || ''} Wheel dumper — please choose a different wheel type or sourcing location, or contact support.`
-                  : 'A nearby dealer will be auto-assigned, or please contact support.'}
+                  : `A Tractor booking needs a dealer with a configured transport rate for this location and their own rate for ${selectedOptionName === 'Double Patiya' ? 'Double Patiya' : 'Single Patiya'} — please choose a different sourcing location, or contact support.`}
               </div>
             ) : (
               <div className="space-y-2 sm:space-y-3">
@@ -1761,6 +1741,16 @@ export default function CreateOrder() {
                         </div>
                       </div>
                       <div className="text-right shrink-0">
+                        {selectedVehicleType === 'TRACTOR' && (
+                          <div className="mb-1">
+                            <div className="text-sm sm:text-lg font-black text-emerald-700 font-mono">
+                              {formatINR(dealer.ratePerTractor)}
+                            </div>
+                            <div className="text-[9px] sm:text-[10px] text-slate-500 uppercase tracking-wider font-bold">
+                              Rate/Tractor
+                            </div>
+                          </div>
+                        )}
                         <div className="text-sm sm:text-lg font-black text-amber-700 font-mono">
                           {formatINR(dealer.transportCost)}
                         </div>

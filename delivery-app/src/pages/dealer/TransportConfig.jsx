@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { dealerTransportService } from '../../services';
+import { dealerTransportService, tractorRateService } from '../../services';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -23,6 +23,8 @@ const MATERIAL_MODES = [
   { value: 'Both', label: 'Both Sand & Aggregate', icon: '🔵' }
 ];
 
+const TRACTOR_TYPES = ['Single Patiya', 'Double Patiya'];
+
 export default function TransportConfig() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -33,13 +35,19 @@ export default function TransportConfig() {
   const [rates, setRates] = useState({}); // { 'Sand::Patan': '25' }
   const [deleteTarget, setDeleteTarget] = useState(null);
 
+  // Tractor Patiya rates
+  const [tractorRates, setTractorRates] = useState([]);
+  const [tractorRateInputs, setTractorRateInputs] = useState({}); // { 'Single Patiya': '2800' }
+  const [savingTractorType, setSavingTractorType] = useState(null);
+
   const visibleMaterials = materialMode === 'Both' ? ['Sand', 'Aggregate'] : [materialMode];
 
   const loadData = async () => {
     try {
-      const [locRes, cfgRes] = await Promise.all([
+      const [locRes, cfgRes, tractorRateRes] = await Promise.all([
         dealerTransportService.getMaterialLocations(),
-        dealerTransportService.getMyConfigs()
+        dealerTransportService.getMyConfigs(),
+        tractorRateService.getRates()
       ]);
       setMaterialLocations(locRes.data?.locations || { Sand: [], Aggregate: [] });
 
@@ -59,6 +67,14 @@ export default function TransportConfig() {
       setRates(initRates);
       if (mats.size === 2) setMaterialMode('Both');
       else if (mats.size === 1) setMaterialMode(Array.from(mats)[0]);
+
+      const tRates = tractorRateRes.data?.rates || [];
+      setTractorRates(tRates);
+      const tInputs = {};
+      tRates.forEach((r) => {
+        tInputs[r.tractorType] = String(r.ratePerTractor);
+      });
+      setTractorRateInputs(tInputs);
     } catch (err) {
       toast.error('Failed to load transport configuration');
     } finally {
@@ -132,6 +148,35 @@ export default function TransportConfig() {
       await loadData();
     } catch (err) {
       toast.error(err.message || 'Failed to delete configuration');
+    }
+  };
+
+  const handleSaveTractorRate = async (tractorType) => {
+    const rateStr = tractorRateInputs[tractorType];
+    const rate = Number(rateStr);
+    if (!rateStr || Number.isNaN(rate) || rate <= 0) {
+      toast.error(`Please enter a valid rate for ${tractorType}.`);
+      return;
+    }
+    setSavingTractorType(tractorType);
+    try {
+      await tractorRateService.setRate(tractorType, rate);
+      toast.success(`${tractorType} rate saved!`);
+      await loadData();
+    } catch (err) {
+      toast.error(err.message || 'Failed to save tractor rate');
+    } finally {
+      setSavingTractorType(null);
+    }
+  };
+
+  const handleToggleTractorRate = async (tractorType) => {
+    try {
+      await tractorRateService.toggleRate(tractorType);
+      toast.success(`${tractorType} rate status updated.`);
+      await loadData();
+    } catch (err) {
+      toast.error(err.message || 'Failed to update status');
     }
   };
 
@@ -280,6 +325,78 @@ export default function TransportConfig() {
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
           Save Transport Configuration
         </button>
+      </div>
+
+      {/* Tractor Rates */}
+      <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-xs space-y-5">
+        <h3 className="text-xs font-bold text-amber-600 uppercase tracking-widest flex items-center gap-2 border-b border-slate-100 pb-2">
+          <Truck className="w-4 h-4" />
+          <span>Tractor Rates</span>
+        </h3>
+        <p className="text-xs text-slate-500 -mt-3">
+          Set your own selling rate per Patiya type. Customers can only choose you for a
+          Tractor order once you've set a rate here.
+        </p>
+
+        <div className="space-y-3">
+          {TRACTOR_TYPES.map((type) => {
+            const existing = tractorRates.find((r) => r.tractorType === type);
+            return (
+              <div
+                key={type}
+                className={`p-3.5 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center gap-3 ${
+                  existing ? 'border-amber-300 bg-amber-50/50' : 'border-slate-200 bg-slate-50'
+                }`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold text-slate-900">{type}</div>
+                  {existing && (
+                    <div className={`text-[11px] font-mono ${existing.isActive ? 'text-emerald-600' : 'text-slate-400'}`}>
+                      {existing.isActive ? 'Active' : 'Disabled'}
+                    </div>
+                  )}
+                </div>
+
+                <div className="relative w-full sm:w-40 shrink-0">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <IndianRupee className="w-3.5 h-3.5" />
+                  </div>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    placeholder="Rate / Tractor"
+                    value={tractorRateInputs[type] || ''}
+                    onChange={(e) => setTractorRateInputs((prev) => ({ ...prev, [type]: e.target.value }))}
+                    className="w-full pl-8 pr-3 py-2 rounded-xl bg-white border border-slate-200 text-sm text-slate-900 font-mono focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 min-h-[40px]"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleSaveTractorRate(type)}
+                    disabled={savingTractorType === type}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-all disabled:opacity-50 min-h-[40px] cursor-pointer"
+                  >
+                    {savingTractorType === type ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    Save
+                  </button>
+                  {existing && (
+                    <button
+                      type="button"
+                      onClick={() => handleToggleTractorRate(type)}
+                      title={existing.isActive ? 'Disable' : 'Enable'}
+                      className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-amber-600 hover:border-amber-300 transition-all active:scale-90"
+                    >
+                      <Power className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {myConfigs.length === 0 && (

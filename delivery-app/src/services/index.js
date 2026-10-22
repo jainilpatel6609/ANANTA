@@ -194,6 +194,14 @@ export const dealerTransportService = {
   getEligibleDealers: (params) => api.get('/dealer-transport/eligible-dealers', { params })
 };
 
+export const tractorRateService = {
+  getRates: () => api.get('/dealer-tractor-rates'),
+  setRate: (tractorType, ratePerTractor) =>
+    api.put(`/dealer-tractor-rates/${encodeURIComponent(tractorType)}`, { ratePerTractor }),
+  toggleRate: (tractorType) =>
+    api.patch(`/dealer-tractor-rates/${encodeURIComponent(tractorType)}/toggle`)
+};
+
 export const helpService = {
   create: (data) => api.post('/help', data)
 };

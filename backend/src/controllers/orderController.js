@@ -6,6 +6,7 @@ const VehicleSetting = require('../models/VehicleSetting');
 const User = require('../models/User');
 const Driver = require('../models/Driver');
 const DealerTransportConfig = require('../models/DealerTransportConfig');
+const DealerTractorRate = require('../models/DealerTractorRate');
 const { generateOrderNumber } = require('../utils/orderNumber');
 const { generateDealerCode } = require('../utils/dealerCode');
 const { findConflictingActiveOrder } = require('../utils/driverAvailability');
@@ -17,12 +18,7 @@ const RoadDistanceService = require('../services/roadDistanceService');
 const SmsService = require('../services/smsService');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
 const { emitOrderAccepted, emitOrderStatusUpdate } = require('../sockets/socket');
-const {
-  TRACTOR_TYPES,
-  getPricePerTractor,
-  getGrainSpecificTractorPrice,
-  ensureProductTractorPrices
-} = require('../utils/tractorPricing');
+const { ensureProductTractorPrices } = require('../utils/tractorPricing');
 
 // Fields identifying the customer's exact shipping address/map location. Hidden from a dealer
 // until they accept the order -- before that, a dealer may see only the computed distance (KM),
@@ -194,27 +190,9 @@ const createOrder = async (req, res) => {
     let subtotal = 0;
     let unitPrice = 0;
 
-    // DUMPER: no material/base pricing at all any more. The customer's entire charge is the
-    // distance-based transport rate computed in section 7 below (Distance(km) x Dealer Rate/KM),
-    // set as both `unitPrice` (Rate Per Ton, for display) and `deliveryCharge`/`totalAmount`.
-    // TRACTOR: unaffected, unchanged flat-rate pricing (Location-specific > Grain-specific >
-    // VehicleConfig/base product), kept in its own branch (previously this ran unconditionally
-    // inside the `DUMPER` branch above, which meant TRACTOR bookings always got charged ₹0 base
-    // price — fixed here by properly gating it to `vehicleType === 'TRACTOR'`).
-    if (vehicleType === 'TRACTOR') {
-      let locationPrice = null;
-      if (locationDoc) {
-        if (tractorType === 'Single Patiya' && locationDoc.singlePatiyaPrice !== undefined && locationDoc.singlePatiyaPrice !== null) {
-          locationPrice = Number(locationDoc.singlePatiyaPrice);
-        } else if (tractorType === 'Double Patiya' && locationDoc.doublePatiyaPrice !== undefined && locationDoc.doublePatiyaPrice !== null) {
-          locationPrice = Number(locationDoc.doublePatiyaPrice);
-        }
-      }
-      const grainSpecificPrice = getGrainSpecificTractorPrice(product, tractorType, aggregateType);
-      const flatTractorPrice = locationPrice || grainSpecificPrice || vehicleConfig?.flatPrice || getPricePerTractor(product, tractorType) || (tractorType === 'Double Patiya' ? 4500 : 2350);
-      unitPrice = flatTractorPrice;
-      subtotal = Math.round(flatTractorPrice * qty);
-    }
+    // DUMPER: no material/base pricing at all any more. TRACTOR: material price is now the
+    // selling dealer's own configured Single/Double Patiya rate (DealerTractorRate), resolved
+    // once a dealer is known -- see the TRACTOR branch further below, after dealer assignment.
 
     let deliveryCharge = 0;
     const tax = 0;
@@ -468,6 +446,26 @@ const createOrder = async (req, res) => {
       }
       // The computed transport rate IS the customer-facing "Rate Per Ton" for Dumper orders.
       unitPrice = deliveryCharge;
+    }
+
+    // TRACTOR material price is the selling dealer's own configured rate for this Patiya
+    // type -- never the old admin-fixed flat price. A dealer without one isn't a valid
+    // selection (mirrors the Dumper requirement above).
+    if (vehicleType === 'TRACTOR') {
+      const dealerTractorRate = await DealerTractorRate.findOne({
+        dealerId: nearestDealer?._id,
+        tractorType,
+        isActive: true
+      });
+      if (!dealerTractorRate) {
+        return errorResponse(
+          res,
+          `${nearestDealer?.companyName || nearestDealer?.name || 'The selected dealer'} has not set a rate for ${tractorType}. Please choose a different dealer.`,
+          400
+        );
+      }
+      unitPrice = dealerTractorRate.ratePerTractor;
+      subtotal = Math.round(unitPrice * qty);
     }
 
     const totalAmount = subtotal + deliveryCharge + tax;

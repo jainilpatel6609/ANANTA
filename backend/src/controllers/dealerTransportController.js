@@ -1,4 +1,5 @@
 const DealerTransportConfig = require('../models/DealerTransportConfig');
+const DealerTractorRate = require('../models/DealerTractorRate');
 const Location = require('../models/Location');
 const PincodeService = require('../services/pincodeService');
 const RoadDistanceService = require('../services/roadDistanceService');
@@ -186,7 +187,7 @@ const deleteMyConfig = async (req, res) => {
 // @access  Public / Customer
 const getEligibleDealers = async (req, res) => {
   try {
-    const { material, locationName, lat, lng, wheelCount } = req.query;
+    const { material, locationName, lat, lng, wheelCount, tractorType } = req.query;
 
     if (!MATERIALS.includes(material)) {
       return errorResponse(res, 'A valid material (Sand or Aggregate) is required.', 400);
@@ -221,6 +222,19 @@ const getEligibleDealers = async (req, res) => {
       }
       const eligibleDealerIds = new Set(await getDealerIdsWithAvailableDumper(wheel));
       validConfigs = validConfigs.filter((cfg) => eligibleDealerIds.has(cfg.dealerId._id.toString()));
+    }
+
+    // Tractor bookings pass the selected Patiya type: only dealers who have set their own
+    // active rate for it are eligible (that rate becomes the order's material price --
+    // see orderController.createOrder -- so a dealer without one can't be selected at all).
+    let tractorRateMap = null;
+    if (tractorType) {
+      if (!DealerTractorRate.TRACTOR_TYPES.includes(tractorType)) {
+        return errorResponse(res, `Tractor type must be one of: ${DealerTractorRate.TRACTOR_TYPES.join(', ')}.`, 400);
+      }
+      const tractorRates = await DealerTractorRate.find({ tractorType, isActive: true });
+      tractorRateMap = new Map(tractorRates.map((r) => [r.dealerId.toString(), r.ratePerTractor]));
+      validConfigs = validConfigs.filter((cfg) => tractorRateMap.has(cfg.dealerId._id.toString()));
     }
 
     // Resolve the admin-configured sourcing-Location road distance once per distinct
@@ -280,6 +294,7 @@ const getEligibleDealers = async (req, res) => {
         await dealer.save();
       }
 
+      const transportCost = Math.round(cfg.ratePerKm * distanceKm * 100) / 100;
       dealers.push({
         dealerId: dealer._id,
         configId: cfg._id,
@@ -292,11 +307,16 @@ const getEligibleDealers = async (req, res) => {
         ratePerKm: cfg.ratePerKm,
         distanceKm,
         distanceSource,
-        transportCost: Math.round(cfg.ratePerKm * distanceKm * 100) / 100
+        transportCost,
+        ...(tractorRateMap ? { ratePerTractor: tractorRateMap.get(dealer._id.toString()) } : {})
       });
     }
 
-    dealers.sort((a, b) => a.transportCost - b.transportCost);
+    if (tractorRateMap) {
+      dealers.sort((a, b) => (a.ratePerTractor + a.transportCost) - (b.ratePerTractor + b.transportCost));
+    } else {
+      dealers.sort((a, b) => a.transportCost - b.transportCost);
+    }
 
     return successResponse(res, 'Eligible dealers retrieved successfully.', { dealers });
   } catch (error) {
