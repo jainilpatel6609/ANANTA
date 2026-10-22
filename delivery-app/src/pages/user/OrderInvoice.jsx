@@ -96,9 +96,12 @@ export default function OrderInvoice() {
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, Math.min(imgHeight, pdfHeight), undefined, 'FAST');
       
       const safeNo = (order.invoiceNumber || order.orderNumber || 'Invoice').replace(/[/\\:]/g, '_');
-      savePdfCrossPlatform(pdf, 'ANANTA_TRADERS_' + safeNo + '.pdf');
+      const result = savePdfCrossPlatform(pdf, 'ANANTA_TRADERS_' + safeNo + '.pdf');
 
-      toast.success('🎉 Invoice PDF downloaded directly!', { id: 'pdf-gen' });
+      toast.success(
+        result === 'opened' ? '🎉 Invoice PDF opened — tap the download icon to save it.' : '🎉 Invoice PDF downloaded directly!',
+        { id: 'pdf-gen' }
+      );
     } catch (err) {
       console.error('PDF Generation Error:', err);
       toast.error('Direct PDF generation error. Opening print preview...', { id: 'pdf-gen' });
