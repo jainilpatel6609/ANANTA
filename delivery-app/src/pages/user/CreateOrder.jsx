@@ -1692,10 +1692,7 @@ export default function CreateOrder() {
                     selectedMaterial?.category +
                     (selectedLocation?.name ? ` (${selectedLocation.name})` : '') +
                     ' × road distance to your shipping address.'
-                  : "Rate/Tractor is the dealer's own selling rate for this Patiya type; Transport is their rate per KM for " +
-                    selectedMaterial?.category +
-                    (selectedLocation?.name && !isAggregate ? ` (${selectedLocation.name})` : '') +
-                    ' × road distance to your shipping address. Only dealers within 5 km of your delivery location are shown.'}
+                  : "Rate/Tractor is the dealer's own flat selling rate for this Patiya type — no separate transport charge. Only dealers within 5 km of your delivery location are shown."}
               </p>
             </div>
 
@@ -1706,11 +1703,15 @@ export default function CreateOrder() {
               </div>
             ) : dealers.length === 0 ? (
               <div className="p-4 sm:p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center text-xs sm:text-sm text-slate-500">
-                No dealers currently offer transport for {selectedMaterial?.category}
-                {selectedLocation?.name ? ` from ${selectedLocation.name}` : ''}.{' '}
-                {selectedVehicleType === 'DUMPER'
-                  ? `A Dumper booking needs a dealer with a configured rate for this location and an available ${selectedCapacity?.wheelCount || ''} Wheel dumper — please choose a different wheel type or sourcing location, or contact support.`
-                  : `A Tractor booking needs a dealer within 5 km of your delivery location who has a configured transport rate for this location and their own rate for ${selectedOptionName === 'Double Patiya' ? 'Double Patiya' : 'Single Patiya'} — please contact support if none are available nearby.`}
+                {selectedVehicleType === 'DUMPER' ? (
+                  <>
+                    No dealers currently offer transport for {selectedMaterial?.category}
+                    {selectedLocation?.name ? ` from ${selectedLocation.name}` : ''}.{' '}
+                    A Dumper booking needs a dealer with a configured rate for this location and an available {selectedCapacity?.wheelCount || ''} Wheel dumper — please choose a different wheel type or sourcing location, or contact support.
+                  </>
+                ) : (
+                  `No dealers within 5 km of your delivery location have set their own rate for ${selectedOptionName === 'Double Patiya' ? 'Double Patiya' : 'Single Patiya'}${isAggregate ? ` (${selectedAggregateType})` : selectedLocation?.name ? ` from ${selectedLocation.name}` : ''} — please contact support if none are available nearby.`
+                )}
               </div>
             ) : (
               <div className="space-y-2 sm:space-y-3">
@@ -1751,21 +1752,11 @@ export default function CreateOrder() {
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        {selectedVehicleType === 'TRACTOR' && (
-                          <div className="mb-1">
-                            <div className="text-sm sm:text-lg font-black text-emerald-700 font-mono">
-                              {formatINR(dealer.ratePerTractor)}
-                            </div>
-                            <div className="text-[9px] sm:text-[10px] text-slate-500 uppercase tracking-wider font-bold">
-                              Rate/Tractor
-                            </div>
-                          </div>
-                        )}
                         <div className="text-sm sm:text-lg font-black text-amber-700 font-mono">
-                          {formatINR(dealer.transportCost)}
+                          {formatINR(selectedVehicleType === 'TRACTOR' ? dealer.ratePerTractor : dealer.transportCost)}
                         </div>
                         <div className="text-[9px] sm:text-[10px] text-slate-500 uppercase tracking-wider font-bold">
-                          {selectedVehicleType === 'DUMPER' ? 'Rate/Ton' : 'Transport'}
+                          {selectedVehicleType === 'DUMPER' ? 'Rate/Ton' : 'Rate/Tractor'}
                         </div>
                       </div>
                       {isSelected && <Check className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 shrink-0" />}
@@ -1877,10 +1868,14 @@ export default function CreateOrder() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-sm font-bold text-slate-900 font-mono">{selectedDealerForSummary.dealerCode || 'Dealer'}</div>
-                    <div className="text-slate-500 font-mono text-[11px]">{selectedDealerForSummary.distanceKm} km away</div>
+                    <div className="text-slate-500 font-mono text-[11px]">
+                      {selectedVehicleType === 'TRACTOR'
+                        ? `${selectedDealerForSummary.dealerDistanceKm} km from your location`
+                        : `${selectedDealerForSummary.distanceKm} km away`}
+                    </div>
                   </div>
                   <div className="text-amber-700 font-mono font-black text-sm">
-                    {formatINR(selectedDealerForSummary.transportCost)}
+                    {formatINR(selectedVehicleType === 'TRACTOR' ? selectedDealerForSummary.ratePerTractor : selectedDealerForSummary.transportCost)}
                   </div>
                 </div>
               </div>
@@ -1904,14 +1899,8 @@ export default function CreateOrder() {
             ) : (
               <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50/80 border border-amber-200 space-y-2 sm:space-y-3 text-xs shadow-sm">
                 <div className="flex items-center justify-between text-slate-600">
-                  <span>Material Subtotal ({approxTotalTonnage} Tons):</span>
+                  <span>Rate/Tractor &times; {tractorQuantity}:</span>
                   <span className="font-mono font-bold text-slate-900">{formatINR(subtotal)}</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-600">
-                  <span>Transport Cost:</span>
-                  <span className="font-mono font-bold text-slate-900">
-                    {selectedDealerForSummary ? formatINR(selectedDealerForSummary.transportCost) : 'FREE / INCLUDED'}
-                  </span>
                 </div>
                 <div className="flex items-center justify-between text-slate-600">
                   <span>Royalty Slips & GST:</span>
@@ -1920,7 +1909,7 @@ export default function CreateOrder() {
                 <div className="border-t border-amber-200 pt-3 flex items-center justify-between text-sm">
                   <span className="font-black text-slate-900 uppercase tracking-wider">Grand Total Amount:</span>
                   <span className="font-black font-mono text-xl sm:text-2xl text-amber-700">
-                    {formatINR(subtotal + (selectedDealerForSummary?.transportCost || 0))}
+                    {formatINR(subtotal)}
                   </span>
                 </div>
               </div>

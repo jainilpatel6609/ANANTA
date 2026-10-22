@@ -317,7 +317,26 @@ const createOrder = async (req, res) => {
       locationDoc.longitude !== undefined
     );
 
-    if (customerSelectedDealerId) {
+    // TRACTOR is priced entirely by the dealer's own flat Rate/Tractor (resolved further below
+    // via DealerTractorRate) -- no distance-based transport charge and no DealerTransportConfig
+    // dependency, so dealer resolution here is just "validate the customer's chosen dealer".
+    // The customer always reaches checkout having picked one from the already 5km-radius- and
+    // rate-filtered list (see dealerTransportController.getEligibleDealers).
+    if (vehicleType === 'TRACTOR') {
+      if (!customerSelectedDealerId) {
+        return errorResponse(res, 'Please select a dealer for your Tractor order.', 400);
+      }
+      const selectedDealer = await User.findOne({
+        _id: customerSelectedDealerId,
+        role: 'DEALER',
+        isActive: true,
+        isDeleted: { $ne: true }
+      });
+      if (!selectedDealer) {
+        return errorResponse(res, 'The selected dealer is no longer available. Please choose another dealer.', 400);
+      }
+      nearestDealer = selectedDealer;
+    } else if (customerSelectedDealerId) {
       const selectedDealer = await User.findOne({
         _id: customerSelectedDealerId,
         role: 'DEALER',
@@ -417,11 +436,12 @@ const createOrder = async (req, res) => {
       }
     }
 
-    // Sand/Aggregate orders must resolve to a dealer with an actual configured rate for this
-    // Material + Location -- without this, the `nearestDealer` fallback above would silently
-    // assign the order to a dealer who never set a rate for it (letting it appear in a pool
-    // they shouldn't be able to see/accept, and for TRACTOR, charging ₹0 transport).
-    if (transportMaterial && (dealerRatePerKm === null || distanceKm === null)) {
+    // Sand/Aggregate orders (DUMPER, or TRACTOR via the branch above) must resolve to a dealer
+    // with an actual configured rate for this Material + Location -- without this, the
+    // `nearestDealer` fallback above would silently assign the order to a dealer who never set
+    // a rate for it. Tractor doesn't use this transport-rate system at all (see above), so it's
+    // exempt here.
+    if (transportMaterial && vehicleType !== 'TRACTOR' && (dealerRatePerKm === null || distanceKm === null)) {
       return errorResponse(
         res,
         `No dealer currently offers a transport rate for ${transportMaterial} from ${finalLocationName || 'this location'}. Please choose a different sourcing location or select another dealer.`,

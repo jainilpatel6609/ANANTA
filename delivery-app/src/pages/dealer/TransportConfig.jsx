@@ -244,7 +244,10 @@ export default function TransportConfig() {
         </div>
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 font-display">Transport Configuration</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Set your per-KM rate for each material & sourcing location</p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Set your per-KM rate for each material & sourcing location — used for Dumper
+            bookings. Tractor bookings use the flat Rate/Tractor you set below instead.
+          </p>
         </div>
       </div>
 

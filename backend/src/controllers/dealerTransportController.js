@@ -209,6 +209,70 @@ const getEligibleDealers = async (req, res) => {
       return errorResponse(res, 'Latitude and Longitude must be valid numbers.', 400);
     }
 
+    // Tractor bookings are priced entirely by the dealer's own flat Rate/Tractor (no distance-
+    // based transport charge, no DealerTransportConfig dependency) -- a self-contained path so a
+    // dealer only needs a Tractor rate, never an unrelated per-KM Dumper/Sand-Aggregate config,
+    // to be eligible here.
+    if (tractorType) {
+      if (!DealerTractorRate.TRACTOR_TYPES.includes(tractorType)) {
+        return errorResponse(res, `Tractor type must be one of: ${DealerTractorRate.TRACTOR_TYPES.join(', ')}.`, 400);
+      }
+      const tractorVariant = material === 'Aggregate' ? grainName : locationName;
+      if (!tractorVariant) {
+        return errorResponse(
+          res,
+          material === 'Aggregate' ? 'A grainName is required for Aggregate Tractor bookings.' : 'A locationName is required for Sand Tractor bookings.',
+          400
+        );
+      }
+
+      const tractorRates = await DealerTractorRate.find({
+        material,
+        variantName: { $regex: `^${String(tractorVariant).trim()}$`, $options: 'i' },
+        tractorType,
+        isActive: true
+      }).populate({
+        path: 'dealerId',
+        match: { role: 'DEALER', isActive: true, isDeleted: { $ne: true } }
+      });
+
+      // Tractor dispatch is local/same-day -- only show dealers whose own depot is within a
+      // practical service radius of the customer's shipping address. A dealer with no saved
+      // location can't be verified, so they're excluded rather than silently shown as eligible.
+      const MAX_TRACTOR_RADIUS_KM = 5.0;
+      const dealers = [];
+      for (const rate of tractorRates) {
+        const dealer = rate.dealerId;
+        if (!dealer) continue;
+        if (dealer.latitude === null || dealer.latitude === undefined || dealer.longitude === null || dealer.longitude === undefined) {
+          continue;
+        }
+        const dealerDistanceKm = PincodeService.calculateHaversineDistanceKm(shipLat, shipLng, dealer.latitude, dealer.longitude);
+        if (dealerDistanceKm > MAX_TRACTOR_RADIUS_KM) continue;
+
+        // The customer picks a dealer by code only, never by name/city (dealer identity stays
+        // hidden until after they accept) -- assign one lazily if this dealer never has.
+        if (!dealer.dealerCode) {
+          dealer.dealerCode = await generateDealerCode();
+          await dealer.save();
+        }
+
+        dealers.push({
+          dealerId: dealer._id,
+          dealerCode: dealer.dealerCode,
+          name: dealer.name,
+          companyName: dealer.companyName,
+          city: dealer.city,
+          material,
+          ratePerTractor: rate.ratePerTractor,
+          dealerDistanceKm: Math.round(dealerDistanceKm * 10) / 10
+        });
+      }
+
+      dealers.sort((a, b) => a.ratePerTractor - b.ratePerTractor);
+      return successResponse(res, 'Eligible dealers retrieved successfully.', { dealers });
+    }
+
     const configFilter = { material, isActive: true };
     if (locationName) {
       configFilter.locationName = { $regex: `^${String(locationName).trim()}$`, $options: 'i' };
@@ -230,46 +294,6 @@ const getEligibleDealers = async (req, res) => {
       }
       const eligibleDealerIds = new Set(await getDealerIdsWithAvailableDumper(wheel));
       validConfigs = validConfigs.filter((cfg) => eligibleDealerIds.has(cfg.dealerId._id.toString()));
-    }
-
-    // Tractor bookings pass the selected Patiya type: only dealers who have set their own
-    // active rate for it are eligible (that rate becomes the order's material price --
-    // see orderController.createOrder -- so a dealer without one can't be selected at all).
-    let tractorRateMap = null;
-    if (tractorType) {
-      if (!DealerTractorRate.TRACTOR_TYPES.includes(tractorType)) {
-        return errorResponse(res, `Tractor type must be one of: ${DealerTractorRate.TRACTOR_TYPES.join(', ')}.`, 400);
-      }
-      const tractorVariant = material === 'Aggregate' ? grainName : locationName;
-      if (!tractorVariant) {
-        return errorResponse(
-          res,
-          material === 'Aggregate' ? 'A grainName is required for Aggregate Tractor bookings.' : 'A locationName is required for Sand Tractor bookings.',
-          400
-        );
-      }
-      const tractorRates = await DealerTractorRate.find({
-        material,
-        variantName: { $regex: `^${String(tractorVariant).trim()}$`, $options: 'i' },
-        tractorType,
-        isActive: true
-      });
-      tractorRateMap = new Map(tractorRates.map((r) => [r.dealerId.toString(), r.ratePerTractor]));
-      validConfigs = validConfigs.filter((cfg) => tractorRateMap.has(cfg.dealerId._id.toString()));
-
-      // Tractor dispatch is local/same-day, unlike the distance-priced Dumper/Sand-Aggregate
-      // trips -- only show dealers whose own depot is within a practical service radius of the
-      // customer's shipping address. A dealer with no saved location can't be verified, so
-      // they're excluded rather than silently shown as "eligible".
-      const MAX_TRACTOR_RADIUS_KM = 5.0;
-      validConfigs = validConfigs.filter((cfg) => {
-        const dealer = cfg.dealerId;
-        if (dealer.latitude === null || dealer.latitude === undefined || dealer.longitude === null || dealer.longitude === undefined) {
-          return false;
-        }
-        const dealerDistanceKm = PincodeService.calculateHaversineDistanceKm(shipLat, shipLng, dealer.latitude, dealer.longitude);
-        return dealerDistanceKm <= MAX_TRACTOR_RADIUS_KM;
-      });
     }
 
     // Resolve the admin-configured sourcing-Location road distance once per distinct
@@ -342,21 +366,11 @@ const getEligibleDealers = async (req, res) => {
         ratePerKm: cfg.ratePerKm,
         distanceKm,
         distanceSource,
-        transportCost,
-        ...(tractorRateMap
-          ? {
-              ratePerTractor: tractorRateMap.get(dealer._id.toString()),
-              dealerDistanceKm: Math.round(PincodeService.calculateHaversineDistanceKm(shipLat, shipLng, dealer.latitude, dealer.longitude) * 10) / 10
-            }
-          : {})
+        transportCost
       });
     }
 
-    if (tractorRateMap) {
-      dealers.sort((a, b) => (a.ratePerTractor + a.transportCost) - (b.ratePerTractor + b.transportCost));
-    } else {
-      dealers.sort((a, b) => a.transportCost - b.transportCost);
-    }
+    dealers.sort((a, b) => a.transportCost - b.transportCost);
 
     return successResponse(res, 'Eligible dealers retrieved successfully.', { dealers });
   } catch (error) {
