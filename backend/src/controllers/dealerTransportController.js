@@ -18,10 +18,18 @@ const MATERIALS = ['Sand', 'Aggregate'];
 // @access  Private (Dealer)
 const getMaterialLocations = async (req, res) => {
   try {
-    const locations = await Location.find({
+    const filter = {
       isActive: true,
       category: { $in: MATERIALS }
-    }).sort({ displayOrder: 1, name: 1 });
+    };
+    // Optional: scope to only locations admin has enabled for this vehicleType (e.g. a Sand
+    // location disabled under "Tractor Dispatch" but still active for Dumper shouldn't leak
+    // into a Tractor-specific rate form).
+    if (req.query.vehicleType && ['DUMPER', 'TRACTOR'].includes(req.query.vehicleType)) {
+      filter.vehicleType = req.query.vehicleType;
+    }
+
+    const locations = await Location.find(filter).sort({ displayOrder: 1, name: 1 });
 
     const grouped = { Sand: [], Aggregate: [] };
     for (const loc of locations) {

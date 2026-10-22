@@ -36,6 +36,7 @@ export default function TransportConfig() {
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   // Tractor rates: per Material + Location/Grain + Patiya type
+  const [tractorSandLocations, setTractorSandLocations] = useState([]);
   const [aggregateGrains, setAggregateGrains] = useState([]);
   const [tractorRates, setTractorRates] = useState([]);
   const [tractorRateInputs, setTractorRateInputs] = useState({}); // { 'Sand::Patan::Single Patiya': '2800' }
@@ -46,13 +47,15 @@ export default function TransportConfig() {
 
   const loadData = async () => {
     try {
-      const [locRes, cfgRes, tractorRateRes, productsRes] = await Promise.all([
+      const [locRes, tractorLocRes, cfgRes, tractorRateRes, productsRes] = await Promise.all([
         dealerTransportService.getMaterialLocations(),
+        dealerTransportService.getMaterialLocations({ vehicleType: 'TRACTOR' }),
         dealerTransportService.getMyConfigs(),
         tractorRateService.getRates(),
         productService.getActiveProducts()
       ]);
       setMaterialLocations(locRes.data?.locations || { Sand: [], Aggregate: [] });
+      setTractorSandLocations(tractorLocRes.data?.locations?.Sand || []);
 
       const configs = cfgRes.data?.configs || [];
       setMyConfigs(configs);
@@ -167,7 +170,7 @@ export default function TransportConfig() {
   const handleSaveTractorRates = async () => {
     const payload = [];
     const rows = [
-      ...(materialLocations.Sand || []).map((loc) => ({ material: 'Sand', variantName: loc })),
+      ...tractorSandLocations.map((loc) => ({ material: 'Sand', variantName: loc })),
       ...aggregateGrains.map((grain) => ({ material: 'Aggregate', variantName: grain }))
     ];
 
@@ -411,13 +414,13 @@ export default function TransportConfig() {
         {/* Sand Location Grid */}
         <div className="space-y-3 pt-2 border-t border-slate-100">
           <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider">🟡 Sand Locations</h4>
-          {(materialLocations.Sand || []).length === 0 ? (
+          {tractorSandLocations.length === 0 ? (
             <div className="text-xs text-slate-500 p-4 bg-slate-50 rounded-xl border border-slate-200">
-              No active Sand sourcing locations are configured by Admin yet.
+              No active Sand sourcing locations are enabled for Tractor Dispatch by Admin yet.
             </div>
           ) : (
             <div className="space-y-2.5">
-              {(materialLocations.Sand || []).map((loc) => (
+              {tractorSandLocations.map((loc) => (
                 <TractorRateInputRow
                   key={loc}
                   material="Sand"
