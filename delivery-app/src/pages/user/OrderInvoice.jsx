@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { orderService } from '../../services';
 import { numberToWordsIndian } from '../../utils/numberToWords';
+import { savePdfCrossPlatform } from '../../utils/downloadPdf';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import QRCode from 'qrcode';
@@ -95,9 +96,15 @@ export default function OrderInvoice() {
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, Math.min(imgHeight, pdfHeight), undefined, 'FAST');
       
       const safeNo = (order.invoiceNumber || order.orderNumber || 'Invoice').replace(/[/\\:]/g, '_');
-      pdf.save('ANANTA_TRADERS_' + safeNo + '.pdf');
-      
-      toast.success('🎉 Invoice PDF downloaded directly!', { id: 'pdf-gen' });
+      const result = await savePdfCrossPlatform(pdf, 'ANANTA_TRADERS_' + safeNo + '.pdf');
+
+      if (result === 'shared') {
+        toast.success('🎉 Invoice PDF shared!', { id: 'pdf-gen' });
+      } else if (result === 'downloaded') {
+        toast.success('🎉 Invoice PDF downloaded directly!', { id: 'pdf-gen' });
+      } else {
+        toast.dismiss('pdf-gen');
+      }
     } catch (err) {
       console.error('PDF Generation Error:', err);
       toast.error('Direct PDF generation error. Opening print preview...', { id: 'pdf-gen' });

@@ -5,6 +5,7 @@ import { orderService } from '../../services';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
 import { formatINR } from '../../utils/formatters';
+import { savePdfCrossPlatform } from '../../utils/downloadPdf';
 import { FileBarChart, Truck, Download, Loader2, Package, IndianRupee } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -82,9 +83,15 @@ export default function Reports() {
       }
 
       const periodLabel = PERIODS.find((p) => p.id === period)?.label.replace(/\s+/g, '_') || period;
-      pdf.save(`ANANTA_Dumper_Sales_Report_${periodLabel}.pdf`);
+      const result = await savePdfCrossPlatform(pdf, `ANANTA_Dumper_Sales_Report_${periodLabel}.pdf`);
 
-      toast.success('Report PDF downloaded!', { id: 'report-pdf' });
+      if (result === 'shared') {
+        toast.success('Report PDF shared!', { id: 'report-pdf' });
+      } else if (result === 'downloaded') {
+        toast.success('Report PDF downloaded!', { id: 'report-pdf' });
+      } else {
+        toast.dismiss('report-pdf');
+      }
     } catch (err) {
       console.error('Report PDF generation error:', err);
       toast.error('Failed to generate PDF.', { id: 'report-pdf' });
