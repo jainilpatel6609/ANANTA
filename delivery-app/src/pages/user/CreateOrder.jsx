@@ -698,9 +698,13 @@ export default function CreateOrder() {
         ...(selectedVehicleType === 'DUMPER' && selectedCapacity?.wheelCount
           ? { wheelCount: selectedCapacity.wheelCount }
           : {}),
-        // Tractor bookings only list dealers who've set their own rate for this Patiya type
+        // Tractor bookings only list dealers who've set their own rate for this Material +
+        // Location/Grain + Patiya type.
         ...(selectedVehicleType === 'TRACTOR'
-          ? { tractorType: selectedOptionName === 'Double Patiya' ? 'Double Patiya' : 'Single Patiya' }
+          ? {
+              tractorType: selectedOptionName === 'Double Patiya' ? 'Double Patiya' : 'Single Patiya',
+              ...(isAggregate ? { grainName: selectedAggregateType } : {})
+            }
           : {})
       });
       const list = res.data?.dealers || [];

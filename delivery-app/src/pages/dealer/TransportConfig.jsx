@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { dealerTransportService, tractorRateService } from '../../services';
+import { dealerTransportService, tractorRateService, productService } from '../../services';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -35,19 +35,22 @@ export default function TransportConfig() {
   const [rates, setRates] = useState({}); // { 'Sand::Patan': '25' }
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  // Tractor Patiya rates
+  // Tractor rates: per Material + Location/Grain + Patiya type
+  const [aggregateGrains, setAggregateGrains] = useState([]);
   const [tractorRates, setTractorRates] = useState([]);
-  const [tractorRateInputs, setTractorRateInputs] = useState({}); // { 'Single Patiya': '2800' }
-  const [savingTractorType, setSavingTractorType] = useState(null);
+  const [tractorRateInputs, setTractorRateInputs] = useState({}); // { 'Sand::Patan::Single Patiya': '2800' }
+  const [savingTractorRates, setSavingTractorRates] = useState(false);
+  const [deleteTractorRateTarget, setDeleteTractorRateTarget] = useState(null);
 
   const visibleMaterials = materialMode === 'Both' ? ['Sand', 'Aggregate'] : [materialMode];
 
   const loadData = async () => {
     try {
-      const [locRes, cfgRes, tractorRateRes] = await Promise.all([
+      const [locRes, cfgRes, tractorRateRes, productsRes] = await Promise.all([
         dealerTransportService.getMaterialLocations(),
         dealerTransportService.getMyConfigs(),
-        tractorRateService.getRates()
+        tractorRateService.getRates(),
+        productService.getActiveProducts()
       ]);
       setMaterialLocations(locRes.data?.locations || { Sand: [], Aggregate: [] });
 
@@ -68,11 +71,16 @@ export default function TransportConfig() {
       if (mats.size === 2) setMaterialMode('Both');
       else if (mats.size === 1) setMaterialMode(Array.from(mats)[0]);
 
+      const aggregateProduct = (productsRes.data?.products || []).find((p) => p.category === 'Aggregate');
+      setAggregateGrains(
+        (aggregateProduct?.tractorAggregateTypes?.length ? aggregateProduct.tractorAggregateTypes : aggregateProduct?.aggregateTypes) || []
+      );
+
       const tRates = tractorRateRes.data?.rates || [];
       setTractorRates(tRates);
       const tInputs = {};
       tRates.forEach((r) => {
-        tInputs[r.tractorType] = String(r.ratePerTractor);
+        tInputs[`${r.material}::${r.variantName}::${r.tractorType}`] = String(r.ratePerTractor);
       });
       setTractorRateInputs(tInputs);
     } catch (err) {
@@ -151,32 +159,67 @@ export default function TransportConfig() {
     }
   };
 
-  const handleSaveTractorRate = async (tractorType) => {
-    const rateStr = tractorRateInputs[tractorType];
-    const rate = Number(rateStr);
-    if (!rateStr || Number.isNaN(rate) || rate <= 0) {
-      toast.error(`Please enter a valid rate for ${tractorType}.`);
+  const setTractorRateValue = (material, variantName, tractorType, value) => {
+    const key = `${material}::${variantName}::${tractorType}`;
+    setTractorRateInputs((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSaveTractorRates = async () => {
+    const payload = [];
+    const rows = [
+      ...(materialLocations.Sand || []).map((loc) => ({ material: 'Sand', variantName: loc })),
+      ...aggregateGrains.map((grain) => ({ material: 'Aggregate', variantName: grain }))
+    ];
+
+    for (const row of rows) {
+      for (const type of TRACTOR_TYPES) {
+        const key = `${row.material}::${row.variantName}::${type}`;
+        const rateStr = tractorRateInputs[key];
+        if (!rateStr) continue;
+        const rate = Number(rateStr);
+        if (Number.isNaN(rate) || rate <= 0) {
+          toast.error(`Please enter a valid rate for ${row.material} → ${row.variantName} (${type})`);
+          return;
+        }
+        payload.push({ material: row.material, variantName: row.variantName, tractorType: type, ratePerTractor: rate });
+      }
+    }
+
+    if (payload.length === 0) {
+      toast.error('Please enter at least one Tractor rate.');
       return;
     }
-    setSavingTractorType(tractorType);
+
+    setSavingTractorRates(true);
     try {
-      await tractorRateService.setRate(tractorType, rate);
-      toast.success(`${tractorType} rate saved!`);
+      await tractorRateService.bulkSave(payload);
+      toast.success('Tractor rates saved successfully!');
       await loadData();
     } catch (err) {
-      toast.error(err.message || 'Failed to save tractor rate');
+      toast.error(err.message || 'Failed to save tractor rates');
     } finally {
-      setSavingTractorType(null);
+      setSavingTractorRates(false);
     }
   };
 
-  const handleToggleTractorRate = async (tractorType) => {
+  const handleToggleTractorRate = async (rate) => {
     try {
-      await tractorRateService.toggleRate(tractorType);
-      toast.success(`${tractorType} rate status updated.`);
+      await tractorRateService.toggleRate(rate._id);
+      toast.success(`${rate.material} → ${rate.variantName} (${rate.tractorType}) is now ${rate.isActive ? 'disabled' : 'active'}.`);
       await loadData();
     } catch (err) {
       toast.error(err.message || 'Failed to update status');
+    }
+  };
+
+  const handleDeleteTractorRate = async () => {
+    if (!deleteTractorRateTarget) return;
+    try {
+      await tractorRateService.deleteRate(deleteTractorRateTarget._id);
+      toast.success('Tractor rate deleted.');
+      await loadData();
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete tractor rate');
     }
   };
 
@@ -186,6 +229,8 @@ export default function TransportConfig() {
 
   const sandConfigs = myConfigs.filter((c) => c.material === 'Sand');
   const aggregateConfigs = myConfigs.filter((c) => c.material === 'Aggregate');
+  const sandTractorRates = tractorRates.filter((r) => r.material === 'Sand');
+  const aggregateTractorRates = tractorRates.filter((r) => r.material === 'Aggregate');
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-16">
@@ -327,76 +372,95 @@ export default function TransportConfig() {
         </button>
       </div>
 
-      {/* Tractor Rates */}
-      <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-xs space-y-5">
-        <h3 className="text-xs font-bold text-amber-600 uppercase tracking-widest flex items-center gap-2 border-b border-slate-100 pb-2">
-          <Truck className="w-4 h-4" />
-          <span>Tractor Rates</span>
-        </h3>
-        <p className="text-xs text-slate-500 -mt-3">
-          Set your own selling rate per Patiya type. Customers can only choose you for a
-          Tractor order once you've set a rate here.
-        </p>
-
-        <div className="space-y-3">
-          {TRACTOR_TYPES.map((type) => {
-            const existing = tractorRates.find((r) => r.tractorType === type);
-            return (
-              <div
-                key={type}
-                className={`p-3.5 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center gap-3 ${
-                  existing ? 'border-amber-300 bg-amber-50/50' : 'border-slate-200 bg-slate-50'
-                }`}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold text-slate-900">{type}</div>
-                  {existing && (
-                    <div className={`text-[11px] font-mono ${existing.isActive ? 'text-emerald-600' : 'text-slate-400'}`}>
-                      {existing.isActive ? 'Active' : 'Disabled'}
-                    </div>
-                  )}
-                </div>
-
-                <div className="relative w-full sm:w-40 shrink-0">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                    <IndianRupee className="w-3.5 h-3.5" />
-                  </div>
-                  <input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    placeholder="Rate / Tractor"
-                    value={tractorRateInputs[type] || ''}
-                    onChange={(e) => setTractorRateInputs((prev) => ({ ...prev, [type]: e.target.value }))}
-                    className="w-full pl-8 pr-3 py-2 rounded-xl bg-white border border-slate-200 text-sm text-slate-900 font-mono focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 min-h-[40px]"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => handleSaveTractorRate(type)}
-                    disabled={savingTractorType === type}
-                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-all disabled:opacity-50 min-h-[40px] cursor-pointer"
-                  >
-                    {savingTractorType === type ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                    Save
-                  </button>
-                  {existing && (
-                    <button
-                      type="button"
-                      onClick={() => handleToggleTractorRate(type)}
-                      title={existing.isActive ? 'Disable' : 'Enable'}
-                      className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-amber-600 hover:border-amber-300 transition-all active:scale-90"
-                    >
-                      <Power className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+      {/* Tractor Rates: per Material + Location/Grain + Patiya type */}
+      <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
+        <div>
+          <h3 className="text-xs font-bold text-amber-600 uppercase tracking-widest flex items-center gap-2 border-b border-slate-100 pb-2">
+            <IndianRupee className="w-4 h-4" />
+            <span>Tractor Rates</span>
+          </h3>
+          <p className="text-xs text-slate-500 mt-2">
+            Set your own Single Patiya / Double Patiya selling rate for each Sand location or
+            Aggregate grain. Customers only see you for a Tractor order once you've set a rate
+            for exactly the material they picked.
+          </p>
         </div>
+
+        {/* Existing Tractor Rates Summary */}
+        {tractorRates.length > 0 && (
+          <div className="space-y-4">
+            {sandTractorRates.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider">🟡 Sand</div>
+                {sandTractorRates.map((r) => (
+                  <TractorRateRow key={r._id} rate={r} onToggle={handleToggleTractorRate} onDelete={() => setDeleteTractorRateTarget(r)} />
+                ))}
+              </div>
+            )}
+            {aggregateTractorRates.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider">🟤 Aggregate</div>
+                {aggregateTractorRates.map((r) => (
+                  <TractorRateRow key={r._id} rate={r} onToggle={handleToggleTractorRate} onDelete={() => setDeleteTractorRateTarget(r)} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Sand Location Grid */}
+        <div className="space-y-3 pt-2 border-t border-slate-100">
+          <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider">🟡 Sand Locations</h4>
+          {(materialLocations.Sand || []).length === 0 ? (
+            <div className="text-xs text-slate-500 p-4 bg-slate-50 rounded-xl border border-slate-200">
+              No active Sand sourcing locations are configured by Admin yet.
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {(materialLocations.Sand || []).map((loc) => (
+                <TractorRateInputRow
+                  key={loc}
+                  material="Sand"
+                  variantName={loc}
+                  inputs={tractorRateInputs}
+                  onChange={setTractorRateValue}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Aggregate Grain Grid */}
+        <div className="space-y-3 pt-2 border-t border-slate-100">
+          <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-wider">🟤 Aggregate Grains</h4>
+          {aggregateGrains.length === 0 ? (
+            <div className="text-xs text-slate-500 p-4 bg-slate-50 rounded-xl border border-slate-200">
+              No active Aggregate grains are configured by Admin yet.
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {aggregateGrains.map((grain) => (
+                <TractorRateInputRow
+                  key={grain}
+                  material="Aggregate"
+                  variantName={grain}
+                  inputs={tractorRateInputs}
+                  onChange={setTractorRateValue}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          disabled={savingTractorRates}
+          onClick={handleSaveTractorRates}
+          className="w-full inline-flex items-center justify-center gap-2 py-4 rounded-2xl bg-amber-500 hover:bg-amber-400 active:scale-98 text-slate-950 font-black text-sm transition-all shadow-xl shadow-amber-500/20 disabled:opacity-50 min-h-[48px] cursor-pointer"
+        >
+          {savingTractorRates ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+          Save Tractor Rates
+        </button>
       </div>
 
       {myConfigs.length === 0 && (
@@ -415,6 +479,20 @@ export default function TransportConfig() {
         message={
           deleteTarget
             ? `This will permanently remove your rate for ${deleteTarget.material} → ${deleteTarget.locationName}. Existing orders keep their own price snapshot. This cannot be undone.`
+            : ''
+        }
+        confirmText="Delete"
+        isDestructive
+      />
+
+      <ConfirmDialog
+        isOpen={!!deleteTractorRateTarget}
+        onClose={() => setDeleteTractorRateTarget(null)}
+        onConfirm={handleDeleteTractorRate}
+        title="Delete Tractor Rate?"
+        message={
+          deleteTractorRateTarget
+            ? `This will permanently remove your ${deleteTractorRateTarget.tractorType} rate for ${deleteTractorRateTarget.material} → ${deleteTractorRateTarget.variantName}. Existing orders keep their own price snapshot. This cannot be undone.`
             : ''
         }
         confirmText="Delete"
@@ -459,6 +537,80 @@ function ConfigRow({ config, onToggle, onDelete }) {
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
+      </div>
+    </div>
+  );
+}
+
+function TractorRateRow({ rate, onToggle, onDelete }) {
+  return (
+    <div className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+      <div className="min-w-0 flex items-center gap-2.5">
+        {rate.isActive ? (
+          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+        ) : (
+          <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+        )}
+        <div className="min-w-0">
+          <div className="text-sm font-bold text-slate-900 truncate">
+            {rate.variantName} <span className="text-slate-400 font-normal">&middot; {rate.tractorType}</span>
+          </div>
+          <div className={`text-[11px] font-mono ${rate.isActive ? 'text-emerald-600' : 'text-slate-400'}`}>
+            {rate.isActive ? 'Active' : 'Disabled'}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="text-sm font-black text-amber-600 font-mono">{formatINR(rate.ratePerTractor)}</span>
+        <button
+          type="button"
+          onClick={() => onToggle(rate)}
+          title={rate.isActive ? 'Disable' : 'Enable'}
+          className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-amber-600 hover:border-amber-300 transition-all active:scale-90"
+        >
+          <Power className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          title="Delete"
+          className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-rose-500 hover:border-rose-300 transition-all active:scale-90"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TractorRateInputRow({ material, variantName, inputs, onChange }) {
+  return (
+    <div className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 space-y-2.5">
+      <div className="text-sm font-bold text-slate-900">{variantName}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        {TRACTOR_TYPES.map((type) => {
+          const key = `${material}::${variantName}::${type}`;
+          return (
+            <div key={type} className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{type}</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <IndianRupee className="w-3.5 h-3.5" />
+                </div>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  placeholder="Rate / Tractor"
+                  value={inputs[key] || ''}
+                  onChange={(e) => onChange(material, variantName, type, e.target.value)}
+                  className="w-full pl-8 pr-3 py-2 rounded-xl bg-white border border-slate-200 text-sm text-slate-900 font-mono focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 min-h-[40px]"
+                />
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

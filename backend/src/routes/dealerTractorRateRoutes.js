@@ -6,7 +6,8 @@ const { authorizeRoles } = require('../middleware/rbac');
 
 router.use(authenticateToken, authorizeRoles('DEALER', 'ADMIN'));
 router.get('/', dealerTractorRateController.getMyRates);
-router.put('/:tractorType', dealerTractorRateController.setRate);
-router.patch('/:tractorType/toggle', dealerTractorRateController.toggleRate);
+router.post('/', dealerTractorRateController.bulkSaveRates);
+router.patch('/:id/toggle', dealerTractorRateController.toggleRate);
+router.delete('/:id', dealerTractorRateController.deleteRate);
 
 module.exports = router;

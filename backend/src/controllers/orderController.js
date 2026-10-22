@@ -448,19 +448,22 @@ const createOrder = async (req, res) => {
       unitPrice = deliveryCharge;
     }
 
-    // TRACTOR material price is the selling dealer's own configured rate for this Patiya
-    // type -- never the old admin-fixed flat price. A dealer without one isn't a valid
-    // selection (mirrors the Dumper requirement above).
+    // TRACTOR material price is the selling dealer's own configured rate for this exact
+    // Material + Location/Grain + Patiya type -- never the old admin-fixed flat price. A
+    // dealer without one isn't a valid selection (mirrors the Dumper requirement above).
     if (vehicleType === 'TRACTOR') {
+      const tractorVariant = transportMaterial === 'Aggregate' ? aggregateType : finalLocationName;
       const dealerTractorRate = await DealerTractorRate.findOne({
         dealerId: nearestDealer?._id,
+        material: transportMaterial,
+        variantName: { $regex: `^${String(tractorVariant || '').trim()}$`, $options: 'i' },
         tractorType,
         isActive: true
       });
       if (!dealerTractorRate) {
         return errorResponse(
           res,
-          `${nearestDealer?.companyName || nearestDealer?.name || 'The selected dealer'} has not set a rate for ${tractorType}. Please choose a different dealer.`,
+          `${nearestDealer?.companyName || nearestDealer?.name || 'The selected dealer'} has not set a rate for ${tractorType} → ${tractorVariant}. Please choose a different dealer.`,
           400
         );
       }

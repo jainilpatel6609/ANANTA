@@ -187,7 +187,7 @@ const deleteMyConfig = async (req, res) => {
 // @access  Public / Customer
 const getEligibleDealers = async (req, res) => {
   try {
-    const { material, locationName, lat, lng, wheelCount, tractorType } = req.query;
+    const { material, locationName, lat, lng, wheelCount, tractorType, grainName } = req.query;
 
     if (!MATERIALS.includes(material)) {
       return errorResponse(res, 'A valid material (Sand or Aggregate) is required.', 400);
@@ -232,7 +232,20 @@ const getEligibleDealers = async (req, res) => {
       if (!DealerTractorRate.TRACTOR_TYPES.includes(tractorType)) {
         return errorResponse(res, `Tractor type must be one of: ${DealerTractorRate.TRACTOR_TYPES.join(', ')}.`, 400);
       }
-      const tractorRates = await DealerTractorRate.find({ tractorType, isActive: true });
+      const tractorVariant = material === 'Aggregate' ? grainName : locationName;
+      if (!tractorVariant) {
+        return errorResponse(
+          res,
+          material === 'Aggregate' ? 'A grainName is required for Aggregate Tractor bookings.' : 'A locationName is required for Sand Tractor bookings.',
+          400
+        );
+      }
+      const tractorRates = await DealerTractorRate.find({
+        material,
+        variantName: { $regex: `^${String(tractorVariant).trim()}$`, $options: 'i' },
+        tractorType,
+        isActive: true
+      });
       tractorRateMap = new Map(tractorRates.map((r) => [r.dealerId.toString(), r.ratePerTractor]));
       validConfigs = validConfigs.filter((cfg) => tractorRateMap.has(cfg.dealerId._id.toString()));
 

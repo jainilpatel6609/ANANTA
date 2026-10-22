@@ -196,10 +196,9 @@ export const dealerTransportService = {
 
 export const tractorRateService = {
   getRates: () => api.get('/dealer-tractor-rates'),
-  setRate: (tractorType, ratePerTractor) =>
-    api.put(`/dealer-tractor-rates/${encodeURIComponent(tractorType)}`, { ratePerTractor }),
-  toggleRate: (tractorType) =>
-    api.patch(`/dealer-tractor-rates/${encodeURIComponent(tractorType)}/toggle`)
+  bulkSave: (rates) => api.post('/dealer-tractor-rates', { rates }),
+  toggleRate: (id) => api.patch(`/dealer-tractor-rates/${id}/toggle`),
+  deleteRate: (id) => api.delete(`/dealer-tractor-rates/${id}`)
 };
 
 export const helpService = {
