@@ -235,6 +235,20 @@ const getEligibleDealers = async (req, res) => {
       const tractorRates = await DealerTractorRate.find({ tractorType, isActive: true });
       tractorRateMap = new Map(tractorRates.map((r) => [r.dealerId.toString(), r.ratePerTractor]));
       validConfigs = validConfigs.filter((cfg) => tractorRateMap.has(cfg.dealerId._id.toString()));
+
+      // Tractor dispatch is local/same-day, unlike the distance-priced Dumper/Sand-Aggregate
+      // trips -- only show dealers whose own depot is within a practical service radius of the
+      // customer's shipping address. A dealer with no saved location can't be verified, so
+      // they're excluded rather than silently shown as "eligible".
+      const MAX_TRACTOR_RADIUS_KM = 5.0;
+      validConfigs = validConfigs.filter((cfg) => {
+        const dealer = cfg.dealerId;
+        if (dealer.latitude === null || dealer.latitude === undefined || dealer.longitude === null || dealer.longitude === undefined) {
+          return false;
+        }
+        const dealerDistanceKm = PincodeService.calculateHaversineDistanceKm(shipLat, shipLng, dealer.latitude, dealer.longitude);
+        return dealerDistanceKm <= MAX_TRACTOR_RADIUS_KM;
+      });
     }
 
     // Resolve the admin-configured sourcing-Location road distance once per distinct
@@ -308,7 +322,12 @@ const getEligibleDealers = async (req, res) => {
         distanceKm,
         distanceSource,
         transportCost,
-        ...(tractorRateMap ? { ratePerTractor: tractorRateMap.get(dealer._id.toString()) } : {})
+        ...(tractorRateMap
+          ? {
+              ratePerTractor: tractorRateMap.get(dealer._id.toString()),
+              dealerDistanceKm: Math.round(PincodeService.calculateHaversineDistanceKm(shipLat, shipLng, dealer.latitude, dealer.longitude) * 10) / 10
+            }
+          : {})
       });
     }
 

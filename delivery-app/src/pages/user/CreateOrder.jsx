@@ -1691,7 +1691,7 @@ export default function CreateOrder() {
                   : "Rate/Tractor is the dealer's own selling rate for this Patiya type; Transport is their rate per KM for " +
                     selectedMaterial?.category +
                     (selectedLocation?.name && !isAggregate ? ` (${selectedLocation.name})` : '') +
-                    ' × road distance to your shipping address.'}
+                    ' × road distance to your shipping address. Only dealers within 5 km of your delivery location are shown.'}
               </p>
             </div>
 
@@ -1706,7 +1706,7 @@ export default function CreateOrder() {
                 {selectedLocation?.name ? ` from ${selectedLocation.name}` : ''}.{' '}
                 {selectedVehicleType === 'DUMPER'
                   ? `A Dumper booking needs a dealer with a configured rate for this location and an available ${selectedCapacity?.wheelCount || ''} Wheel dumper — please choose a different wheel type or sourcing location, or contact support.`
-                  : `A Tractor booking needs a dealer with a configured transport rate for this location and their own rate for ${selectedOptionName === 'Double Patiya' ? 'Double Patiya' : 'Single Patiya'} — please choose a different sourcing location, or contact support.`}
+                  : `A Tractor booking needs a dealer within 5 km of your delivery location who has a configured transport rate for this location and their own rate for ${selectedOptionName === 'Double Patiya' ? 'Double Patiya' : 'Single Patiya'} — please contact support if none are available nearby.`}
               </div>
             ) : (
               <div className="space-y-2 sm:space-y-3">
@@ -1736,7 +1736,13 @@ export default function CreateOrder() {
                             {dealer.dealerCode || 'Dealer'}
                           </div>
                           <div className="text-[10px] sm:text-[11px] text-slate-500 font-mono">
-                            {dealer.distanceKm != null ? `${dealer.distanceKm} km away` : 'Distance unavailable'}
+                            {selectedVehicleType === 'TRACTOR'
+                              ? dealer.dealerDistanceKm != null
+                                ? `${dealer.dealerDistanceKm} km from your location`
+                                : 'Distance unavailable'
+                              : dealer.distanceKm != null
+                              ? `${dealer.distanceKm} km away`
+                              : 'Distance unavailable'}
                           </div>
                         </div>
                       </div>
