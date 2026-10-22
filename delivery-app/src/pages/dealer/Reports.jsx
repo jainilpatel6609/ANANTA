@@ -83,10 +83,10 @@ export default function Reports() {
       }
 
       const periodLabel = PERIODS.find((p) => p.id === period)?.label.replace(/\s+/g, '_') || period;
-      const result = savePdfCrossPlatform(pdf, `ANANTA_Dumper_Sales_Report_${periodLabel}.pdf`);
+      const result = await savePdfCrossPlatform(pdf, `ANANTA_Dumper_Sales_Report_${periodLabel}.pdf`);
 
       toast.success(
-        result === 'opened' ? 'Report PDF opened — tap the download icon to save it.' : 'Report PDF downloaded!',
+        result === 'opened' ? 'Report PDF downloading…' : 'Report PDF downloaded!',
         { id: 'report-pdf' }
       );
     } catch (err) {

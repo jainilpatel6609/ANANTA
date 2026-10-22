@@ -201,6 +201,15 @@ export const tractorRateService = {
   deleteRate: (id) => api.delete(`/dealer-tractor-rates/${id}`)
 };
 
+export const pdfExportService = {
+  uploadForDownload: (blob, fileName) => {
+    const formData = new FormData();
+    formData.append('pdf', blob, fileName);
+    formData.append('fileName', fileName);
+    return api.post('/pdf-export', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+  }
+};
+
 export const helpService = {
   create: (data) => api.post('/help', data)
 };

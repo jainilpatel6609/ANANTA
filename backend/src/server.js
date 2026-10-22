@@ -117,6 +117,7 @@ app.use('/api/tractors', require('./routes/tractorRoutes'));
 app.use('/api/dealer-tractor-rates', require('./routes/dealerTractorRateRoutes'));
 app.use('/api/dealer-transport', require('./routes/dealerTransportRoutes'));
 app.use('/api/help', require('./routes/helpRoutes'));
+app.use('/api/pdf-export', require('./routes/pdfExportRoutes'));
 
 // Global Error Handler
 app.use(errorHandler);
