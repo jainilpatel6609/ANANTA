@@ -95,6 +95,17 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 5000
     });
     console.log(`[ANANTA TRADERS] MongoDB Connected: ${conn.connection.host}/${conn.connection.name}`);
+
+    // `autoIndex: true` only creates indexes the current schema defines -- it never drops a
+    // stale one left over from an earlier schema version. DealerTractorRate's unique index
+    // changed shape (dealerId+tractorType -> dealerId+material+variantName+tractorType), so the
+    // old index must be explicitly synced away or it keeps rejecting valid new rows.
+    try {
+      await require('../models/DealerTractorRate').syncIndexes();
+    } catch (indexErr) {
+      console.warn(`[ANANTA TRADERS] DealerTractorRate index sync note: ${indexErr.message}`);
+    }
+
     return conn;
   } catch (error) {
     console.error(`[ANANTA TRADERS] Database Connection Error: ${error.message}`);
