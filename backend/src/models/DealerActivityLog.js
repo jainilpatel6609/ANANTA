@@ -10,7 +10,7 @@ const dealerActivityLogSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ['DRIVER', 'DUMPER', 'TRANSPORT_RATE', 'PROFILE'],
+      enum: ['DRIVER', 'DUMPER', 'TRACTOR', 'TRANSPORT_RATE', 'PROFILE'],
       required: true,
       index: true
     },

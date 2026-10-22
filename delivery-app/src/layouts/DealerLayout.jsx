@@ -33,7 +33,7 @@ export default function DealerLayout() {
     { name: 'Accepted', path: '/dealer/accepted', icon: CheckCircle },
     { name: 'Active (OTP)', path: '/dealer/active', icon: Truck },
     { name: 'Driver Fleet', path: '/dealer/drivers', icon: Users },
-    { name: 'My Dumpers', path: '/dealer/dumpers', icon: Truck },
+    { name: 'My Vehicle', path: '/dealer/vehicles', icon: Truck },
     { name: 'Archive', path: '/dealer/completed', icon: History },
     { name: 'Reports', path: '/dealer/reports', icon: FileBarChart },
     { name: 'Transport Rates', path: '/dealer/transport-config', icon: RouteIcon },

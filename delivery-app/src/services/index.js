@@ -110,6 +110,14 @@ export const dumperService = {
   deleteDumper: (id) => api.delete(`/dumpers/${id}`)
 };
 
+export const tractorService = {
+  getTractors: (params) => api.get('/tractors', { params }),
+  createTractor: (data) => api.post('/tractors', data),
+  updateTractor: (id, data) => api.put(`/tractors/${id}`, data),
+  toggleTractor: (id) => api.patch(`/tractors/${id}/toggle`),
+  deleteTractor: (id) => api.delete(`/tractors/${id}`)
+};
+
 export const paymentService = {
   verify: (data) => api.post('/payments/verify', data),
   verifyPayment: (data) => api.post('/payments/verify', data),

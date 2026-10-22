@@ -113,6 +113,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/pincode', pincodeRoutes);
 app.use('/api/drivers', require('./routes/driverRoutes'));
 app.use('/api/dumpers', require('./routes/dumperRoutes'));
+app.use('/api/tractors', require('./routes/tractorRoutes'));
 app.use('/api/dealer-transport', require('./routes/dealerTransportRoutes'));
 app.use('/api/help', require('./routes/helpRoutes'));
 
