@@ -1204,7 +1204,7 @@ export default function CreateOrder() {
           )
         )}
 
-        {/* ================= STEP 4: TROLLEY (FOR TRACTOR) OR GRAIN SIZE / QUALITY (FOR DUMPER) ================= */}
+        {/* ================= STEP 4 & 5 COMBINED: TROLLEY/GRAIN/SPEC + CAPACITY & UNITS ================= */}
         {showStep(4) && (
           <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xs space-y-3 sm:space-y-6">
             <div>
@@ -1332,13 +1332,8 @@ export default function CreateOrder() {
                 })}
               </div>
             )}
-          </div>
-        )}
 
-        {/* ================= STEP 5: QUANTITY & UNITS ================= */}
-        {showStep(5) && (
-          <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xs space-y-3 sm:space-y-6">
-            <div>
+            <div className="border-t border-slate-100 pt-3 sm:pt-6">
               <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display mt-1">
                 {selectedVehicleType === 'DUMPER' ? 'Select Vehicle Capacity & Units' : 'Tractor Dispatch Capacity & Units'}
               </h2>
