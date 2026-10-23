@@ -669,7 +669,11 @@ const createOrder = async (req, res) => {
 // @access  Private (User)
 const getMyOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ userId: req.user._id })
+    // An order record is created before the customer completes the upfront payment (so the
+    // payment gateway has an order to reference), but it isn't a real, committed order yet --
+    // no dealer has been notified. Excluded here so an abandoned/never-paid checkout never shows
+    // up in the customer's order history or inflates "Pending" counts derived from this list.
+    const orders = await Order.find({ userId: req.user._id, orderStatus: { $ne: 'PENDING_PAYMENT' } })
       .populate('dealerId', 'name companyName mobile whatsappNumber')
       .populate('productId', 'name category')
       .sort({ createdAt: -1 });

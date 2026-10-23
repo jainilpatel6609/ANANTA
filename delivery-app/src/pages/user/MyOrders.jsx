@@ -5,7 +5,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
 import { Search, ChevronRight } from 'lucide-react';
 
-const VALID_STATUS_FILTERS = ['ALL', 'ACTIVE', 'DELIVERED', 'PENDING'];
+const VALID_STATUS_FILTERS = ['ALL', 'ACTIVE', 'DELIVERED'];
 
 export default function MyOrders() {
   const [searchParams] = useSearchParams();
@@ -50,8 +50,7 @@ export default function MyOrders() {
     const matchStatus =
       statusFilter === 'ALL' ||
       (statusFilter === 'ACTIVE' && ['PLACED', 'ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)) ||
-      (statusFilter === 'DELIVERED' && o.orderStatus === 'DELIVERED') ||
-      (statusFilter === 'PENDING' && o.orderStatus === 'PENDING_PAYMENT');
+      (statusFilter === 'DELIVERED' && o.orderStatus === 'DELIVERED');
 
     const matchToday = !onlyToday || (o.createdAt && new Date(o.createdAt) >= startOfToday);
 
@@ -96,10 +95,6 @@ export default function MyOrders() {
             {
               id: 'DELIVERED',
               label: `Delivered (${orders.filter((o) => o.orderStatus === 'DELIVERED').length})`
-            },
-            {
-              id: 'PENDING',
-              label: `Pending (${orders.filter((o) => o.orderStatus === 'PENDING_PAYMENT').length})`
             }
           ].map((tab) => (
             <button
