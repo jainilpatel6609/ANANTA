@@ -50,15 +50,18 @@ const generateMerchantTxnNo = () => {
   return raw.toUpperCase().slice(0, 20);
 };
 
-const postForm = async (path, fields) => {
-  const body = new URLSearchParams();
+// ICICI's V1 APIs (Initiate Sale, Transaction Status) expect a JSON request body -- confirmed
+// against the live UAT endpoint: form-urlencoded gets a generic 500 "Internal Server Error"
+// (their server fails to deserialize it), JSON gets a proper R1000/redirectURI response.
+const postJson = async (path, fields) => {
+  const body = {};
   Object.entries(fields).forEach(([k, v]) => {
-    if (v !== null && v !== undefined && v !== '') body.append(k, String(v));
+    if (v !== null && v !== undefined && v !== '') body[k] = v;
   });
   const res = await fetch(`${ICICI_BASE_URL}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString()
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(body)
   });
   const text = await res.text();
   try {
@@ -99,7 +102,7 @@ const initiateSale = async ({
   };
   request.secureHash = computeHashV1(request);
 
-  const response = await postForm('/tsp/pg/api/v2/initiateSale', request);
+  const response = await postJson('/tsp/pg/api/v2/initiateSale', request);
   return { request, response };
 };
 
@@ -114,7 +117,7 @@ const checkStatus = async ({ merchantTxnNo, originalTxnNo }) => {
   };
   request.secureHash = computeHashV1(request);
 
-  const response = await postForm('/tsp/pg/api/command', request);
+  const response = await postJson('/tsp/pg/api/command', request);
   return { request, response };
 };
 
