@@ -113,12 +113,11 @@ export default function CreateOrder() {
 
   const [shippingAddress, setShippingAddress] = useState(user?.officeAddress || '');
   const [coordinates, setCoordinates] = useState({ lat: user?.latitude || 23.0225, lng: user?.longitude || 72.5714 });
-  // True only once `coordinates` has been set by a genuine resolution (PIN lookup, address
-  // geocode, GPS, or a map pin/drag) for the CURRENTLY entered shipping address -- never by the
-  // initial default above. Distance-based Dumper pricing depends entirely on this being correct,
-  // so "Continue" from the delivery-details step re-verifies it rather than trusting stale state.
+  // True only once the customer has EXPLICITLY confirmed a location -- "Find on Map", GPS, or a
+  // map pin/drag -- never auto-derived from typed address/PIN text. Distance-based Dumper
+  // pricing depends entirely on this being correct, so "Continue" from the delivery-details step
+  // blocks outright (rather than silently guessing) until this is true.
   const [coordinatesConfirmed, setCoordinatesConfirmed] = useState(false);
-  const [isConfirmingLocation, setIsConfirmingLocation] = useState(false);
   const [gpsCoordinates, setGpsCoordinates] = useState(null);
   const [placeId, setPlaceId] = useState('');
   const [placeName, setPlaceName] = useState('');
@@ -433,26 +432,14 @@ export default function CreateOrder() {
     }
   };
 
-  // Debounced auto-search when user modifies address fields. The delivery-address fields
-  // (Step 6) render together with Steps 1-5 inside the first wizard group now, so this gates
-  // on the group rather than the old single-step number.
+  // Typing the address does NOT auto-set the map location -- manual address entry and map
+  // selection are deliberately kept independent. The customer must explicitly use "Find on Map"
+  // (handleFindOnMap(true)) or GPS/drag the pin themselves; this only invalidates a previously
+  // confirmed location once the customer actually changes the address text, so a stale pin can
+  // never be silently reused for a different address.
   useEffect(() => {
     if (currentGroupIndex !== 0) return;
-
-    // A genuine user edit to the address invalidates whatever coordinates were confirmed
-    // before -- re-confirmation is required (see the Continue-button guard) before this order
-    // can proceed on the new address.
     setCoordinatesConfirmed(false);
-
-    const { addressLine1, area, city, pincode, landmark } = shippingDetails;
-    if (!addressLine1 && !area && !city && !pincode && !landmark) return;
-    if (pincode && pincode.length > 0 && pincode.length < 6) return; // Wait until 6 digits complete
-
-    const timer = setTimeout(() => {
-      handleFindOnMap(false);
-    }, 1200);
-
-    return () => clearTimeout(timer);
   }, [
     currentGroupIndex,
     shippingDetails.addressLine1,
@@ -1947,7 +1934,6 @@ export default function CreateOrder() {
           {currentGroupIndex < stepGroups.length - 1 ? (
             <button
               type="button"
-              disabled={isConfirmingLocation}
               onClick={async () => {
                 if (currentGroupIndex === 0) {
                   if (!shippingDetails.fullName || !shippingDetails.mobile || !shippingDetails.addressLine1) {
@@ -1960,37 +1946,15 @@ export default function CreateOrder() {
                   }
 
                   // Distance-based pricing depends entirely on `coordinates` matching the
-                  // delivery site. If the customer hasn't confirmed a location via the map/GPS
-                  // pin, fall back to a PIN-code lookup when one was entered -- otherwise ask
-                  // them to pin the location directly rather than risk a stale/default coordinate
-                  // (e.g. the customer's own account location) going into the distance calc.
-                  let coordsToUse = coordinates;
+                  // delivery site. Typed address/PIN code text is never used to silently derive
+                  // this -- the customer must explicitly pin the location via "Find on Map" or
+                  // GPS, every time, regardless of what they typed.
                   if (!coordinatesConfirmed) {
-                    if (!shippingDetails.pincode) {
-                      toast.error('Please pin your delivery location on the map or via GPS to continue.');
-                      return;
-                    }
-                    setIsConfirmingLocation(true);
-                    try {
-                      const res = await pincodeService.lookup(shippingDetails.pincode);
-                      const geo = res.data;
-                      if (geo?.latitude && geo?.longitude) {
-                        coordsToUse = { lat: geo.latitude, lng: geo.longitude };
-                        setCoordinates(coordsToUse);
-                        setCoordinatesConfirmed(true);
-                      } else {
-                        toast.error('Could not verify your delivery location. Please use "Find on Map" or GPS to confirm it before continuing.');
-                        return;
-                      }
-                    } catch (e) {
-                      toast.error('Could not verify your delivery location. Please use "Find on Map" or GPS to confirm it before continuing.');
-                      return;
-                    } finally {
-                      setIsConfirmingLocation(false);
-                    }
+                    toast.error('Please select your exact delivery location on the map (or use GPS) to continue.');
+                    return;
                   }
 
-                  fetchDealersForOrder(coordsToUse);
+                  fetchDealersForOrder(coordinates);
                 }
                 if (currentGroupIndex === 1) {
                   if (dealers.length > 0 && !selectedDealerId) {
@@ -2004,19 +1968,10 @@ export default function CreateOrder() {
                 }
                 goToGroup(currentGroupIndex + 1);
               }}
-              className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 active:scale-95 text-white font-bold text-xs transition-all shadow-md shadow-amber-500/25 min-h-[48px] cursor-pointer ml-auto disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 active:scale-95 text-white font-bold text-xs transition-all shadow-md shadow-amber-500/25 min-h-[48px] cursor-pointer ml-auto"
             >
-              {isConfirmingLocation ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Confirming delivery location...</span>
-                </>
-              ) : (
-                <>
-                  <span>Continue</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
+              <span>Continue</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
           ) : (
             <button
