@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Location = require('../models/Location');
@@ -8,7 +9,7 @@ const Driver = require('../models/Driver');
 const DealerTransportConfig = require('../models/DealerTransportConfig');
 const DealerTractorRate = require('../models/DealerTractorRate');
 const IciciTransaction = require('../models/IciciTransaction');
-const { generateOrderNumber } = require('../utils/orderNumber');
+const PendingOrderIntent = require('../models/PendingOrderIntent');
 const { generateDealerCode } = require('../utils/dealerCode');
 const { findConflictingActiveOrder } = require('../utils/driverAvailability');
 const { claimDumperForOrder, releaseDumperForOrder } = require('../utils/dumperAvailability');
@@ -496,79 +497,21 @@ const createOrder = async (req, res) => {
 
     const totalAmount = subtotal + deliveryCharge + tax;
 
-    // 8. Generate human-readable unique order number & initiate payment with the active gateway
-    const orderNumber = await generateOrderNumber();
-
-    let rzpOrder = null;
-    let iciciMerchantTxnNo = '';
-    let iciciRedirectUrl = '';
-    let iciciInitiateRequest = null;
-    let iciciInitiateResponse = null;
-    if (PAYMENT_GATEWAY === 'ICICI') {
-      iciciMerchantTxnNo = IciciPaymentService.generateMerchantTxnNo();
-      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-      const returnURL = `${protocol}://${req.get('host')}/api/payments/icici/callback`;
-      const iciciResult = await IciciPaymentService.initiateSale({
-        merchantTxnNo: iciciMerchantTxnNo,
-        amount: totalAmount,
-        customerEmailID: req.user?.email,
-        customerMobileNo: structuredDetails.mobile,
-        customerName: structuredDetails.fullName,
-        returnURL,
-        addlParam1: orderNumber
-      });
-      iciciInitiateRequest = iciciResult.request;
-      iciciInitiateResponse = iciciResult.response;
-      if (iciciInitiateResponse.responseCode !== 'R1000' || !iciciInitiateResponse.fullRedirectURI) {
-        console.error('[ICICI Initiate Sale Rejected]', JSON.stringify(iciciInitiateResponse));
-        const reason =
-          iciciInitiateResponse.respDescription ||
-          iciciInitiateResponse.responseMessage ||
-          iciciInitiateResponse.message ||
-          iciciInitiateResponse.errorDescription ||
-          'Unable to initiate payment with ICICI. Please try again.';
-        return errorResponse(res, reason, 502);
-      }
-      iciciRedirectUrl = iciciInitiateResponse.fullRedirectURI;
-    } else {
-      rzpOrder = await RazorpayService.createOrder(totalAmount, orderNumber);
-    }
-
-    // 9. Save Order to Database with immutable snapshots & assigned nearest dealer
-    const assignedAt = new Date();
-    const deadline = new Date(assignedAt.getTime() + 15 * 60 * 1000);
-
-    const initialHistory = nearestDealer
-      ? [
-          {
-            dealerId: nearestDealer._id,
-            dealerName: nearestDealer.name,
-            dealerCompanyName: nearestDealer.companyName,
-            dealerPincode: nearestDealer.pincode,
-            dealerMobile: nearestDealer.mobile,
-            distanceKm,
-            assignedAt,
-            deadline,
-            response: 'PENDING'
-          }
-        ]
-      : [];
-
-    const order = await Order.create({
-      orderNumber,
+    // 8. Build the full order payload now (everything Order.create() will eventually need), but
+    // do NOT persist it yet -- no Order document exists until the upfront payment actually
+    // succeeds. This is staged in PendingOrderIntent, keyed by the payment gateway's own
+    // transaction reference, and is only turned into a real Order by
+    // OrderFinalizationService.materializeOrder once payment is confirmed (see
+    // paymentController.js's finalizeUpfrontPaymentSuccess). An abandoned/never-paid checkout
+    // therefore never shows up anywhere -- not the customer's order list, not any admin/dealer
+    // view, not even as a document in the orders collection.
+    const orderPayload = {
       userId: req.user._id,
       dealerId: null,
       assignedDealerId: nearestDealer ? nearestDealer._id : null,
       dealerDistanceKm: distanceKm,
       dealerRatePerKm,
       dealerDistanceSource: distanceSource,
-      orderAssignedAt: assignedAt,
-      dealerResponseDeadline: deadline,
-      dealerResponseStatus: 'PENDING',
-      dealerAlarmActive: !!nearestDealer,
-      adminAlarmActive: false,
-      adminEscalationSent: false,
-      assignmentHistory: initialHistory,
       productId: product._id,
       productNameSnapshot: product.name,
       category: product.category,
@@ -609,41 +552,77 @@ const createOrder = async (req, res) => {
       deliveryLatitude: finalLat,
       deliveryLongitude: finalLng,
       deliveryDate,
-      deliveryInstructions: deliveryInstructions || '',
-      paymentStatus: 'PENDING',
-      razorpayOrderId: rzpOrder ? rzpOrder.id : '',
-      iciciMerchantTxnNo,
-      invoiceNumber: `AN/SL/26-27/${orderNumber.replace(/^[^\d]*/, '')}`,
-      invoiceDate: new Date(),
-      orderStatus: 'PENDING_PAYMENT'
+      deliveryInstructions: deliveryInstructions || ''
+    };
+
+    // Demo/testing bypass is staged alongside whichever live gateway is active, so the payment
+    // modal's "Confirm & Place Order (Demo Mode)" button always works regardless of
+    // PAYMENT_GATEWAY. It never creates an Order on its own either -- devConfirmPayment
+    // materializes it the same way a real gateway confirmation would.
+    const demoRef = `DEMO-${Date.now().toString(36)}-${crypto.randomBytes(4).toString('hex')}`.toUpperCase();
+    await PendingOrderIntent.create({
+      gateway: 'DEMO',
+      gatewayRef: demoRef,
+      userId: req.user._id,
+      amount: totalAmount,
+      orderPayload
     });
 
+    let rzpOrder = null;
+    let iciciRedirectUrl = '';
     if (PAYMENT_GATEWAY === 'ICICI') {
-      await IciciTransaction.create({
-        orderId: order._id,
-        paymentPurpose: 'UPFRONT',
-        merchantTxnNo: iciciMerchantTxnNo,
+      const merchantTxnNo = IciciPaymentService.generateMerchantTxnNo();
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const returnURL = `${protocol}://${req.get('host')}/api/payments/icici/callback`;
+      const { request: iciciInitiateRequest, response: iciciInitiateResponse } = await IciciPaymentService.initiateSale({
+        merchantTxnNo,
         amount: totalAmount,
+        customerEmailID: req.user?.email,
+        customerMobileNo: structuredDetails.mobile,
+        customerName: structuredDetails.fullName,
+        returnURL,
+        addlParam1: merchantTxnNo
+      });
+      if (iciciInitiateResponse.responseCode !== 'R1000' || !iciciInitiateResponse.fullRedirectURI) {
+        console.error('[ICICI Initiate Sale Rejected]', JSON.stringify(iciciInitiateResponse));
+        const reason =
+          iciciInitiateResponse.respDescription ||
+          iciciInitiateResponse.responseMessage ||
+          iciciInitiateResponse.message ||
+          iciciInitiateResponse.errorDescription ||
+          'Unable to initiate payment with ICICI. Please try again.';
+        return errorResponse(res, reason, 502);
+      }
+      iciciRedirectUrl = iciciInitiateResponse.fullRedirectURI;
+
+      await PendingOrderIntent.create({
+        gateway: 'ICICI',
+        gatewayRef: merchantTxnNo,
+        userId: req.user._id,
+        amount: totalAmount,
+        orderPayload,
         rawInitiateRequest: iciciInitiateRequest,
         rawInitiateResponse: iciciInitiateResponse
       });
-    }
+    } else {
+      const receiptRef = `CHK-${Date.now().toString(36)}-${crypto.randomBytes(3).toString('hex')}`.toUpperCase();
+      rzpOrder = await RazorpayService.createOrder(totalAmount, receiptRef);
 
-    // Notify user order created
-    await NotificationService.send({
-      recipientId: req.user._id,
-      recipientRole: 'USER',
-      type: 'ORDER_PLACED',
-      title: 'Order Initiated',
-      message: `Your order #${orderNumber} for ${qty} ${vehicleType === 'TRACTOR' ? 'Tractor' : 'Dumper'} load${qty === 1 ? '' : 's'} of ${product.name} has been initiated. Complete payment to confirm.`,
-      orderId: order._id
-    });
+      await PendingOrderIntent.create({
+        gateway: 'RAZORPAY',
+        gatewayRef: rzpOrder.id,
+        userId: req.user._id,
+        amount: totalAmount,
+        orderPayload
+      });
+    }
 
     return successResponse(
       res,
-      'Order created successfully. Nearest dealer identified. Proceed to payment verification.',
+      'Checkout initialized. Complete payment to place your order.',
       {
-        order,
+        orderPreview: orderPayload,
+        demoRef,
         nearestDealer: nearestDealer
           ? {
               id: nearestDealer._id,

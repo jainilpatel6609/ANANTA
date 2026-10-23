@@ -139,8 +139,11 @@ export default function CreateOrder() {
   const [isSearchingMap, setIsSearchingMap] = useState(false);
   const [isLocatingGPS, setIsLocatingGPS] = useState(false);
 
-  // Post-order & Payment Modal states
+  // Post-order & Payment Modal states. `createdOrder` holds an unsaved PREVIEW of the order (no
+  // _id/orderNumber yet) -- no Order document exists in the database until payment is actually
+  // confirmed, so there's nothing real to reference here until then.
   const [createdOrder, setCreatedOrder] = useState(null);
+  const [demoRef, setDemoRef] = useState(null);
   const [isPaid, setIsPaid] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
@@ -781,8 +784,9 @@ export default function CreateOrder() {
       };
 
       const res = await orderService.create(payload);
-      const { order, paymentGateway, razorpayOrder, keyId, iciciRedirectUrl } = res.data;
-      setCreatedOrder(order);
+      const { orderPreview, demoRef: newDemoRef, paymentGateway, razorpayOrder, keyId, iciciRedirectUrl } = res.data;
+      setCreatedOrder(orderPreview);
+      setDemoRef(newDemoRef);
       setRazorpayData({ paymentGateway, razorpayOrder, keyId, iciciRedirectUrl });
 
       // Open Interactive Payment & Demo Mode Confirmation Modal -- no toast here, since the
@@ -795,18 +799,20 @@ export default function CreateOrder() {
     }
   };
 
-  // Instant 1-Click Demo / Test Payment Confirmation
+  // Instant 1-Click Demo / Test Payment Confirmation -- this is the moment the Order is actually
+  // created (see backend's devConfirmPayment); nothing exists in the database before this.
   const handleDemoPaymentConfirm = async () => {
-    if (!createdOrder?._id) return;
+    if (!demoRef) return;
     setPaymentProcessing(true);
     toast.loading('Processing 1-click test payment & notifying nearest dealer...', { id: 'pay' });
 
     try {
-      await paymentService.devConfirm(createdOrder._id);
+      const res = await paymentService.devConfirm(demoRef);
+      const order = res.data.order;
       toast.success('🎉 Payment Confirmed (Demo Mode)! Order dispatched to Nearest Dealer.', { id: 'pay' });
       setIsPaid(true);
       setShowPaymentModal(false);
-      navigate(`/user/orders/${createdOrder._id}/invoice`, { state: { justCreated: true, justPaid: true } });
+      navigate(`/user/orders/${order._id}/invoice`, { state: { justCreated: true, justPaid: true } });
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Demo payment failed.', { id: 'pay' });
     } finally {
@@ -827,7 +833,7 @@ export default function CreateOrder() {
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency || 'INR',
       name: 'ANANTA TRADERS',
-      description: `Order #${createdOrder.orderNumber} - ${selectedMaterial?.name}`,
+      description: `Order Payment - ${selectedMaterial?.name}`,
       order_id: razorpayOrder.id,
       prefill: {
         name: shippingDetails.fullName,
@@ -837,19 +843,20 @@ export default function CreateOrder() {
       theme: {
         color: '#b28e4e'
       },
+      // The Order is only created once this signature is verified -- see handler below.
       handler: async function (response) {
         try {
           toast.loading('Verifying secure transaction...', { id: 'pay' });
-          await paymentService.verify({
+          const verifyRes = await paymentService.verify({
             razorpayOrderId: response.razorpay_order_id,
             razorpayPaymentId: response.razorpay_payment_id,
-            razorpaySignature: response.razorpay_signature,
-            orderId: createdOrder._id
+            razorpaySignature: response.razorpay_signature
           });
+          const order = verifyRes.data.order;
           toast.success('Payment verified! Order dispatched to nearest dealer.', { id: 'pay' });
           setIsPaid(true);
           setShowPaymentModal(false);
-          navigate(`/user/orders/${createdOrder._id}/invoice`, { state: { justCreated: true, justPaid: true } });
+          navigate(`/user/orders/${order._id}/invoice`, { state: { justCreated: true, justPaid: true } });
         } catch (err) {
           toast.error('Payment verification failed. Please contact support.', { id: 'pay' });
         }
@@ -2099,8 +2106,8 @@ export default function CreateOrder() {
                   <h3 className="text-base sm:text-lg font-black text-slate-900 font-display">
                     Complete Payment & Confirm Order
                   </h3>
-                  <p className="text-xs text-slate-500 font-mono">
-                    Order #{createdOrder.orderNumber}
+                  <p className="text-xs text-slate-500 font-medium">
+                    Your order is placed only after payment succeeds
                   </p>
                 </div>
               </div>

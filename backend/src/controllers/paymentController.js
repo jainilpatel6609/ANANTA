@@ -1,100 +1,56 @@
 const Order = require('../models/Order');
 const Payment = require('../models/Payment');
 const IciciTransaction = require('../models/IciciTransaction');
+const PendingOrderIntent = require('../models/PendingOrderIntent');
 const User = require('../models/User');
 const RazorpayService = require('../services/razorpayService');
 const IciciPaymentService = require('../services/iciciPaymentService');
+const OrderFinalizationService = require('../services/orderFinalizationService');
 const NotificationService = require('../services/notificationService');
 const OtpService = require('../services/otpService');
 const SmsService = require('../services/smsService');
 const { CLIENT_URL } = require('../config/env');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
-const { emitNewOrder, emitOrderStatusUpdate } = require('../sockets/socket');
+const { emitOrderStatusUpdate } = require('../sockets/socket');
 
-// @desc    Shared, idempotent "upfront payment succeeded" side effects -- order PLACED, 15-min
-//          dealer response timer started, customer + dealer notified. Used by Razorpay's
-//          verifyPayment/devConfirmPayment AND ICICI's callback/advice/status-poller, so every
-//          payment gateway produces the exact same downstream order behaviour. No-ops if the
-//          order is already PAID (safe to call from multiple independent trigger paths).
-const finalizeUpfrontPaymentSuccess = async (order, { paymentId }) => {
-  if (order.paymentStatus === 'PAID') {
-    return false;
+// @desc    The ONLY place an Order is created for the upfront-payment flow. No Order document
+//          exists for a checkout attempt until payment actually succeeds -- before that, the
+//          full order data sits in a PendingOrderIntent, keyed by the gateway's own transaction
+//          reference (razorpayOrderId / ICICI merchantTxnNo / a local demo token). Called by
+//          Razorpay's verifyPayment/devConfirmPayment, ICICI's callback/advice webhook, and the
+//          stuck-transaction poller -- so every path that can confirm a payment produces the
+//          exact same order. Idempotent: if an Order already exists for this gatewayRef (a
+//          retried verify call, a redelivered webhook), that same order is returned without
+//          re-creating or re-notifying anyone.
+const finalizeUpfrontPaymentSuccess = async ({ gateway, gatewayRef, paymentId, requestingUserId, allowAnyUser }) => {
+  const existingOrder = await Order.findOne(
+    gateway === 'ICICI' ? { iciciMerchantTxnNo: gatewayRef } : { razorpayOrderId: gatewayRef }
+  ).populate('userId', 'name mobile whatsappNumber email');
+  if (existingOrder) {
+    return { order: existingOrder, created: false, intent: null };
   }
 
-  order.paymentStatus = 'PAID';
-  order.paymentId = paymentId;
-  order.orderStatus = 'PLACED';
-
-  const assignedAt = new Date();
-  const deadline = new Date(assignedAt.getTime() + 15 * 60 * 1000);
-  order.orderAssignedAt = assignedAt;
-  order.dealerResponseDeadline = deadline;
-  order.dealerResponseStatus = 'PENDING';
-  order.dealerAlarmActive = !!order.assignedDealerId;
-  order.adminAlarmActive = false;
-  order.adminEscalationSent = false;
-
-  if (order.assignedDealerId) {
-    const assignedDealer = await User.findById(order.assignedDealerId);
-    if (assignedDealer) {
-      order.assignmentHistory = [
-        {
-          dealerId: assignedDealer._id,
-          dealerName: assignedDealer.name,
-          dealerCompanyName: assignedDealer.companyName,
-          dealerPincode: assignedDealer.pincode,
-          dealerMobile: assignedDealer.mobile,
-          distanceKm: order.dealerDistanceKm,
-          assignedAt,
-          deadline,
-          response: 'PENDING'
-        }
-      ];
-    }
+  const intent = await PendingOrderIntent.findOne({ gateway, gatewayRef });
+  if (!intent) {
+    throw new Error(`No pending order found for ${gateway} reference ${gatewayRef}. It may have already expired or was never initiated.`);
   }
 
-  await order.save();
-
-  await NotificationService.send({
-    recipientId: order.userId._id || order.userId,
-    recipientRole: 'USER',
-    type: 'ORDER_PLACED',
-    title: 'Payment Confirmed! 🎉',
-    message: `Your payment of ₹${order.totalAmount.toLocaleString('en-IN')} for order #${order.orderNumber} is confirmed. Dealers have been notified for dispatch!`,
-    orderId: order._id
-  });
-
-  if (order.assignedDealerId) {
-    const assignedDealer = await User.findById(order.assignedDealerId);
-    if (assignedDealer && assignedDealer.isActive) {
-      await NotificationService.send({
-        recipientId: assignedDealer._id,
-        recipientRole: 'DEALER',
-        type: 'ORDER_PLACED',
-        title: '🚨 NEW ORDER ASSIGNED 🚛',
-        // Deliberately excludes the customer's name/city/address -- a dealer sees only distance
-        // and price until they accept. Full shipping details unlock in the accepted-order view.
-        message: `New order #${order.orderNumber}${order.dealerDistanceKm !== null ? ` — ${order.dealerDistanceKm} km away` : ''}: ${order.numberOfTractors || order.quantity} ${order.transportType || 'Vehicle'}${(order.numberOfTractors || order.quantity) === 1 ? '' : 's'} (${order.tractorType || order.vehicleType}) of ${order.productNameSnapshot}. Total: ₹${order.totalAmount.toLocaleString('en-IN')}. Please accept within 15 minutes.`,
-        orderId: order._id,
-        targetPhone: assignedDealer.whatsappNumber || assignedDealer.mobile
-      });
-    } else {
-      await NotificationService.notifyAllDealers({
-        title: 'New Delivery Order Available 🚛',
-        message: `New order #${order.orderNumber}${order.dealerDistanceKm !== null ? ` — ${order.dealerDistanceKm} km away` : ''}: ${order.numberOfTractors || order.quantity} ${order.transportType || 'Vehicle'}${(order.numberOfTractors || order.quantity) === 1 ? '' : 's'} (${order.tractorType || order.vehicleType}) of ${order.productNameSnapshot}.`,
-        orderId: order._id
-      });
-    }
-  } else {
-    await NotificationService.notifyAllDealers({
-      title: 'New Delivery Order Available 🚛',
-      message: `New order #${order.orderNumber}${order.dealerDistanceKm !== null ? ` — ${order.dealerDistanceKm} km away` : ''}: ${order.numberOfTractors || order.quantity} ${order.transportType || 'Vehicle'}${(order.numberOfTractors || order.quantity) === 1 ? '' : 's'} (${order.tractorType || order.vehicleType}) of ${order.productNameSnapshot}.`,
-      orderId: order._id
-    });
+  if (requestingUserId && !allowAnyUser && intent.userId.toString() !== requestingUserId.toString()) {
+    throw new Error('This payment does not belong to the requesting user.');
   }
 
-  emitNewOrder(order.assignedDealerId, order);
-  return true;
+  const orderPayload = {
+    ...intent.orderPayload,
+    razorpayOrderId: gateway !== 'ICICI' ? gatewayRef : '',
+    iciciMerchantTxnNo: gateway === 'ICICI' ? gatewayRef : ''
+  };
+  const order = await OrderFinalizationService.materializeOrder(orderPayload, { paymentStatus: 'PAID', paymentId });
+
+  intent.consumedOrderId = order._id;
+  await intent.save();
+
+  const populatedOrder = await Order.findById(order._id).populate('userId', 'name mobile whatsappNumber email');
+  return { order: populatedOrder, created: true, intent };
 };
 
 // @desc    Runs immediately after the DUMPER final (weight-based) payment succeeds: generates
@@ -162,27 +118,19 @@ const dispatchAfterFinalPayment = async (order) => {
   emitOrderStatusUpdate(order);
 };
 
-// @desc    Verify Razorpay Payment Signature
+// @desc    Verify Razorpay Payment Signature. No Order exists yet at this point -- the signature
+//          cryptographically proves the payment against razorpayOrderId, which is the lookup key
+//          into the PendingOrderIntent that finalizeUpfrontPaymentSuccess turns into a real Order.
 // @route   POST /api/payments/verify
 // @access  Private (User)
 const verifyPayment = async (req, res) => {
   try {
-    const { orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+    const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
 
-    if (!orderId || !razorpayOrderId || !razorpayPaymentId) {
+    if (!razorpayOrderId || !razorpayPaymentId) {
       return errorResponse(res, 'Missing payment verification credentials.', 400);
     }
 
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return errorResponse(res, 'Order not found.', 404);
-    }
-
-    if (order.userId.toString() !== req.user._id.toString() && req.user.role !== 'ADMIN') {
-      return errorResponse(res, 'Unauthorized access to this order payment.', 403);
-    }
-
-    // Verify cryptographic signature
     const isValid = RazorpayService.verifySignature({
       razorpayOrderId,
       razorpayPaymentId,
@@ -190,24 +138,17 @@ const verifyPayment = async (req, res) => {
     });
 
     if (!isValid) {
-      order.paymentStatus = 'FAILED';
-      order.orderStatus = 'PAYMENT_FAILED';
-      await order.save();
-
-      await Payment.create({
-        orderId: order._id,
-        userId: req.user._id,
-        razorpayOrderId,
-        razorpayPaymentId,
-        amount: order.totalAmount,
-        status: 'FAILED',
-        signature: razorpaySignature || ''
-      });
-
       return errorResponse(res, 'Payment signature verification failed. Please contact your bank or try again.', 400);
     }
 
-    // Payment Verified Successfully
+    const { order } = await finalizeUpfrontPaymentSuccess({
+      gateway: 'RAZORPAY',
+      gatewayRef: razorpayOrderId,
+      paymentId: razorpayPaymentId,
+      requestingUserId: req.user._id,
+      allowAnyUser: req.user.role === 'ADMIN'
+    });
+
     await Payment.create({
       orderId: order._id,
       userId: req.user._id,
@@ -219,40 +160,43 @@ const verifyPayment = async (req, res) => {
       verifiedAt: new Date()
     });
 
-    await finalizeUpfrontPaymentSuccess(order, { paymentId: razorpayPaymentId });
-
     return successResponse(res, 'Payment verified successfully! Order is placed and nearest dealer is notified.', { order });
   } catch (error) {
     return errorResponse(res, error.message, 500);
   }
 };
 
-// @desc    Simulate/Dev Payment Confirm (Dev helper)
+// @desc    Simulate/Dev Payment Confirm (Dev helper) -- instantly materializes the Order staged
+//          under the DEMO PendingOrderIntent created alongside the live gateway at checkout.
 // @route   POST /api/payments/dev-confirm
 // @access  Private (User)
 const devConfirmPayment = async (req, res) => {
   try {
-    const { orderId } = req.body;
-    const order = await Order.findById(orderId);
-
-    if (!order) {
-      return errorResponse(res, 'Order not found.', 404);
+    const { demoRef } = req.body;
+    if (!demoRef) {
+      return errorResponse(res, 'Missing demo payment reference.', 400);
     }
 
     const devPaymentId = `dev_pay_${Date.now()}`;
 
+    const { order } = await finalizeUpfrontPaymentSuccess({
+      gateway: 'DEMO',
+      gatewayRef: demoRef,
+      paymentId: devPaymentId,
+      requestingUserId: req.user._id,
+      allowAnyUser: req.user.role === 'ADMIN'
+    });
+
     await Payment.create({
       orderId: order._id,
       userId: req.user._id,
-      razorpayOrderId: order.razorpayOrderId || `dev_rzp_${Date.now()}`,
+      razorpayOrderId: order.razorpayOrderId || demoRef,
       razorpayPaymentId: devPaymentId,
       amount: order.totalAmount,
       status: 'PAID',
       signature: 'test_sig_dev_mode',
       verifiedAt: new Date()
     });
-
-    await finalizeUpfrontPaymentSuccess(order, { paymentId: devPaymentId });
 
     return successResponse(res, 'Development payment simulated successfully! Order placed & dealer notified.', { order });
   } catch (error) {
@@ -376,53 +320,98 @@ const devConfirmFinalPayment = async (req, res) => {
 //          customer-browser returnURL callback and the authoritative Payment Advice webhook
 //          (identical payload shape per the spec). Idempotent: re-processing an already-
 //          finalized transaction just re-verifies and re-saves bookkeeping fields without
-//          re-triggering notifications/dispatch (finalizeUpfrontPaymentSuccess / the
-//          fulfillmentStage guard below both no-op on a second call).
+//          re-triggering notifications/dispatch.
+//
+//          Two distinct cases, because UPFRONT payments no longer have an IciciTransaction (or
+//          an Order) until they actually succeed:
+//           1. An IciciTransaction already exists -- a FINAL (weight-based) payment (whose Order
+//              always pre-exists), or a redelivered UPFRONT webhook for an order already created.
+//           2. No IciciTransaction yet -- the first-ever delivery for an UPFRONT payment. Looked
+//              up via PendingOrderIntent instead; on success this is where the Order AND its
+//              IciciTransaction are both created for the first time.
 const processIciciPaymentResult = async (body) => {
   if (!IciciPaymentService.verifyHashV1(body)) {
     throw new Error('Invalid secureHash on ICICI payment response.');
   }
 
   const { merchantTxnNo, responseCode, txnID, paymentID, paymentMode } = body;
-  const transaction = await IciciTransaction.findOne({ merchantTxnNo });
-  if (!transaction) {
-    throw new Error(`No ICICI transaction found for merchantTxnNo ${merchantTxnNo}.`);
-  }
-
   const isSuccess = responseCode === '000' || responseCode === '0000';
-  transaction.status = isSuccess ? 'SUCCESS' : 'FAILED';
-  transaction.gatewayTxnId = txnID || transaction.gatewayTxnId;
-  transaction.paymentId = paymentID || transaction.paymentId;
-  transaction.paymentMode = paymentMode || transaction.paymentMode;
-  transaction.responseCode = responseCode || transaction.responseCode;
-  transaction.rawAdvicePayload = body;
-  await transaction.save();
 
-  const order = await Order.findById(transaction.orderId).populate('userId', 'name mobile whatsappNumber');
-  if (!order) {
-    throw new Error(`Order ${transaction.orderId} not found for ICICI transaction ${merchantTxnNo}.`);
-  }
+  const transaction = await IciciTransaction.findOne({ merchantTxnNo });
+  if (transaction) {
+    transaction.status = isSuccess ? 'SUCCESS' : 'FAILED';
+    transaction.gatewayTxnId = txnID || transaction.gatewayTxnId;
+    transaction.paymentId = paymentID || transaction.paymentId;
+    transaction.paymentMode = paymentMode || transaction.paymentMode;
+    transaction.responseCode = responseCode || transaction.responseCode;
+    transaction.rawAdvicePayload = body;
+    await transaction.save();
 
-  if (isSuccess) {
-    if (transaction.paymentPurpose === 'UPFRONT') {
-      await finalizeUpfrontPaymentSuccess(order, { paymentId: paymentID || transaction.gatewayTxnId });
-    } else if (transaction.paymentPurpose === 'FINAL' && order.fulfillmentStage === 'WEIGHT_ENTERED') {
+    const order = await Order.findById(transaction.orderId).populate('userId', 'name mobile whatsappNumber');
+    if (!order) {
+      throw new Error(`Order ${transaction.orderId} not found for ICICI transaction ${merchantTxnNo}.`);
+    }
+
+    if (isSuccess && transaction.paymentPurpose === 'FINAL' && order.fulfillmentStage === 'WEIGHT_ENTERED') {
       order.finalPaymentStatus = 'PAID';
       order.finalPaymentId = paymentID || transaction.gatewayTxnId;
       order.fulfillmentStage = 'FINAL_PAYMENT_PAID';
       await order.save();
       await dispatchAfterFinalPayment(order);
+    } else if (!isSuccess && transaction.paymentPurpose === 'FINAL' && order.finalPaymentStatus !== 'PAID') {
+      order.finalPaymentStatus = 'FAILED';
+      await order.save();
     }
-  } else if (transaction.paymentPurpose === 'UPFRONT' && order.paymentStatus !== 'PAID') {
-    order.paymentStatus = 'FAILED';
-    order.orderStatus = 'PAYMENT_FAILED';
-    await order.save();
-  } else if (transaction.paymentPurpose === 'FINAL' && order.finalPaymentStatus !== 'PAID') {
-    order.finalPaymentStatus = 'FAILED';
-    await order.save();
+    // UPFRONT here means a redelivered webhook for an order already created -- nothing left to do.
+
+    return { order, success: isSuccess };
   }
 
-  return { transaction, order, success: isSuccess };
+  const intent = await PendingOrderIntent.findOne({ gateway: 'ICICI', gatewayRef: merchantTxnNo });
+  if (!intent) {
+    throw new Error(`No ICICI transaction or pending order found for merchantTxnNo ${merchantTxnNo}.`);
+  }
+
+  if (!isSuccess) {
+    // Never became a real order -- nothing to roll back. The intent is simply left as an
+    // uncommitted draft; it never materializes into an Order.
+    return { order: null, success: false };
+  }
+
+  const order = await materializeIciciUpfrontFromIntent(intent, merchantTxnNo, {
+    paymentID,
+    txnID,
+    paymentMode,
+    responseCode,
+    rawAdvicePayload: body
+  });
+
+  return { order, success: true };
+};
+
+// @desc    Shared by processIciciPaymentResult (webhook/callback path) and the stuck-transaction
+//          status poller (status-check path) -- both discover an UPFRONT ICICI success for a
+//          PendingOrderIntent that has no IciciTransaction yet, and both need to create the Order
+//          AND its IciciTransaction together, the same way.
+const materializeIciciUpfrontFromIntent = async (intent, merchantTxnNo, { paymentID, txnID, paymentMode, responseCode, rawAdvicePayload }) => {
+  const { order } = await finalizeUpfrontPaymentSuccess({ gateway: 'ICICI', gatewayRef: merchantTxnNo, paymentId: paymentID || txnID });
+
+  await IciciTransaction.create({
+    orderId: order._id,
+    paymentPurpose: 'UPFRONT',
+    merchantTxnNo,
+    amount: order.totalAmount,
+    status: 'SUCCESS',
+    gatewayTxnId: txnID || '',
+    paymentId: paymentID || '',
+    paymentMode: paymentMode || '',
+    responseCode: responseCode || '',
+    rawInitiateRequest: intent.rawInitiateRequest,
+    rawInitiateResponse: intent.rawInitiateResponse,
+    rawAdvicePayload: rawAdvicePayload || null
+  });
+
+  return order;
 };
 
 // @desc    ICICI returnURL -- hit directly by the customer's browser (full-page redirect, not
@@ -433,14 +422,17 @@ const processIciciPaymentResult = async (body) => {
 const iciciReturnCallback = async (req, res) => {
   try {
     const result = await processIciciPaymentResult(req.body);
-    const orderId = result.order._id;
-    if (result.success) {
-      return res.redirect(`${CLIENT_URL}/user/orders/${orderId}/invoice?justPaid=true`);
+    if (result.success && result.order) {
+      return res.redirect(`${CLIENT_URL}/user/orders/${result.order._id}/invoice?justPaid=true`);
     }
-    return res.redirect(`${CLIENT_URL}/user/orders/${orderId}?paymentFailed=true`);
+    if (result.order) {
+      return res.redirect(`${CLIENT_URL}/user/orders/${result.order._id}?paymentFailed=true`);
+    }
+    // Payment failed/cancelled before an order ever existed -- nothing to link back to.
+    return res.redirect(`${CLIENT_URL}/user/dashboard?paymentFailed=true`);
   } catch (error) {
     console.error('[ICICI Callback Error]', error.message);
-    return res.redirect(`${CLIENT_URL}/user/orders?paymentError=true`);
+    return res.redirect(`${CLIENT_URL}/user/dashboard?paymentError=true`);
   }
 };
 
@@ -563,6 +555,7 @@ module.exports = {
   verifyFinalPayment,
   devConfirmFinalPayment,
   finalizeUpfrontPaymentSuccess,
+  materializeIciciUpfrontFromIntent,
   dispatchAfterFinalPayment,
   iciciReturnCallback,
   iciciPaymentAdvice,
