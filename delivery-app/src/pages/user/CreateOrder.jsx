@@ -1352,12 +1352,12 @@ export default function CreateOrder() {
                     <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-white text-[11px] sm:text-xs font-black text-amber-800 border border-amber-200 shadow-sm">
                       🚜 {selectedOptionName} {isAggregate ? `(${selectedAggregateType})` : ''}
                     </span>
-                    <span className="text-xs sm:text-sm font-bold text-emerald-700 font-mono">
-                      {formatINR(unitPrice)} / Vehicle
+                    <span className="text-[10px] sm:text-xs font-medium text-slate-400">
+                      Price shown after dealer selection
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 sm:gap-4 text-xs">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-4 text-xs">
                     <div>
                       <span className="text-slate-500 block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">Capacity</span>
                       <strong className="text-slate-900 text-sm sm:text-base font-mono font-bold">~{selectedCapacity?.approximateTon}T</strong>
@@ -1365,10 +1365,6 @@ export default function CreateOrder() {
                     <div>
                       <span className="text-slate-500 block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">Units</span>
                       <strong className="text-amber-700 text-sm sm:text-base font-mono font-black">{tractorQuantity}</strong>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">Total</span>
-                      <strong className="text-emerald-700 text-sm sm:text-base font-mono font-black">{formatINR(subtotal)}</strong>
                     </div>
                   </div>
                 </div>
