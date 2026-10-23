@@ -16,11 +16,11 @@ module.exports = {
 
   // Active payment gateway switch -- ICICI | RAZORPAY. Razorpay's own code/config above is
   // left fully intact so flipping this back is a one-line rollback, not a redeploy of old code.
-  PAYMENT_GATEWAY: (process.env.PAYMENT_GATEWAY || 'ICICI').toUpperCase(),
-  ICICI_BASE_URL: process.env.ICICI_BASE_URL || 'https://pgpayuat.icicibank.com',
-  ICICI_MERCHANT_ID: process.env.ICICI_MERCHANT_ID || '',
-  ICICI_AGGREGATOR_ID: process.env.ICICI_AGGREGATOR_ID || '',
-  ICICI_SECRET_KEY: process.env.ICICI_SECRET_KEY || '',
+  PAYMENT_GATEWAY: (process.env.PAYMENT_GATEWAY || 'ICICI').trim().toUpperCase(),
+  ICICI_BASE_URL: (process.env.ICICI_BASE_URL || 'https://pgpayuat.icicibank.com').trim(),
+  ICICI_MERCHANT_ID: (process.env.ICICI_MERCHANT_ID || '').trim(),
+  ICICI_AGGREGATOR_ID: (process.env.ICICI_AGGREGATOR_ID || '').trim(),
+  ICICI_SECRET_KEY: (process.env.ICICI_SECRET_KEY || '').trim(),
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || '',
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || '',
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || '',

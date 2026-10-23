@@ -138,6 +138,7 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`  Quality Materials. Reliable Delivery.`);
     console.log(`  Running on: http://0.0.0.0:${PORT}`);
     console.log(`  Environment: ${NODE_ENV}`);
+    console.log(`  Payment Gateway: ${PAYMENT_GATEWAY}`);
     console.log(`=======================================================`);
     
     // Start background 15-minute dealer response SLA timeout monitor
