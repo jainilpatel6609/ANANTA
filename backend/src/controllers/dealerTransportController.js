@@ -11,6 +11,7 @@ const Dumper = require('../models/Dumper');
 const { getDealerIdsWithAvailableDumper } = require('../utils/dumperAvailability');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
 const { logDealerActivity } = require('../utils/dealerActivityLogger');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 const MATERIALS = ['Sand', 'Aggregate'];
 
@@ -136,7 +137,7 @@ const bulkSaveConfigs = async (req, res) => {
       seen.add(dedupeKey);
 
       const locationExists = await Location.exists({
-        name: { $regex: `^${locationName}$`, $options: 'i' },
+        name: { $regex: `^${escapeRegex(locationName)}$`, $options: 'i' },
         category: material,
         isActive: true
       });
@@ -147,7 +148,7 @@ const bulkSaveConfigs = async (req, res) => {
       if (material === 'Sand') {
         const variantExists = await VehicleConfig.exists({
           vehicleType: 'DUMPER',
-          optionName: { $regex: `^${variantName}$`, $options: 'i' },
+          optionName: { $regex: `^${escapeRegex(variantName)}$`, $options: 'i' },
           isActive: true
         });
         if (!variantExists) {
@@ -158,8 +159,8 @@ const bulkSaveConfigs = async (req, res) => {
           category: 'Aggregate',
           isActive: true,
           $or: [
-            { dumperAggregateTypes: { $regex: `^${variantName}$`, $options: 'i' } },
-            { aggregateTypes: { $regex: `^${variantName}$`, $options: 'i' } }
+            { dumperAggregateTypes: { $regex: `^${escapeRegex(variantName)}$`, $options: 'i' } },
+            { aggregateTypes: { $regex: `^${escapeRegex(variantName)}$`, $options: 'i' } }
           ]
         });
         if (!matchingProduct) {
@@ -294,7 +295,7 @@ const getEligibleDealers = async (req, res) => {
 
       const tractorRates = await DealerTractorRate.find({
         material,
-        variantName: { $regex: `^${String(tractorVariant).trim()}$`, $options: 'i' },
+        variantName: { $regex: `^${escapeRegex(String(tractorVariant).trim())}$`, $options: 'i' },
         tractorType,
         isActive: true
       }).populate({
@@ -350,10 +351,10 @@ const getEligibleDealers = async (req, res) => {
     const configFilter = {
       material,
       isActive: true,
-      variantName: { $regex: `^${String(variantName).trim()}$`, $options: 'i' }
+      variantName: { $regex: `^${escapeRegex(String(variantName).trim())}$`, $options: 'i' }
     };
     if (locationName) {
-      configFilter.locationName = { $regex: `^${String(locationName).trim()}$`, $options: 'i' };
+      configFilter.locationName = { $regex: `^${escapeRegex(String(locationName).trim())}$`, $options: 'i' };
     }
 
     const configs = await DealerTransportConfig.find(configFilter).populate({
@@ -388,7 +389,7 @@ const getEligibleDealers = async (req, res) => {
       // to both), so query every matching document and use whichever one actually has
       // coordinates set, rather than an arbitrary `findOne` match that could pick the wrong one.
       const locationDocs = await Location.find({
-        name: { $regex: `^${locName}$`, $options: 'i' },
+        name: { $regex: `^${escapeRegex(locName)}$`, $options: 'i' },
         category: material,
         isActive: true
       });
@@ -467,7 +468,7 @@ const adminGetAllConfigs = async (req, res) => {
     const filter = {};
 
     if (material && MATERIALS.includes(material)) filter.material = material;
-    if (locationName) filter.locationName = { $regex: locationName.trim(), $options: 'i' };
+    if (locationName) filter.locationName = { $regex: escapeRegex(locationName.trim()), $options: 'i' };
     if (dealerId) filter.dealerId = dealerId;
     if (status === 'active') filter.isActive = true;
     if (status === 'inactive') filter.isActive = false;

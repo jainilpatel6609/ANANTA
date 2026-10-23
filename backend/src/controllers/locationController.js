@@ -1,5 +1,6 @@
 const Location = require('../models/Location');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 // Parses & validates an optional lat/lng pair. Returns { latitude, longitude } (numbers
 // or null if omitted/blank), or throws a plain Error with a customer-facing message.
@@ -77,7 +78,7 @@ const getAdminLocations = async (req, res) => {
     }
 
     if (search) {
-      filter.name = { $regex: search.trim(), $options: 'i' };
+      filter.name = { $regex: escapeRegex(search.trim()), $options: 'i' };
     }
     if (status === 'active') filter.isActive = true;
     if (status === 'inactive') filter.isActive = false;
@@ -134,7 +135,7 @@ const createLocation = async (req, res) => {
     const categoryVal = category || 'ALL';
 
     const existing = await Location.findOne({
-      name: { $regex: `^${name.trim()}$`, $options: 'i' },
+      name: { $regex: `^${escapeRegex(name.trim())}$`, $options: 'i' },
       vehicleType: normalizedVehicleType,
       category: categoryVal
     });
@@ -246,7 +247,7 @@ const updateLocation = async (req, res) => {
     if (name && name.trim()) {
       const duplicate = await Location.findOne({
         _id: { $ne: location._id },
-        name: { $regex: `^${name.trim()}$`, $options: 'i' },
+        name: { $regex: `^${escapeRegex(name.trim())}$`, $options: 'i' },
         vehicleType: location.vehicleType,
         category: category || location.category
       });

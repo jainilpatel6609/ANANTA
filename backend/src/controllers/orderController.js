@@ -11,6 +11,7 @@ const DealerTractorRate = require('../models/DealerTractorRate');
 const IciciTransaction = require('../models/IciciTransaction');
 const PendingOrderIntent = require('../models/PendingOrderIntent');
 const { generateDealerCode } = require('../utils/dealerCode');
+const { escapeRegex } = require('../utils/escapeRegex');
 const { findConflictingActiveOrder } = require('../utils/driverAvailability');
 const { claimDumperForOrder, releaseDumperForOrder } = require('../utils/dumperAvailability');
 const RazorpayService = require('../services/razorpayService');
@@ -151,7 +152,7 @@ const createOrder = async (req, res) => {
       finalLocationName = locationDoc.name;
     } else if (finalLocationName) {
       locationDoc = await Location.findOne({
-        name: { $regex: `^${finalLocationName}$`, $options: 'i' },
+        name: { $regex: `^${escapeRegex(finalLocationName)}$`, $options: 'i' },
         vehicleType,
         category: product.category,
         isActive: true
@@ -358,8 +359,8 @@ const createOrder = async (req, res) => {
         const config = await DealerTransportConfig.findOne({
           dealerId: selectedDealer._id,
           material: transportMaterial,
-          locationName: { $regex: `^${finalLocationName}$`, $options: 'i' },
-          variantName: { $regex: `^${String(dumperVariant || '').trim()}$`, $options: 'i' },
+          locationName: { $regex: `^${escapeRegex(finalLocationName)}$`, $options: 'i' },
+          variantName: { $regex: `^${escapeRegex(String(dumperVariant || '').trim())}$`, $options: 'i' },
           isActive: true
         });
         if (!config) {
@@ -397,8 +398,8 @@ const createOrder = async (req, res) => {
       if (transportMaterial && finalLocationName) {
         const configs = await DealerTransportConfig.find({
           material: transportMaterial,
-          locationName: { $regex: `^${finalLocationName}$`, $options: 'i' },
-          variantName: { $regex: `^${String(dumperVariant || '').trim()}$`, $options: 'i' },
+          locationName: { $regex: `^${escapeRegex(finalLocationName)}$`, $options: 'i' },
+          variantName: { $regex: `^${escapeRegex(String(dumperVariant || '').trim())}$`, $options: 'i' },
           isActive: true
         }).populate({
           path: 'dealerId',
@@ -491,7 +492,7 @@ const createOrder = async (req, res) => {
       const dealerTractorRate = await DealerTractorRate.findOne({
         dealerId: nearestDealer?._id,
         material: transportMaterial,
-        variantName: { $regex: `^${String(tractorVariant || '').trim()}$`, $options: 'i' },
+        variantName: { $regex: `^${escapeRegex(String(tractorVariant || '').trim())}$`, $options: 'i' },
         tractorType,
         isActive: true
       });
@@ -1353,12 +1354,13 @@ const getAllOrdersAdmin = async (req, res) => {
     }
 
     if (search) {
+      const safeSearch = escapeRegex(search);
       filter.$or = [
-        { orderNumber: { $regex: search, $options: 'i' } },
-        { productNameSnapshot: { $regex: search, $options: 'i' } },
-        { shippingAddress: { $regex: search, $options: 'i' } },
-        { driverName: { $regex: search, $options: 'i' } },
-        { vehicleNumber: { $regex: search, $options: 'i' } }
+        { orderNumber: { $regex: safeSearch, $options: 'i' } },
+        { productNameSnapshot: { $regex: safeSearch, $options: 'i' } },
+        { shippingAddress: { $regex: safeSearch, $options: 'i' } },
+        { driverName: { $regex: safeSearch, $options: 'i' } },
+        { vehicleNumber: { $regex: safeSearch, $options: 'i' } }
       ];
     }
 

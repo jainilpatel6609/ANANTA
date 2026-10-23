@@ -4,6 +4,7 @@ const Location = require('../models/Location');
 const Product = require('../models/Product');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
 const { logDealerActivity } = require('../utils/dealerActivityLogger');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 const { TRACTOR_TYPES, MATERIALS } = DealerTractorRate;
 
@@ -70,7 +71,7 @@ const bulkSaveRates = async (req, res) => {
 
       if (material === 'Sand') {
         const locationExists = await Location.exists({
-          name: { $regex: `^${variantName}$`, $options: 'i' },
+          name: { $regex: `^${escapeRegex(variantName)}$`, $options: 'i' },
           category: 'Sand',
           isActive: true
         });
@@ -81,8 +82,8 @@ const bulkSaveRates = async (req, res) => {
         const matchingProduct = await Product.exists({
           category: 'Aggregate',
           $or: [
-            { tractorAggregateTypes: { $regex: `^${variantName}$`, $options: 'i' } },
-            { aggregateTypes: { $regex: `^${variantName}$`, $options: 'i' } }
+            { tractorAggregateTypes: { $regex: `^${escapeRegex(variantName)}$`, $options: 'i' } },
+            { aggregateTypes: { $regex: `^${escapeRegex(variantName)}$`, $options: 'i' } }
           ]
         });
         if (!matchingProduct) {
