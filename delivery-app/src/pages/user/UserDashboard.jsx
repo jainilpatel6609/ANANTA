@@ -14,6 +14,7 @@ import {
   Building,
   CheckCircle2,
   CheckCircle,
+  Clock,
   Sparkles,
   Target,
   FileText,
@@ -76,11 +77,13 @@ export default function UserDashboard() {
   startOfToday.setHours(0, 0, 0, 0);
   const todayOrders = orders.filter((o) => o.createdAt && new Date(o.createdAt) >= startOfToday);
 
-  // Counts mirror MyOrders' tab filters exactly (ACTIVE / DELIVERED) so the numbers shown here
-  // match what the customer sees after tapping through to that filtered list. Unpaid orders
-  // (PENDING_PAYMENT) never reach this component at all -- getMyOrders excludes them -- so
-  // there's no "Pending" bucket here any more.
-  const displayInTransit = todayOrders.filter((o) => ['PLACED', 'ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length;
+  // Counts mirror MyOrders' tab filters exactly (PENDING / ACTIVE / DELIVERED) so the numbers
+  // shown here match what the customer sees after tapping through to that filtered list. Unpaid
+  // orders (PENDING_PAYMENT) never reach this component at all -- getMyOrders excludes them.
+  // "Pending" here means paid and PLACED, but the dealer hasn't accepted it yet -- a real,
+  // meaningful wait state, distinct from an order already ACCEPTED/OUT_FOR_DELIVERY.
+  const displayPending = todayOrders.filter((o) => o.orderStatus === 'PLACED').length;
+  const displayInTransit = todayOrders.filter((o) => ['ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length;
   const displayDelivered = todayOrders.filter((o) => o.orderStatus === 'DELIVERED').length;
 
   // Every order currently out for delivery with a live Gate Pass OTP -- not just one, so a
@@ -288,7 +291,21 @@ export default function UserDashboard() {
         </div>
 
         {/* Stat columns */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <Link
+            to="/user/orders?status=PENDING&period=today"
+            className="flex flex-col items-center text-center gap-1 p-2.5 sm:p-3 rounded-2xl bg-rose-50/50 border border-rose-100 active:scale-95 transition-transform cursor-pointer"
+          >
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-rose-600 border border-rose-200 flex items-center justify-center shadow-xs">
+              <Clock className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] sm:text-[11px] text-slate-700 font-bold mt-1">Pending</span>
+            <span className="text-lg sm:text-xl font-black text-slate-900 font-mono tracking-tight">
+              {displayPending}
+            </span>
+            <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium">Dealer Accept</span>
+          </Link>
+
           <Link
             to="/user/orders?status=ACTIVE&period=today"
             className="flex flex-col items-center text-center gap-1 p-2.5 sm:p-3 rounded-2xl bg-sky-50/50 border border-sky-100 active:scale-95 transition-transform cursor-pointer"

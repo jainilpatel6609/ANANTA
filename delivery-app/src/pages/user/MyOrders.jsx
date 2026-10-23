@@ -5,7 +5,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
 import { Search, ChevronRight } from 'lucide-react';
 
-const VALID_STATUS_FILTERS = ['ALL', 'ACTIVE', 'DELIVERED'];
+const VALID_STATUS_FILTERS = ['ALL', 'PENDING', 'ACTIVE', 'DELIVERED'];
 
 export default function MyOrders() {
   const [searchParams] = useSearchParams();
@@ -49,7 +49,8 @@ export default function MyOrders() {
 
     const matchStatus =
       statusFilter === 'ALL' ||
-      (statusFilter === 'ACTIVE' && ['PLACED', 'ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)) ||
+      (statusFilter === 'PENDING' && o.orderStatus === 'PLACED') ||
+      (statusFilter === 'ACTIVE' && ['ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)) ||
       (statusFilter === 'DELIVERED' && o.orderStatus === 'DELIVERED');
 
     const matchToday = !onlyToday || (o.createdAt && new Date(o.createdAt) >= startOfToday);
@@ -89,8 +90,12 @@ export default function MyOrders() {
           {[
             { id: 'ALL', label: `All (${orders.length})` },
             {
+              id: 'PENDING',
+              label: `Pending (${orders.filter((o) => o.orderStatus === 'PLACED').length})`
+            },
+            {
               id: 'ACTIVE',
-              label: `In Transit (${orders.filter((o) => ['PLACED', 'ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length})`
+              label: `In Transit (${orders.filter((o) => ['ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length})`
             },
             {
               id: 'DELIVERED',
