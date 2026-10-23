@@ -519,7 +519,7 @@ const createOrder = async (req, res) => {
       });
       iciciInitiateRequest = iciciResult.request;
       iciciInitiateResponse = iciciResult.response;
-      if (iciciInitiateResponse.responseCode !== 'R1000' || !iciciInitiateResponse.redirectURI) {
+      if (iciciInitiateResponse.responseCode !== 'R1000' || !iciciInitiateResponse.fullRedirectURI) {
         console.error('[ICICI Initiate Sale Rejected]', JSON.stringify(iciciInitiateResponse));
         const reason =
           iciciInitiateResponse.respDescription ||
@@ -529,7 +529,7 @@ const createOrder = async (req, res) => {
           'Unable to initiate payment with ICICI. Please try again.';
         return errorResponse(res, reason, 502);
       }
-      iciciRedirectUrl = iciciInitiateResponse.redirectURI;
+      iciciRedirectUrl = iciciInitiateResponse.fullRedirectURI;
     } else {
       rzpOrder = await RazorpayService.createOrder(totalAmount, orderNumber);
     }

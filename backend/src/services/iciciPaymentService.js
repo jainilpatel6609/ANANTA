@@ -103,6 +103,11 @@ const initiateSale = async ({
   request.secureHash = computeHashV1(request);
 
   const response = await postJson('/tsp/pg/api/v2/initiateSale', request);
+  // ICICI's bare redirectURI 400s on its own -- the browser must GET it with ?tranCtx=<tranCtx>
+  // appended (confirmed against the live UAT endpoint; a POST to the same URL gets a 405).
+  if (response.redirectURI && response.tranCtx) {
+    response.fullRedirectURI = `${response.redirectURI}?tranCtx=${encodeURIComponent(response.tranCtx)}`;
+  }
   return { request, response };
 };
 

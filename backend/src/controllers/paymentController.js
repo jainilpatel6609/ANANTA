@@ -528,7 +528,7 @@ const initiateFinalIciciPayment = async (req, res) => {
       addlParam1: `${order.orderNumber}-FINAL`
     });
 
-    if (iciciInitiateResponse.responseCode !== 'R1000' || !iciciInitiateResponse.redirectURI) {
+    if (iciciInitiateResponse.responseCode !== 'R1000' || !iciciInitiateResponse.fullRedirectURI) {
       console.error('[ICICI Initiate Sale Rejected - Final Payment]', JSON.stringify(iciciInitiateResponse));
       const reason =
         iciciInitiateResponse.respDescription ||
@@ -551,7 +551,7 @@ const initiateFinalIciciPayment = async (req, res) => {
       rawInitiateResponse: iciciInitiateResponse
     });
 
-    return successResponse(res, 'Final payment initialized.', { iciciRedirectUrl: iciciInitiateResponse.redirectURI });
+    return successResponse(res, 'Final payment initialized.', { iciciRedirectUrl: iciciInitiateResponse.fullRedirectURI });
   } catch (error) {
     return errorResponse(res, error.message, 500);
   }
