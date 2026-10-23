@@ -29,10 +29,10 @@ export default function TransportConfig() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [materialLocations, setMaterialLocations] = useState({ Sand: [], Aggregate: [] });
+  const [dumperVariants, setDumperVariants] = useState({ Sand: [], Aggregate: [] });
   const [myConfigs, setMyConfigs] = useState([]);
   const [materialMode, setMaterialMode] = useState('Sand');
-  const [selectedLocations, setSelectedLocations] = useState({}); // { 'Sand::Patan': true }
-  const [rates, setRates] = useState({}); // { 'Sand::Patan': '25' }
+  const [rates, setRates] = useState({}); // { 'Sand::Patan::Filter Sand': '25' }
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   // Tractor rates: per Material + Location/Grain + Patiya type
@@ -47,29 +47,28 @@ export default function TransportConfig() {
 
   const loadData = async () => {
     try {
-      const [locRes, tractorLocRes, cfgRes, tractorRateRes, productsRes] = await Promise.all([
+      const [locRes, tractorLocRes, cfgRes, tractorRateRes, productsRes, dumperVariantsRes] = await Promise.all([
         dealerTransportService.getMaterialLocations(),
         dealerTransportService.getMaterialLocations({ vehicleType: 'TRACTOR' }),
         dealerTransportService.getMyConfigs(),
         tractorRateService.getRates(),
-        productService.getActiveProducts()
+        productService.getActiveProducts(),
+        dealerTransportService.getDumperVariants()
       ]);
       setMaterialLocations(locRes.data?.locations || { Sand: [], Aggregate: [] });
       setTractorSandLocations(tractorLocRes.data?.locations?.Sand || []);
+      setDumperVariants(dumperVariantsRes.data?.variants || { Sand: [], Aggregate: [] });
 
       const configs = cfgRes.data?.configs || [];
       setMyConfigs(configs);
 
-      const sel = {};
       const initRates = {};
       const mats = new Set();
       configs.forEach((c) => {
-        const key = `${c.material}::${c.locationName}`;
-        sel[key] = true;
+        const key = `${c.material}::${c.locationName}::${c.variantName}`;
         initRates[key] = String(c.ratePerKm);
         mats.add(c.material);
       });
-      setSelectedLocations(sel);
       setRates(initRates);
       if (mats.size === 2) setMaterialMode('Both');
       else if (mats.size === 1) setMaterialMode(Array.from(mats)[0]);
@@ -97,13 +96,8 @@ export default function TransportConfig() {
     loadData();
   }, []);
 
-  const toggleLocationCheckbox = (material, location) => {
-    const key = `${material}::${location}`;
-    setSelectedLocations((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const setRateValue = (material, location, value) => {
-    const key = `${material}::${location}`;
+  const setRateValue = (material, location, variantName, value) => {
+    const key = `${material}::${location}::${variantName}`;
     setRates((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -111,21 +105,23 @@ export default function TransportConfig() {
     const configs = [];
     for (const material of visibleMaterials) {
       for (const loc of materialLocations[material] || []) {
-        const key = `${material}::${loc}`;
-        if (!selectedLocations[key]) continue;
+        for (const variantName of dumperVariants[material] || []) {
+          const key = `${material}::${loc}::${variantName}`;
+          const rateStr = rates[key];
+          if (!rateStr) continue; // Not every Location x Variant needs a rate -- only filled ones save.
 
-        const rateStr = rates[key];
-        const rate = Number(rateStr);
-        if (!rateStr || Number.isNaN(rate) || rate <= 0) {
-          toast.error(`Please enter a valid rate for ${material} → ${loc}`);
-          return;
+          const rate = Number(rateStr);
+          if (Number.isNaN(rate) || rate <= 0) {
+            toast.error(`Please enter a valid rate for ${material} → ${loc} → ${variantName}`);
+            return;
+          }
+          configs.push({ material, locationName: loc, variantName, ratePerKm: rate });
         }
-        configs.push({ material, locationName: loc, ratePerKm: rate });
       }
     }
 
     if (configs.length === 0) {
-      toast.error('Please select at least one location and set its rate.');
+      toast.error('Please set at least one rate.');
       return;
     }
 
@@ -144,7 +140,7 @@ export default function TransportConfig() {
   const handleToggle = async (config) => {
     try {
       await dealerTransportService.toggleConfig(config._id);
-      toast.success(`${config.material} → ${config.locationName} is now ${config.isActive ? 'disabled' : 'active'}.`);
+      toast.success(`${config.material} → ${config.locationName} → ${config.variantName} is now ${config.isActive ? 'disabled' : 'active'}.`);
       await loadData();
     } catch (err) {
       toast.error(err.message || 'Failed to update status');
@@ -306,61 +302,66 @@ export default function TransportConfig() {
           </div>
         </div>
 
-        {/* Step 2 & 3: Location + Rate per material */}
+        {/* Step 2 & 3: Location + Grain/Spec + Rate per material */}
         {visibleMaterials.map((material) => {
           const locations = materialLocations[material] || [];
+          const variants = dumperVariants[material] || [];
           return (
             <div key={material} className="space-y-3 pt-2 border-t border-slate-100">
               <h3 className="text-xs font-bold text-amber-600 uppercase tracking-widest flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
-                <span>Step 2 &amp; 3 &mdash; {material} Locations &amp; Rate / KM</span>
+                <span>
+                  Step 2 &amp; 3 &mdash; {material} Locations &amp; Rate / KM
+                  {material === 'Aggregate' ? ' (per Grain Size)' : ' (per Processing Specification)'}
+                </span>
               </h3>
+              <p className="text-[11px] text-slate-500">
+                Set a different Rate/KM per {material === 'Aggregate' ? 'grain size' : 'processing specification'} at
+                each location if your pricing varies &mdash; leave any box blank to skip it.
+              </p>
 
               {locations.length === 0 ? (
                 <div className="text-xs text-slate-500 p-4 bg-slate-50 rounded-xl border border-slate-200">
                   No active {material} sourcing locations are configured by Admin yet.
                 </div>
+              ) : variants.length === 0 ? (
+                <div className="text-xs text-slate-500 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                  No active {material === 'Aggregate' ? 'grain sizes' : 'processing specifications'} are configured by
+                  Admin yet for Dumper.
+                </div>
               ) : (
-                <div className="space-y-2.5">
-                  {locations.map((loc) => {
-                    const key = `${material}::${loc}`;
-                    const checked = !!selectedLocations[key];
-                    return (
-                      <div
-                        key={loc}
-                        className={`p-3.5 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center gap-3 ${
-                          checked ? 'border-amber-300 bg-amber-50/50' : 'border-slate-200 bg-slate-50'
-                        }`}
-                      >
-                        <label className="flex items-center gap-3 cursor-pointer flex-1 min-w-0">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleLocationCheckbox(material, loc)}
-                            className="w-4 h-4 rounded accent-amber-500 shrink-0"
-                          />
-                          <span className="text-sm font-bold text-slate-900 truncate">{loc}</span>
-                        </label>
-
-                        {checked && (
-                          <div className="relative w-full sm:w-40 shrink-0">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                              <IndianRupee className="w-3.5 h-3.5" />
+                <div className="space-y-3">
+                  {locations.map((loc) => (
+                    <div key={loc} className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 space-y-2.5">
+                      <div className="text-sm font-bold text-slate-900">{loc}</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {variants.map((variantName) => {
+                          const key = `${material}::${loc}::${variantName}`;
+                          return (
+                            <div key={variantName} className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">
+                                {variantName}
+                              </label>
+                              <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                  <IndianRupee className="w-3.5 h-3.5" />
+                                </div>
+                                <input
+                                  type="number"
+                                  min="0.01"
+                                  step="0.01"
+                                  placeholder="Rate / KM"
+                                  value={rates[key] || ''}
+                                  onChange={(e) => setRateValue(material, loc, variantName, e.target.value)}
+                                  className="w-full pl-8 pr-3 py-2 rounded-xl bg-white border border-slate-200 text-sm text-slate-900 font-mono focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 min-h-[40px]"
+                                />
+                              </div>
                             </div>
-                            <input
-                              type="number"
-                              min="0.01"
-                              step="0.01"
-                              placeholder="Rate / KM"
-                              value={rates[key] || ''}
-                              onChange={(e) => setRateValue(material, loc, e.target.value)}
-                              className="w-full pl-8 pr-3 py-2 rounded-xl bg-white border border-slate-200 text-sm text-slate-900 font-mono focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 min-h-[40px]"
-                            />
-                          </div>
-                        )}
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -484,7 +485,7 @@ export default function TransportConfig() {
         title="Delete Transport Rate?"
         message={
           deleteTarget
-            ? `This will permanently remove your rate for ${deleteTarget.material} → ${deleteTarget.locationName}. Existing orders keep their own price snapshot. This cannot be undone.`
+            ? `This will permanently remove your rate for ${deleteTarget.material} → ${deleteTarget.locationName} → ${deleteTarget.variantName}. Existing orders keep their own price snapshot. This cannot be undone.`
             : ''
         }
         confirmText="Delete"
@@ -518,7 +519,9 @@ function ConfigRow({ config, onToggle, onDelete }) {
           <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
         )}
         <div className="min-w-0">
-          <div className="text-sm font-bold text-slate-900 truncate">{config.locationName}</div>
+          <div className="text-sm font-bold text-slate-900 truncate">
+            {config.locationName} <span className="text-slate-400 font-normal">&middot; {config.variantName}</span>
+          </div>
           <div className={`text-[11px] font-mono ${config.isActive ? 'text-emerald-600' : 'text-slate-400'}`}>
             {config.isActive ? 'Active' : 'Disabled'}
           </div>

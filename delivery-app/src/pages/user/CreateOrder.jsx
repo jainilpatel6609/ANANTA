@@ -697,9 +697,13 @@ export default function CreateOrder() {
         locationName: sourcingLocationName,
         lat: useCoords.lat,
         lng: useCoords.lng,
-        // Dumper bookings only list dealers with a currently-available dumper of this wheel type
-        ...(selectedVehicleType === 'DUMPER' && selectedCapacity?.wheelCount
-          ? { wheelCount: selectedCapacity.wheelCount }
+        // Dumper bookings only list dealers with a currently-available dumper of this wheel type,
+        // and who've set their own rate for this Material + Location + grain/processing-spec.
+        ...(selectedVehicleType === 'DUMPER'
+          ? {
+              ...(selectedCapacity?.wheelCount ? { wheelCount: selectedCapacity.wheelCount } : {}),
+              variantName: isAggregate ? selectedAggregateType : selectedOptionName
+            }
           : {}),
         // Tractor bookings only list dealers who've set their own rate for this Material +
         // Location/Grain + Patiya type.
@@ -1123,7 +1127,6 @@ export default function CreateOrder() {
                   ? selectedMaterial.aggregateTypes
                   : ['20mm', '10mm', '6mm', 'Refo Dust', 'Metal 40×63', 'Rubble']
                 )
-                  .filter((grain) => ['20mm', '10mm'].includes(grain))
                   .map((grain) => {
                   const isSelected = selectedAggregateType === grain;
                   return (
@@ -1265,7 +1268,6 @@ export default function CreateOrder() {
                     ? selectedMaterial.aggregateTypes
                     : ['20mm', '10mm', '6mm', 'Refo Dust', 'Metal 40×63', 'Rubble']
                   )
-                    .filter((grain) => ['20mm', '10mm'].includes(grain))
                     .map((grain) => {
                     const isSelected = selectedAggregateType === grain;
 

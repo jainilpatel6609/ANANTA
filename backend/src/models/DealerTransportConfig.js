@@ -19,6 +19,14 @@ const dealerTransportConfigSchema = new mongoose.Schema(
       required: [true, 'Sourcing location is required'],
       trim: true
     },
+    // The admin-defined grain size (Aggregate) or processing specification (Sand) this rate
+    // applies to -- a dealer can quote a different Rate/KM per variant at the same Location,
+    // mirroring how DealerTractorRate already varies by variantName.
+    variantName: {
+      type: String,
+      required: [true, 'Grain size / processing specification is required'],
+      trim: true
+    },
     ratePerKm: {
       type: Number,
       required: [true, 'Rate per KM is required'],
@@ -35,7 +43,7 @@ const dealerTransportConfigSchema = new mongoose.Schema(
   }
 );
 
-// A dealer can only have one rate configured per Material + Location combination
-dealerTransportConfigSchema.index({ dealerId: 1, material: 1, locationName: 1 }, { unique: true });
+// A dealer can only have one rate configured per Material + Location + Variant combination
+dealerTransportConfigSchema.index({ dealerId: 1, material: 1, locationName: 1, variantName: 1 }, { unique: true });
 
 module.exports = mongoose.model('DealerTransportConfig', dealerTransportConfigSchema);

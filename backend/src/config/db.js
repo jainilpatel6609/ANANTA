@@ -106,6 +106,15 @@ const connectDB = async () => {
       console.warn(`[ANANTA TRADERS] DealerTractorRate index sync note: ${indexErr.message}`);
     }
 
+    // Same situation for DealerTransportConfig: unique index changed shape
+    // (dealerId+material+locationName -> dealerId+material+locationName+variantName) when Dumper
+    // rates became grain/spec-aware, matching Tractor rates.
+    try {
+      await require('../models/DealerTransportConfig').syncIndexes();
+    } catch (indexErr) {
+      console.warn(`[ANANTA TRADERS] DealerTransportConfig index sync note: ${indexErr.message}`);
+    }
+
     return conn;
   } catch (error) {
     console.error(`[ANANTA TRADERS] Database Connection Error: ${error.message}`);

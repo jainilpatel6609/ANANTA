@@ -1,6 +1,8 @@
 const DealerTransportConfig = require('../models/DealerTransportConfig');
 const DealerTractorRate = require('../models/DealerTractorRate');
 const Location = require('../models/Location');
+const VehicleConfig = require('../models/VehicleConfig');
+const Product = require('../models/Product');
 const PincodeService = require('../services/pincodeService');
 const RoadDistanceService = require('../services/roadDistanceService');
 const { generateDealerCode } = require('../utils/dealerCode');
@@ -44,6 +46,38 @@ const getMaterialLocations = async (req, res) => {
   }
 };
 
+// @desc    Get the Dumper-specific "variant" options per material -- Sand's processing
+//          specification (VehicleConfig.optionName, DUMPER-scoped: "Filter Sand", "Without
+//          Filter", "Choliyu") and Aggregate's grain size (Product.dumperAggregateTypes /
+//          aggregateTypes). Used by the dealer's Transport Configuration form so a Dumper rate
+//          can vary by variant at the same Location, the same way Tractor rates already do.
+// @route   GET /api/dealer-transport/dumper-variants
+// @access  Private (Dealer, Admin)
+const getDumperVariants = async (req, res) => {
+  try {
+    const sandConfigs = await VehicleConfig.find({ vehicleType: 'DUMPER', isActive: true }).sort({ displayOrder: 1, optionName: 1 });
+    const sandVariants = [];
+    for (const c of sandConfigs) {
+      if (!sandVariants.includes(c.optionName)) sandVariants.push(c.optionName);
+    }
+
+    const aggregateProducts = await Product.find({ category: 'Aggregate', isActive: true });
+    const aggregateVariants = [];
+    for (const p of aggregateProducts) {
+      const types = p.dumperAggregateTypes?.length ? p.dumperAggregateTypes : p.aggregateTypes || [];
+      for (const t of types) {
+        if (!aggregateVariants.includes(t)) aggregateVariants.push(t);
+      }
+    }
+
+    return successResponse(res, 'Dumper variant options retrieved successfully.', {
+      variants: { Sand: sandVariants, Aggregate: aggregateVariants }
+    });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+};
+
 // @desc    Get the logged-in dealer's own transport rate configuration
 // @route   GET /api/dealer-transport/my-configs
 // @access  Private (Dealer)
@@ -59,7 +93,7 @@ const getMyConfigs = async (req, res) => {
   }
 };
 
-// @desc    Create or update the dealer's own rate for one or more Material+Location
+// @desc    Create or update the dealer's own rate for one or more Material+Location+Variant
 //          combinations in a single save. A dealer can never touch another dealer's rates
 //          because dealerId always comes from the authenticated JWT, never the request body.
 // @route   POST /api/dealer-transport/my-configs
@@ -69,7 +103,7 @@ const bulkSaveConfigs = async (req, res) => {
     const { configs } = req.body;
 
     if (!Array.isArray(configs) || configs.length === 0) {
-      return errorResponse(res, 'At least one Material + Location rate is required.', 400);
+      return errorResponse(res, 'At least one Material + Location + Variant rate is required.', 400);
     }
 
     // Validate every row before writing anything, so a partial/incomplete configuration never saves.
@@ -78,6 +112,7 @@ const bulkSaveConfigs = async (req, res) => {
     for (const row of configs) {
       const material = row?.material;
       const locationName = String(row?.locationName || '').trim();
+      const variantName = String(row?.variantName || '').trim();
       const rate = Number(row?.ratePerKm);
 
       if (!MATERIALS.includes(material)) {
@@ -86,13 +121,16 @@ const bulkSaveConfigs = async (req, res) => {
       if (!locationName) {
         return errorResponse(res, 'Location is required for every rate row.', 400);
       }
+      if (!variantName) {
+        return errorResponse(res, 'Grain size / processing specification is required for every rate row.', 400);
+      }
       if (Number.isNaN(rate) || rate <= 0) {
-        return errorResponse(res, `Rate per KM for ${material} → ${locationName} must be a valid positive number.`, 400);
+        return errorResponse(res, `Rate per KM for ${material} → ${locationName} → ${variantName} must be a valid positive number.`, 400);
       }
 
-      const dedupeKey = `${material}::${locationName.toLowerCase()}`;
+      const dedupeKey = `${material}::${locationName.toLowerCase()}::${variantName.toLowerCase()}`;
       if (seen.has(dedupeKey)) {
-        return errorResponse(res, `Duplicate configuration for ${material} → ${locationName}.`, 400);
+        return errorResponse(res, `Duplicate configuration for ${material} → ${locationName} → ${variantName}.`, 400);
       }
       seen.add(dedupeKey);
 
@@ -105,13 +143,36 @@ const bulkSaveConfigs = async (req, res) => {
         return errorResponse(res, `"${locationName}" is not a valid active ${material} sourcing location.`, 400);
       }
 
-      cleaned.push({ material, locationName, ratePerKm: rate });
+      if (material === 'Sand') {
+        const variantExists = await VehicleConfig.exists({
+          vehicleType: 'DUMPER',
+          optionName: { $regex: `^${variantName}$`, $options: 'i' },
+          isActive: true
+        });
+        if (!variantExists) {
+          return errorResponse(res, `"${variantName}" is not a valid active Sand processing specification.`, 400);
+        }
+      } else {
+        const matchingProduct = await Product.exists({
+          category: 'Aggregate',
+          isActive: true,
+          $or: [
+            { dumperAggregateTypes: { $regex: `^${variantName}$`, $options: 'i' } },
+            { aggregateTypes: { $regex: `^${variantName}$`, $options: 'i' } }
+          ]
+        });
+        if (!matchingProduct) {
+          return errorResponse(res, `"${variantName}" is not a valid active Aggregate grain.`, 400);
+        }
+      }
+
+      cleaned.push({ material, locationName, variantName, ratePerKm: rate });
     }
 
     const saved = await Promise.all(
       cleaned.map((row) =>
         DealerTransportConfig.findOneAndUpdate(
-          { dealerId: req.user._id, material: row.material, locationName: row.locationName },
+          { dealerId: req.user._id, material: row.material, locationName: row.locationName, variantName: row.variantName },
           { $set: { ratePerKm: row.ratePerKm, isActive: true } },
           { upsert: true, new: true, setDefaultsOnInsert: true }
         )
@@ -122,7 +183,7 @@ const bulkSaveConfigs = async (req, res) => {
       dealerId: req.user._id,
       category: 'TRANSPORT_RATE',
       action: 'Saved transport rates',
-      description: `Saved rate/KM for: ${cleaned.map((c) => `${c.material} → ${c.locationName} (₹${c.ratePerKm}/km)`).join(', ')}.`,
+      description: `Saved rate/KM for: ${cleaned.map((c) => `${c.material} → ${c.locationName} → ${c.variantName} (₹${c.ratePerKm}/km)`).join(', ')}.`,
       actor: req.user
     });
 
@@ -148,11 +209,11 @@ const toggleMyConfig = async (req, res) => {
       dealerId: req.user._id,
       category: 'TRANSPORT_RATE',
       action: 'Changed rate status',
-      description: `Rate for ${config.material} → ${config.locationName} is now ${config.isActive ? 'active' : 'disabled'}.`,
+      description: `Rate for ${config.material} → ${config.locationName} → ${config.variantName} is now ${config.isActive ? 'active' : 'disabled'}.`,
       actor: req.user
     });
 
-    return successResponse(res, `Configuration for ${config.material} → ${config.locationName} is now ${config.isActive ? 'active' : 'disabled'}.`, { config });
+    return successResponse(res, `Configuration for ${config.material} → ${config.locationName} → ${config.variantName} is now ${config.isActive ? 'active' : 'disabled'}.`, { config });
   } catch (error) {
     return errorResponse(res, error.message, 500);
   }
@@ -173,7 +234,7 @@ const deleteMyConfig = async (req, res) => {
       dealerId: req.user._id,
       category: 'TRANSPORT_RATE',
       action: 'Deleted transport rate',
-      description: `Deleted rate for ${config.material} → ${config.locationName}.`,
+      description: `Deleted rate for ${config.material} → ${config.locationName} → ${config.variantName}.`,
       actor: req.user
     });
 
@@ -195,7 +256,7 @@ const deleteMyConfig = async (req, res) => {
 // @access  Public / Customer
 const getEligibleDealers = async (req, res) => {
   try {
-    const { material, locationName, lat, lng, wheelCount, tractorType, grainName } = req.query;
+    const { material, locationName, lat, lng, wheelCount, tractorType, grainName, variantName } = req.query;
 
     if (!MATERIALS.includes(material)) {
       return errorResponse(res, 'A valid material (Sand or Aggregate) is required.', 400);
@@ -273,7 +334,19 @@ const getEligibleDealers = async (req, res) => {
       return successResponse(res, 'Eligible dealers retrieved successfully.', { dealers });
     }
 
-    const configFilter = { material, isActive: true };
+    if (!variantName) {
+      return errorResponse(
+        res,
+        `A variantName (${material === 'Aggregate' ? 'grain size' : 'processing specification'}) is required for Dumper bookings.`,
+        400
+      );
+    }
+
+    const configFilter = {
+      material,
+      isActive: true,
+      variantName: { $regex: `^${String(variantName).trim()}$`, $options: 'i' }
+    };
     if (locationName) {
       configFilter.locationName = { $regex: `^${String(locationName).trim()}$`, $options: 'i' };
     }
@@ -448,6 +521,7 @@ const adminToggleConfig = async (req, res) => {
 
 module.exports = {
   getMaterialLocations,
+  getDumperVariants,
   getMyConfigs,
   bulkSaveConfigs,
   toggleMyConfig,

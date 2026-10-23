@@ -352,16 +352,20 @@ const createOrder = async (req, res) => {
       }
 
       if (transportMaterial && finalLocationName) {
+        // Dumper rates vary by grain size (Aggregate) / processing specification (Sand) the same
+        // way Tractor rates already do -- see dumperVariant below.
+        const dumperVariant = transportMaterial === 'Aggregate' ? aggregateType : optionName;
         const config = await DealerTransportConfig.findOne({
           dealerId: selectedDealer._id,
           material: transportMaterial,
           locationName: { $regex: `^${finalLocationName}$`, $options: 'i' },
+          variantName: { $regex: `^${String(dumperVariant || '').trim()}$`, $options: 'i' },
           isActive: true
         });
         if (!config) {
           return errorResponse(
             res,
-            `${selectedDealer.companyName || selectedDealer.name} no longer offers transport for ${transportMaterial} from ${finalLocationName}. Please go back and select another dealer.`,
+            `${selectedDealer.companyName || selectedDealer.name} no longer offers transport for ${transportMaterial} (${dumperVariant}) from ${finalLocationName}. Please go back and select another dealer.`,
             400
           );
         }
@@ -389,10 +393,12 @@ const createOrder = async (req, res) => {
       nearestDealer = selectedDealer;
     } else {
       let eligibleConfigs = [];
+      const dumperVariant = transportMaterial === 'Aggregate' ? aggregateType : optionName;
       if (transportMaterial && finalLocationName) {
         const configs = await DealerTransportConfig.find({
           material: transportMaterial,
           locationName: { $regex: `^${finalLocationName}$`, $options: 'i' },
+          variantName: { $regex: `^${String(dumperVariant || '').trim()}$`, $options: 'i' },
           isActive: true
         }).populate({
           path: 'dealerId',

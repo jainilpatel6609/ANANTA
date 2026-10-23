@@ -10,6 +10,7 @@ router.get('/eligible-dealers', dealerTransportController.getEligibleDealers);
 // Dealer self-service endpoints (a dealer can only ever read/modify their own rates,
 // since dealerId is always taken from the authenticated JWT, never the request body/params)
 router.get('/material-locations', authenticateToken, authorizeRoles('DEALER'), dealerTransportController.getMaterialLocations);
+router.get('/dumper-variants', authenticateToken, authorizeRoles('DEALER'), dealerTransportController.getDumperVariants);
 router.get('/my-configs', authenticateToken, authorizeRoles('DEALER'), dealerTransportController.getMyConfigs);
 router.post('/my-configs', authenticateToken, authorizeRoles('DEALER'), dealerTransportController.bulkSaveConfigs);
 router.patch('/my-configs/:id/toggle', authenticateToken, authorizeRoles('DEALER'), dealerTransportController.toggleMyConfig);

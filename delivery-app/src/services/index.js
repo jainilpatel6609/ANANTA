@@ -188,6 +188,7 @@ export const pincodeService = {
 
 export const dealerTransportService = {
   getMaterialLocations: (params) => api.get('/dealer-transport/material-locations', { params }),
+  getDumperVariants: () => api.get('/dealer-transport/dumper-variants'),
   getMyConfigs: () => api.get('/dealer-transport/my-configs'),
   bulkSave: (configs) => api.post('/dealer-transport/my-configs', { configs }),
   toggleConfig: (id) => api.patch(`/dealer-transport/my-configs/${id}/toggle`),
