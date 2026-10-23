@@ -781,9 +781,9 @@ export default function CreateOrder() {
       };
 
       const res = await orderService.create(payload);
-      const { order, razorpayOrder, keyId } = res.data;
+      const { order, paymentGateway, razorpayOrder, keyId, iciciRedirectUrl } = res.data;
       setCreatedOrder(order);
-      setRazorpayData({ razorpayOrder, keyId });
+      setRazorpayData({ paymentGateway, razorpayOrder, keyId, iciciRedirectUrl });
 
       // Open Interactive Payment & Demo Mode Confirmation Modal -- no toast here, since the
       // order isn't placed yet; the modal itself is the only signal until payment completes.
@@ -863,6 +863,18 @@ export default function CreateOrder() {
 
     const rzp = new window.Razorpay(options);
     rzp.open();
+  };
+
+  // ICICI Orange PG -- a server redirect flow, not an in-page SDK modal: the whole browser
+  // navigates to ICICI's hosted payment page, and ICICI redirects back to our backend's
+  // returnURL once the customer completes (or abandons) payment, which then redirects into
+  // this app's invoice page.
+  const handleIciciCheckout = () => {
+    if (!razorpayData?.iciciRedirectUrl) {
+      toast.error('Payment could not be initialized. Please try again.');
+      return;
+    }
+    window.location.href = razorpayData.iciciRedirectUrl;
   };
 
   if (loading) {
@@ -2158,7 +2170,20 @@ export default function CreateOrder() {
               </button>
             </div>
 
-            {/* RAZORPAY GATEWAY CHECKOUT (OPTIONAL) */}
+            {/* LIVE GATEWAY CHECKOUT (OPTIONAL) -- ICICI Orange PG or Razorpay, whichever is active */}
+            {razorpayData?.paymentGateway === 'ICICI' && razorpayData?.iciciRedirectUrl && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  disabled={paymentProcessing}
+                  onClick={handleIciciCheckout}
+                  className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-bold text-slate-800 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <CreditCard className="w-4 h-4 text-amber-600" />
+                  <span>Pay with ICICI Bank (Live / UAT)</span>
+                </button>
+              </div>
+            )}
             {window.Razorpay && razorpayData?.razorpayOrder && (
               <div className="pt-1">
                 <button

@@ -241,6 +241,13 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: ''
     },
+    // ICICI Orange PG equivalent of razorpayOrderId above -- kept as a separate field (not a
+    // rename) so both gateways' code paths can coexist without collision; whichever gateway is
+    // active (see PAYMENT_GATEWAY env) is the only one that ever writes to its own field.
+    iciciMerchantTxnNo: {
+      type: String,
+      default: ''
+    },
     invoiceNumber: {
       type: String,
       default: ''
@@ -364,6 +371,11 @@ const orderSchema = new mongoose.Schema(
       default: ''
     },
     finalRazorpayOrderId: {
+      type: String,
+      default: ''
+    },
+    // ICICI Orange PG equivalent of finalRazorpayOrderId above (see iciciMerchantTxnNo note).
+    finalIciciMerchantTxnNo: {
       type: String,
       default: ''
     },

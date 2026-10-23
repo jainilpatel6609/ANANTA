@@ -13,6 +13,14 @@ module.exports = {
   CLIENT_URLS: (process.env.CLIENT_URLS || process.env.CLIENT_URL || 'http://localhost:3000,http://localhost:3001,http://localhost:5173,http://localhost:5174').split(',').map((s) => s.trim()),
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || 'rzp_test_mock_key',
   RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || 'rzp_test_mock_secret',
+
+  // Active payment gateway switch -- ICICI | RAZORPAY. Razorpay's own code/config above is
+  // left fully intact so flipping this back is a one-line rollback, not a redeploy of old code.
+  PAYMENT_GATEWAY: (process.env.PAYMENT_GATEWAY || 'ICICI').toUpperCase(),
+  ICICI_BASE_URL: process.env.ICICI_BASE_URL || 'https://pgpayuat.icicibank.com',
+  ICICI_MERCHANT_ID: process.env.ICICI_MERCHANT_ID || '',
+  ICICI_AGGREGATOR_ID: process.env.ICICI_AGGREGATOR_ID || '',
+  ICICI_SECRET_KEY: process.env.ICICI_SECRET_KEY || '',
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || '',
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || '',
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || '',

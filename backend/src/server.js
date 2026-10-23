@@ -5,7 +5,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
 require('dotenv').config();
-const { PORT, CLIENT_URL, NODE_ENV } = require('./config/env');
+const { PORT, CLIENT_URL, NODE_ENV, PAYMENT_GATEWAY } = require('./config/env');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -125,6 +125,7 @@ app.use(errorHandler);
 const http = require('http');
 const { initSocket } = require('./sockets/socket');
 const EscalationScheduler = require('./services/escalationScheduler');
+const IciciStatusPoller = require('./services/iciciStatusPoller');
 
 const server = http.createServer(app);
 initSocket(server);
@@ -141,6 +142,11 @@ if (process.env.NODE_ENV !== 'test') {
     
     // Start background 15-minute dealer response SLA timeout monitor
     EscalationScheduler.start(30000);
+
+    // ICICI stuck-transaction status poller -- only relevant while ICICI is the active gateway.
+    if (PAYMENT_GATEWAY === 'ICICI') {
+      IciciStatusPoller.start(60000);
+    }
   });
 }
 

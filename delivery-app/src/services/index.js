@@ -124,7 +124,8 @@ export const paymentService = {
   devConfirm: (orderId) => api.post('/payments/dev-confirm', { orderId }),
   devConfirmPayment: (orderId) => api.post('/payments/dev-confirm', { orderId }),
   verifyFinal: (data) => api.post('/payments/verify-final', data),
-  devConfirmFinal: (orderId) => api.post('/payments/dev-confirm-final', { orderId })
+  devConfirmFinal: (orderId) => api.post('/payments/dev-confirm-final', { orderId }),
+  initiateIciciFinal: (orderId) => api.post(`/payments/icici/initiate-final/${orderId}`)
 };
 
 export const dealerService = {

@@ -185,6 +185,23 @@ export default function OrderDetails() {
     rzp.open();
   };
 
+  const handleIciciFinalCheckout = async () => {
+    setPayingFinal(true);
+    try {
+      const res = await paymentService.initiateIciciFinal(order._id);
+      const { iciciRedirectUrl } = res.data;
+      if (!iciciRedirectUrl) {
+        toast.error('Payment could not be initialized. Please try again.');
+        setPayingFinal(false);
+        return;
+      }
+      window.location.href = iciciRedirectUrl;
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to initialize final payment.');
+      setPayingFinal(false);
+    }
+  };
+
   const copyOtpToClipboard = (otp) => {
     if (!otp) return;
     navigator.clipboard.writeText(otp);
@@ -608,6 +625,18 @@ export default function OrderDetails() {
                   {payingFinal ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
                   <span>Confirm & Pay (Demo Mode)</span>
                 </button>
+
+                {!order.finalRazorpayOrderId && (
+                  <button
+                    type="button"
+                    disabled={payingFinal}
+                    onClick={handleIciciFinalCheckout}
+                    className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-amber-400 font-bold text-xs shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {payingFinal ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                    <span>Pay with ICICI Bank (Live / UAT)</span>
+                  </button>
+                )}
 
                 {window.Razorpay && order.finalRazorpayOrderId && (
                   <button

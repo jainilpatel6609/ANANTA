@@ -7,15 +7,18 @@ const User = require('../models/User');
 const Driver = require('../models/Driver');
 const DealerTransportConfig = require('../models/DealerTransportConfig');
 const DealerTractorRate = require('../models/DealerTractorRate');
+const IciciTransaction = require('../models/IciciTransaction');
 const { generateOrderNumber } = require('../utils/orderNumber');
 const { generateDealerCode } = require('../utils/dealerCode');
 const { findConflictingActiveOrder } = require('../utils/driverAvailability');
 const { claimDumperForOrder, releaseDumperForOrder } = require('../utils/dumperAvailability');
 const RazorpayService = require('../services/razorpayService');
+const IciciPaymentService = require('../services/iciciPaymentService');
 const NotificationService = require('../services/notificationService');
 const PincodeService = require('../services/pincodeService');
 const RoadDistanceService = require('../services/roadDistanceService');
 const SmsService = require('../services/smsService');
+const { PAYMENT_GATEWAY } = require('../config/env');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
 const { emitOrderAccepted, emitOrderStatusUpdate } = require('../sockets/socket');
 const { ensureProductTractorPrices } = require('../utils/tractorPricing');
@@ -493,9 +496,36 @@ const createOrder = async (req, res) => {
 
     const totalAmount = subtotal + deliveryCharge + tax;
 
-    // 8. Generate human-readable unique order number & Initialize Razorpay order
+    // 8. Generate human-readable unique order number & initiate payment with the active gateway
     const orderNumber = await generateOrderNumber();
-    const rzpOrder = await RazorpayService.createOrder(totalAmount, orderNumber);
+
+    let rzpOrder = null;
+    let iciciMerchantTxnNo = '';
+    let iciciRedirectUrl = '';
+    let iciciInitiateRequest = null;
+    let iciciInitiateResponse = null;
+    if (PAYMENT_GATEWAY === 'ICICI') {
+      iciciMerchantTxnNo = IciciPaymentService.generateMerchantTxnNo();
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const returnURL = `${protocol}://${req.get('host')}/api/payments/icici/callback`;
+      const iciciResult = await IciciPaymentService.initiateSale({
+        merchantTxnNo: iciciMerchantTxnNo,
+        amount: totalAmount,
+        customerEmailID: req.user?.email,
+        customerMobileNo: structuredDetails.mobile,
+        customerName: structuredDetails.fullName,
+        returnURL,
+        addlParam1: orderNumber
+      });
+      iciciInitiateRequest = iciciResult.request;
+      iciciInitiateResponse = iciciResult.response;
+      if (iciciInitiateResponse.responseCode !== 'R1000' || !iciciInitiateResponse.redirectURI) {
+        return errorResponse(res, iciciInitiateResponse.respDescription || 'Unable to initiate payment with ICICI. Please try again.', 502);
+      }
+      iciciRedirectUrl = iciciInitiateResponse.redirectURI;
+    } else {
+      rzpOrder = await RazorpayService.createOrder(totalAmount, orderNumber);
+    }
 
     // 9. Save Order to Database with immutable snapshots & assigned nearest dealer
     const assignedAt = new Date();
@@ -574,11 +604,23 @@ const createOrder = async (req, res) => {
       deliveryDate,
       deliveryInstructions: deliveryInstructions || '',
       paymentStatus: 'PENDING',
-      razorpayOrderId: rzpOrder.id,
+      razorpayOrderId: rzpOrder ? rzpOrder.id : '',
+      iciciMerchantTxnNo,
       invoiceNumber: `AN/SL/26-27/${orderNumber.replace(/^[^\d]*/, '')}`,
       invoiceDate: new Date(),
       orderStatus: 'PENDING_PAYMENT'
     });
+
+    if (PAYMENT_GATEWAY === 'ICICI') {
+      await IciciTransaction.create({
+        orderId: order._id,
+        paymentPurpose: 'UPFRONT',
+        merchantTxnNo: iciciMerchantTxnNo,
+        amount: totalAmount,
+        rawInitiateRequest: iciciInitiateRequest,
+        rawInitiateResponse: iciciInitiateResponse
+      });
+    }
 
     // Notify user order created
     await NotificationService.send({
@@ -604,8 +646,9 @@ const createOrder = async (req, res) => {
               distanceKm
             }
           : null,
-        razorpayOrder: rzpOrder,
-        keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_mock_key'
+        ...(PAYMENT_GATEWAY === 'ICICI'
+          ? { paymentGateway: 'ICICI', iciciRedirectUrl }
+          : { paymentGateway: 'RAZORPAY', razorpayOrder: rzpOrder, keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_mock_key' })
       },
       201
     );
@@ -1370,12 +1413,22 @@ const enterTotalWeight = async (req, res) => {
     }
 
     const finalPaymentAmount = Math.round(weight * order.pricePerTonSnapshot * 100) / 100;
-    const rzpOrder = await RazorpayService.createOrder(finalPaymentAmount, `${order.orderNumber}-FINAL`);
+
+    // Note: unlike Razorpay's order_id (durable, reusable across checkout attempts), ICICI's
+    // redirectURI is tied to a time-boxed transaction context. This endpoint is called by the
+    // DEALER (entering the weighed tonnage) whose UI discards the response, not by the customer
+    // who actually pays -- so for ICICI, nothing is initiated here. The customer's own browser
+    // lazily initiates a fresh ICICI transaction on demand via POST /api/payments/icici/initiate-final/:orderId
+    // right when they click "Pay", instead of reusing a possibly-stale URL generated earlier.
+    let rzpOrder = null;
+    if (PAYMENT_GATEWAY !== 'ICICI') {
+      rzpOrder = await RazorpayService.createOrder(finalPaymentAmount, `${order.orderNumber}-FINAL`);
+      order.finalRazorpayOrderId = rzpOrder.id;
+    }
 
     order.totalWeight = weight;
     order.weightEnteredAt = new Date();
     order.finalPaymentAmount = finalPaymentAmount;
-    order.finalRazorpayOrderId = rzpOrder.id;
     order.fulfillmentStage = 'WEIGHT_ENTERED';
     await order.save();
 
@@ -1391,8 +1444,9 @@ const enterTotalWeight = async (req, res) => {
 
     return successResponse(res, 'Total Weight recorded and final payment initialized.', {
       order,
-      razorpayOrder: rzpOrder,
-      keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_mock_key'
+      ...(PAYMENT_GATEWAY === 'ICICI'
+        ? { paymentGateway: 'ICICI' }
+        : { paymentGateway: 'RAZORPAY', razorpayOrder: rzpOrder, keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_mock_key' })
     });
   } catch (error) {
     return errorResponse(res, error.message, 500);
