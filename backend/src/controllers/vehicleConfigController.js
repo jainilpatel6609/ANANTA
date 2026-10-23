@@ -188,20 +188,36 @@ const toggleVehicleConfig = async (req, res) => {
   }
 };
 
-// @desc    Update vehicle visibility settings (Dumper ON/OFF, Tractor ON/OFF)
+// @desc    Update vehicle visibility settings (Dumper ON/OFF, Tractor ON/OFF) and the flat
+//          platform service charge added on top of each dealer's own rate.
 // @route   PATCH /api/vehicle-configs/admin/settings
 // @access  Private (Admin)
 const updateVehicleSettings = async (req, res) => {
   try {
-    const { dumperEnabled, tractorEnabled } = req.body;
+    const { dumperEnabled, tractorEnabled, dumperServiceCharge, tractorServiceCharge } = req.body;
     const settings = await VehicleSetting.getSettings();
 
     if (dumperEnabled !== undefined) settings.dumperEnabled = Boolean(dumperEnabled);
     if (tractorEnabled !== undefined) settings.tractorEnabled = Boolean(tractorEnabled);
 
+    if (dumperServiceCharge !== undefined) {
+      const charge = Number(dumperServiceCharge);
+      if (Number.isNaN(charge) || charge < 0) {
+        return errorResponse(res, 'Dumper service charge must be a valid non-negative number.', 400);
+      }
+      settings.dumperServiceCharge = charge;
+    }
+    if (tractorServiceCharge !== undefined) {
+      const charge = Number(tractorServiceCharge);
+      if (Number.isNaN(charge) || charge < 0) {
+        return errorResponse(res, 'Tractor service charge must be a valid non-negative number.', 400);
+      }
+      settings.tractorServiceCharge = charge;
+    }
+
     await settings.save();
 
-    return successResponse(res, 'Vehicle visibility settings updated successfully.', { settings });
+    return successResponse(res, 'Vehicle settings updated successfully.', { settings });
   } catch (error) {
     return errorResponse(res, error.message, 500);
   }

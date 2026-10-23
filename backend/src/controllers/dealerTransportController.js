@@ -3,6 +3,7 @@ const DealerTractorRate = require('../models/DealerTractorRate');
 const Location = require('../models/Location');
 const VehicleConfig = require('../models/VehicleConfig');
 const Product = require('../models/Product');
+const VehicleSetting = require('../models/VehicleSetting');
 const PincodeService = require('../services/pincodeService');
 const RoadDistanceService = require('../services/roadDistanceService');
 const { generateDealerCode } = require('../utils/dealerCode');
@@ -270,6 +271,10 @@ const getEligibleDealers = async (req, res) => {
       return errorResponse(res, 'Latitude and Longitude must be valid numbers.', 400);
     }
 
+    // The admin-configured flat platform service charge, added on top of the dealer's own rate
+    // for display here -- must match what orderController.js actually charges at checkout.
+    const vehicleSettings = await VehicleSetting.getSettings();
+
     // Tractor bookings are priced entirely by the dealer's own flat Rate/Tractor (no distance-
     // based transport charge, no DealerTransportConfig dependency) -- a self-contained path so a
     // dealer only needs a Tractor rate, never an unrelated per-KM Dumper/Sand-Aggregate config,
@@ -325,7 +330,7 @@ const getEligibleDealers = async (req, res) => {
           companyName: dealer.companyName,
           city: dealer.city,
           material,
-          ratePerTractor: rate.ratePerTractor,
+          ratePerTractor: rate.ratePerTractor + (vehicleSettings.tractorServiceCharge || 0),
           dealerDistanceKm: Math.round(dealerDistanceKm * 10) / 10
         });
       }
@@ -426,7 +431,9 @@ const getEligibleDealers = async (req, res) => {
         await dealer.save();
       }
 
-      const transportCost = Math.round(cfg.ratePerKm * distanceKm * 100) / 100;
+      // Includes the admin-configured flat platform service charge -- must match what
+      // orderController.js actually bills at checkout (deliveryCharge there, computed the same way).
+      const transportCost = Math.round((cfg.ratePerKm * distanceKm + (vehicleSettings.dumperServiceCharge || 0)) * 100) / 100;
       dealers.push({
         dealerId: dealer._id,
         configId: cfg._id,

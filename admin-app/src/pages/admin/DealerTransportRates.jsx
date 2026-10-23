@@ -157,6 +157,7 @@ export default function DealerTransportRates() {
                   <th className="text-left px-5 py-3.5 font-bold">Mobile</th>
                   <th className="text-left px-5 py-3.5 font-bold">Material</th>
                   <th className="text-left px-5 py-3.5 font-bold">Location</th>
+                  <th className="text-left px-5 py-3.5 font-bold">Grain / Spec</th>
                   <th className="text-left px-5 py-3.5 font-bold">Rate / KM</th>
                   <th className="text-left px-5 py-3.5 font-bold">Status</th>
                   <th className="text-left px-5 py-3.5 font-bold">Last Updated</th>
@@ -187,6 +188,7 @@ export default function DealerTransportRates() {
                         {c.locationName}
                       </div>
                     </td>
+                    <td className="px-5 py-3.5 text-slate-300">{c.variantName || '—'}</td>
                     <td className="px-5 py-3.5 font-mono font-black text-amber-400">{formatINR(c.ratePerKm)}/km</td>
                     <td className="px-5 py-3.5">
                       <span
@@ -232,7 +234,7 @@ export default function DealerTransportRates() {
       <Modal
         isOpen={!!editingConfig}
         onClose={() => setEditingConfig(null)}
-        title={editingConfig ? `Edit Rate: ${editingConfig.material} → ${editingConfig.locationName}` : ''}
+        title={editingConfig ? `Edit Rate: ${editingConfig.material} → ${editingConfig.locationName} → ${editingConfig.variantName}` : ''}
         maxWidth="max-w-sm"
       >
         <form onSubmit={handleSaveRate} className="space-y-4">

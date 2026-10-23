@@ -474,6 +474,11 @@ const createOrder = async (req, res) => {
           400
         );
       }
+      // Add the admin-configured flat platform service charge on top of the dealer's own rate
+      // BEFORE assigning unitPrice -- deliveryCharge (not unitPrice) is what totalAmount is
+      // actually built from below (subtotal stays 0 for Dumper), so the charge must land here
+      // for the displayed Rate Per Ton and the amount actually billed to stay in sync.
+      deliveryCharge = Math.round((deliveryCharge + (settings.dumperServiceCharge || 0)) * 100) / 100;
       // The computed transport rate IS the customer-facing "Rate Per Ton" for Dumper orders.
       unitPrice = deliveryCharge;
     }
@@ -497,7 +502,9 @@ const createOrder = async (req, res) => {
           400
         );
       }
-      unitPrice = dealerTractorRate.ratePerTractor;
+      // Admin-configured flat platform service charge added per tractor trip, on top of the
+      // dealer's own rate, before multiplying by quantity.
+      unitPrice = dealerTractorRate.ratePerTractor + (settings.tractorServiceCharge || 0);
       subtotal = Math.round(unitPrice * qty);
     }
 

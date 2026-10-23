@@ -20,7 +20,8 @@ import {
   Coins,
   Route as RouteIcon,
   LifeBuoy,
-  Ban
+  Ban,
+  Percent
 } from 'lucide-react';
 
 export default function AdminLayout() {
@@ -38,6 +39,7 @@ export default function AdminLayout() {
     { name: 'Materials & Pricing', path: '/products', icon: Coins },
     { name: 'Sourcing Locations', path: '/locations', icon: Boxes },
     { name: 'Dealer Transport Rates', path: '/dealer-transport-rates', icon: RouteIcon },
+    { name: 'Admin Rate', path: '/admin-rate', icon: Percent },
     { name: 'Vehicle & Fleet Management', path: '/vehicles', icon: Truck },
     { name: 'Delivery Radar & OTP', path: '/deliveries', icon: ShieldAlert },
     { name: 'Reports & Analytics', path: '/reports', icon: FileBarChart },

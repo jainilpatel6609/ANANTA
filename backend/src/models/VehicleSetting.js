@@ -9,6 +9,19 @@ const vehicleSettingSchema = new mongoose.Schema(
     tractorEnabled: {
       type: Boolean,
       default: true
+    },
+    // Flat platform service charge added on top of the dealer's own rate before it's shown to
+    // or charged from the customer -- Dumper's is per Ton (added to Rate Per Ton), Tractor's is
+    // per Trip (added to Rate Per Tractor).
+    dumperServiceCharge: {
+      type: Number,
+      default: 25,
+      min: 0
+    },
+    tractorServiceCharge: {
+      type: Number,
+      default: 200,
+      min: 0
     }
   },
   {
