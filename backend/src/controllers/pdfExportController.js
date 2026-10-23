@@ -43,8 +43,14 @@ const createExport = async (req, res) => {
   }
 };
 
-// @desc    Download (and discard) a staged PDF -- single-use, unauthenticated by design since
-//          it's navigated to directly (not an AJAX call), gated by the unguessable token alone
+// @desc    Download a staged PDF -- unauthenticated by design since it's navigated to directly
+//          (not an AJAX call), gated by the unguessable token alone. Deliberately NOT single-use:
+//          an Android WebView's download handling hits this URL twice for one user tap -- the
+//          WebView itself first loads it to detect the Content-Disposition and fire its download
+//          listener, then Android's DownloadManager independently re-fetches the same URL to
+//          actually save the file. Deleting the entry on the first hit left the second (real)
+//          download request a 404, so the file silently never saved. The token instead just
+//          expires with its TTL (cleaned up by the interval above), so both requests succeed.
 // @route   GET /api/pdf-export/:token
 // @access  Public (token-gated)
 const downloadExport = (req, res) => {
@@ -53,7 +59,6 @@ const downloadExport = (req, res) => {
     pendingExports.delete(req.params.token);
     return res.status(404).send('This download link has expired. Please generate the PDF again.');
   }
-  pendingExports.delete(req.params.token);
 
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="${entry.fileName}"`);
