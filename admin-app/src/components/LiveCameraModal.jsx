@@ -174,8 +174,8 @@ export default function LiveCameraModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-slate-900 border-2 border-blue-500/50 rounded-3xl p-5 sm:p-7 max-w-lg w-full shadow-2xl space-y-5 text-center animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-slate-900 border-2 border-blue-500/50 rounded-3xl p-5 sm:p-7 max-w-lg w-full shadow-2xl space-y-5 text-center animate-in fade-in zoom-in duration-200 my-auto max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2 text-left">
