@@ -158,8 +158,8 @@ export default function DealerLocationEnforcer({ children }) {
 
       {/* MANDATORY LOCATION ACTIVATION MODAL (Non-Dismissible if Denied/Blocked) */}
       {isBlocked && (
-        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border-2 border-amber-500/50 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl shadow-amber-500/10 space-y-6 text-center animate-in fade-in zoom-in duration-200 my-auto max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border-2 border-amber-500/50 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl shadow-amber-500/10 space-y-6 text-center animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
             <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
               <MapPin className="w-8 h-8 animate-bounce" />
             </div>
