@@ -631,6 +631,10 @@ const createOrder = async (req, res) => {
       });
     }
 
+    console.log(
+      `[Checkout] gateway=${PAYMENT_GATEWAY} vehicleType=${vehicleType} hasIciciRedirect=${!!iciciRedirectUrl} hasRzpOrder=${!!rzpOrder}`
+    );
+
     return successResponse(
       res,
       'Checkout initialized. Complete payment to place your order.',
