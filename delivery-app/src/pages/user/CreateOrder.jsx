@@ -2096,7 +2096,7 @@ export default function CreateOrder() {
 
       {/* ================= PAYMENT CONFIRMATION & DEMO MODE MODAL ================= */}
       {showPaymentModal && createdOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 sm:p-7 space-y-6 shadow-2xl relative my-auto max-h-[90vh] overflow-y-auto">
             {/* Top Banner */}
             <div className="flex items-center justify-between">
