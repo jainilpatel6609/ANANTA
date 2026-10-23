@@ -529,7 +529,14 @@ const initiateFinalIciciPayment = async (req, res) => {
     });
 
     if (iciciInitiateResponse.responseCode !== 'R1000' || !iciciInitiateResponse.redirectURI) {
-      return errorResponse(res, iciciInitiateResponse.respDescription || 'Unable to initiate final payment with ICICI. Please try again.', 502);
+      console.error('[ICICI Initiate Sale Rejected - Final Payment]', JSON.stringify(iciciInitiateResponse));
+      const reason =
+        iciciInitiateResponse.respDescription ||
+        iciciInitiateResponse.responseMessage ||
+        iciciInitiateResponse.message ||
+        iciciInitiateResponse.errorDescription ||
+        'Unable to initiate final payment with ICICI. Please try again.';
+      return errorResponse(res, reason, 502);
     }
 
     order.finalIciciMerchantTxnNo = merchantTxnNo;
