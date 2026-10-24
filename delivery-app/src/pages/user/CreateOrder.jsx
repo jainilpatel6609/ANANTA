@@ -432,23 +432,6 @@ export default function CreateOrder() {
     }
   };
 
-  // Typing the address does NOT auto-set the map location -- manual address entry and map
-  // selection are deliberately kept independent. The customer must explicitly use "Find on Map"
-  // (handleFindOnMap(true)) or GPS/drag the pin themselves; this only invalidates a previously
-  // confirmed location once the customer actually changes the address text, so a stale pin can
-  // never be silently reused for a different address.
-  useEffect(() => {
-    if (currentGroupIndex !== 0) return;
-    setCoordinatesConfirmed(false);
-  }, [
-    currentGroupIndex,
-    shippingDetails.addressLine1,
-    shippingDetails.area,
-    shippingDetails.city,
-    shippingDetails.pincode,
-    shippingDetails.landmark
-  ]);
-
   // FLOW 1: CURRENT GPS LOCATION -> ADDRESS (Reverse Geocoding via Backend)
   const handleDetectGPS = (detectedLat, detectedLng, detectedAccuracy) => {
     // If called via MapPicker's onGPSDetect callback with resolved coordinates
@@ -610,6 +593,7 @@ export default function CreateOrder() {
   const handlePincodeChange = async (val) => {
     const numericVal = val.replace(/\D/g, '').slice(0, 6);
     setShippingDetails((prev) => ({ ...prev, pincode: numericVal }));
+    setCoordinatesConfirmed(false);
 
     if (numericVal.length === 0) {
       setPincodeValidation({ valid: null, message: '', loading: false });
@@ -1585,7 +1569,10 @@ export default function CreateOrder() {
                   type="text"
                   placeholder="Plot / Survey number, Project site name"
                   value={shippingDetails.addressLine1}
-                  onChange={(e) => setShippingDetails((prev) => ({ ...prev, addressLine1: e.target.value }))}
+                  onChange={(e) => {
+                    setShippingDetails((prev) => ({ ...prev, addressLine1: e.target.value }));
+                    setCoordinatesConfirmed(false);
+                  }}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-sm"
                   required
                 />
@@ -1597,7 +1584,10 @@ export default function CreateOrder() {
                   <input
                     type="text"
                     value={shippingDetails.area}
-                    onChange={(e) => setShippingDetails((prev) => ({ ...prev, area: e.target.value }))}
+                    onChange={(e) => {
+                      setShippingDetails((prev) => ({ ...prev, area: e.target.value }));
+                      setCoordinatesConfirmed(false);
+                    }}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-sm"
                   />
                 </div>
@@ -1606,7 +1596,10 @@ export default function CreateOrder() {
                   <input
                     type="text"
                     value={shippingDetails.city}
-                    onChange={(e) => setShippingDetails((prev) => ({ ...prev, city: e.target.value }))}
+                    onChange={(e) => {
+                      setShippingDetails((prev) => ({ ...prev, city: e.target.value }));
+                      setCoordinatesConfirmed(false);
+                    }}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-sm"
                     required
                   />
@@ -1617,7 +1610,10 @@ export default function CreateOrder() {
                     type="text"
                     placeholder="Near Toll / Bridge"
                     value={shippingDetails.landmark}
-                    onChange={(e) => setShippingDetails((prev) => ({ ...prev, landmark: e.target.value }))}
+                    onChange={(e) => {
+                      setShippingDetails((prev) => ({ ...prev, landmark: e.target.value }));
+                      setCoordinatesConfirmed(false);
+                    }}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 shadow-sm"
                   />
                 </div>
