@@ -16,6 +16,8 @@ const { findConflictingActiveOrder } = require('../utils/driverAvailability');
 const { claimDumperForOrder, releaseDumperForOrder } = require('../utils/dumperAvailability');
 const RazorpayService = require('../services/razorpayService');
 const IciciPaymentService = require('../services/iciciPaymentService');
+const ZohoInvoiceService = require('../services/zohoInvoiceService');
+const { splitOrderAmount } = require('../utils/invoiceSplit');
 const NotificationService = require('../services/notificationService');
 const PincodeService = require('../services/pincodeService');
 const RoadDistanceService = require('../services/roadDistanceService');
@@ -548,6 +550,9 @@ const createOrder = async (req, res) => {
       deliveryCharge,
       tax,
       totalAmount,
+      // Admin's platform service-charge rate AT THIS MOMENT, snapshotted so a later rate change
+      // never retroactively changes this order's GST invoice split (see utils/invoiceSplit.js).
+      serviceChargeRateSnapshot: vehicleType === 'TRACTOR' ? settings.tractorServiceCharge : settings.dumperServiceCharge,
       shippingAddress: finalShippingAddress,
       deliveryAddress: finalShippingAddress,
       pincode,
@@ -688,7 +693,7 @@ const getOrderById = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
       .populate('userId', 'name mobile whatsappNumber email gstNumber officeAddress userType companyName')
-      .populate('dealerId', 'name companyName mobile whatsappNumber email')
+      .populate('dealerId', 'name companyName mobile whatsappNumber email gstNumber officeAddress city state pincode')
       .populate('productId', 'name category description');
 
     if (!order) {
@@ -719,6 +724,71 @@ const getOrderById = async (req, res) => {
     });
   } catch (error) {
     return errorResponse(res, error.message, 500);
+  }
+};
+
+// @desc    Issues (or, on a repeat call, simply returns) the real Zoho Books "Service Charge"
+//          invoice for this order's upfront payment -- Ananta's own GSTIN, 18% GST. Lazily
+//          created the first time the customer views/downloads the order's invoice, never at
+//          payment-confirmation time. The dealer's own "Material Invoice" is NOT a Zoho invoice
+//          (Zoho ties one GSTIN to the whole organization, so it cannot carry the dealer's own
+//          GSTIN) -- it's rendered by the app itself using the order's real dealer/customer data.
+// @route   GET /api/orders/:id/service-charge-invoice
+// @access  Private (User -- order owner, or Admin)
+const getServiceChargeInvoice = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id).populate('userId', 'name mobile whatsappNumber email');
+    if (!order) {
+      return errorResponse(res, 'Order not found.', 404);
+    }
+
+    const userIdStr = req.user._id ? req.user._id.toString() : req.user.id?.toString();
+    const isOwner = order.userId && order.userId._id?.toString() === userIdStr;
+    const isAdmin = req.user.role === 'ADMIN' || req.user.role === 'SUPER_ADMIN';
+    if (!isOwner && !isAdmin) {
+      return errorResponse(res, 'Unauthorized to view this order invoice.', 403);
+    }
+
+    if (order.paymentStatus !== 'PAID') {
+      return errorResponse(res, 'This order has not been paid yet -- no invoice can be issued.', 400);
+    }
+
+    const { serviceChargeAmount, materialAmount } = splitOrderAmount(order);
+
+    // Idempotent: never issue a second Zoho invoice for the same order (repeat page views, the
+    // Android WebView's known double-request pattern on downloads, etc.).
+    if (order.zohoServiceChargeInvoiceNumber) {
+      return successResponse(res, 'Service charge invoice retrieved.', {
+        zohoInvoiceNumber: order.zohoServiceChargeInvoiceNumber,
+        serviceChargeAmount,
+        materialAmount
+      });
+    }
+
+    const contactId = await ZohoInvoiceService.findOrCreateContact({
+      name: order.userId.name,
+      email: order.userId.email,
+      mobile: order.userId.whatsappNumber || order.userId.mobile
+    });
+
+    const { invoiceId, invoiceNumber } = await ZohoInvoiceService.createServiceChargeInvoice({
+      customerContactId: contactId,
+      orderNumber: order.orderNumber,
+      amount: serviceChargeAmount
+    });
+
+    order.zohoServiceChargeInvoiceId = invoiceId;
+    order.zohoServiceChargeInvoiceNumber = invoiceNumber;
+    await order.save();
+
+    return successResponse(res, 'Service charge invoice issued.', {
+      zohoInvoiceNumber: invoiceNumber,
+      serviceChargeAmount,
+      materialAmount
+    });
+  } catch (error) {
+    console.error('[Zoho Service Charge Invoice Error]', error.message);
+    return errorResponse(res, 'Unable to generate the service charge invoice right now. Please try again shortly.', 502);
   }
 };
 
@@ -1672,6 +1742,7 @@ module.exports = {
   createOrder,
   getMyOrders,
   getOrderById,
+  getServiceChargeInvoice,
   getDealerAvailableOrders,
   getDealerDeliveries,
   getDealerVehicleSalesReport,

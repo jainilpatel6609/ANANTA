@@ -19,6 +19,278 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+// One complete GST tax-invoice block (header, parties, items, tax breakdown). Rendered twice on
+// the same page -- once for the dealer's Material Invoice, once for Ananta's Service Charge
+// Invoice -- so the two "FROM" parties, their GSTINs, and their amounts are never mixed up.
+function InvoiceSection({
+  badgeLabel,
+  sellerName,
+  sellerAddress,
+  sellerMobile,
+  sellerGstin,
+  sellerPan,
+  sellerEmail,
+  invoiceNo,
+  invoiceDate,
+  dueDate,
+  buyerName,
+  buyerAddressLine1,
+  buyerArea,
+  buyerCity,
+  buyerState,
+  buyerPincode,
+  buyerMobile,
+  buyerGstin,
+  shipToAddress,
+  itemName,
+  hsnCode,
+  site,
+  qtyDisplay,
+  qtyNumeric,
+  ratePerUnit,
+  taxPercent,
+  taxAmount,
+  amount,
+  taxableAmount,
+  cgstAmount,
+  sgstAmount,
+  receivedAmount,
+  amountInWords,
+  showPaymentInfo,
+  qrCodeUrl,
+  showSignature
+}) {
+  const halfTaxPercent = taxPercent / 2;
+
+  return (
+    <div className="space-y-5">
+      {/* Top Badges */}
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] font-black text-slate-900 uppercase tracking-wider font-mono">
+          TAX INVOICE
+        </span>
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2 py-0.5 rounded-md border border-slate-300">
+          {badgeLabel}
+        </span>
+      </div>
+
+      {/* Seller Header */}
+      <div className="space-y-1">
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-indigo-950 font-display">
+          {sellerName}
+        </h1>
+        {sellerAddress && <p className="text-xs text-slate-700 leading-relaxed font-medium">{sellerAddress}</p>}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-800 pt-0.5 font-medium">
+          {sellerMobile && <span>Mobile: <strong className="font-mono">{sellerMobile}</strong></span>}
+          <span>GSTIN: <strong className="font-mono">{sellerGstin || 'Unregistered Dealer'}</strong></span>
+          {sellerPan && <span>PAN Number: <strong className="font-mono">{sellerPan}</strong></span>}
+        </div>
+        {sellerEmail && (
+          <p className="text-xs text-slate-700 font-medium">
+            Email: <span className="font-mono">{sellerEmail}</span>
+          </p>
+        )}
+      </div>
+
+      {/* Invoice Metadata Ribbon */}
+      <div className="bg-slate-100 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs font-semibold text-slate-800 border border-slate-200">
+        <div>
+          Invoice No.: <strong className="font-mono text-slate-950 font-bold">{invoiceNo}</strong>
+        </div>
+        <div>
+          Invoice Date: <strong className="font-mono text-slate-950 font-bold">{invoiceDate}</strong>
+        </div>
+        <div>
+          Due Date: <strong className="font-mono text-slate-950 font-bold">{dueDate}</strong>
+        </div>
+      </div>
+
+      {/* 2-Column Party Details (BILL TO & SHIP TO) */}
+      <div className="grid grid-cols-2 gap-6 pt-1 text-xs">
+        <div className="space-y-1.5">
+          <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">BILL TO</h4>
+          <div className="font-black text-slate-950 text-sm">{buyerName}</div>
+          <p className="text-slate-700 leading-relaxed">
+            {buyerAddressLine1}
+            {buyerArea ? ', ' + buyerArea : ''}
+            <br />
+            {[buyerCity, buyerState, buyerPincode].filter(Boolean).join(', ')}
+          </p>
+          <div className="pt-1 space-y-0.5 text-slate-800">
+            {buyerMobile && <div>Mobile: <span className="font-mono font-bold">{buyerMobile}</span></div>}
+            <div>GSTIN: <span className="font-mono">{buyerGstin || 'Unregistered'}</span></div>
+            <div>Place of Supply: <span className="font-semibold text-slate-950">{buyerState}</span></div>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">SHIP TO</h4>
+          <div className="font-black text-slate-950 text-sm">{buyerName}</div>
+          <p className="text-slate-700 leading-relaxed">{shipToAddress}</p>
+        </div>
+      </div>
+
+      {/* ITEMS TABLE */}
+      <div className="border border-slate-300 rounded-xl overflow-hidden mt-3">
+        <table className="w-full text-xs text-left">
+          <thead className="bg-slate-100 text-slate-900 font-bold border-b border-slate-300 uppercase tracking-wider text-[11px]">
+            <tr>
+              <th className="py-2.5 px-3">ITEMS</th>
+              <th className="py-2.5 px-3">HSN/SAC</th>
+              <th className="py-2.5 px-3">SITE</th>
+              <th className="py-2.5 px-3 text-right">QTY.</th>
+              <th className="py-2.5 px-3 text-right">RATE</th>
+              <th className="py-2.5 px-3 text-right">TAX</th>
+              <th className="py-2.5 px-3 text-right">AMOUNT</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200 text-slate-800 font-medium">
+            <tr>
+              <td className="py-3 px-3 font-bold text-slate-950">{itemName}</td>
+              <td className="py-3 px-3 font-mono">{hsnCode}</td>
+              <td className="py-3 px-3 uppercase text-slate-700">{site}</td>
+              <td className="py-3 px-3 text-right font-mono font-bold">{qtyDisplay}</td>
+              <td className="py-3 px-3 text-right font-mono">{ratePerUnit}</td>
+              <td className="py-3 px-3 text-right font-mono">
+                {taxAmount.toFixed(2)}
+                <span className="block text-[10px] text-slate-500 font-normal">({taxPercent}%)</span>
+              </td>
+              <td className="py-3 px-3 text-right font-mono font-bold text-slate-950">
+                {amount.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
+              </td>
+            </tr>
+          </tbody>
+          <tfoot className="bg-slate-50 border-t-2 border-slate-300 font-bold text-slate-900">
+            <tr>
+              <td colSpan={3} className="py-2.5 px-3 uppercase tracking-wider">SUBTOTAL</td>
+              <td className="py-2.5 px-3 text-right font-mono font-bold">{qtyNumeric}</td>
+              <td className="py-2.5 px-3 text-right"></td>
+              <td className="py-2.5 px-3 text-right font-mono">₹ {taxAmount.toFixed(2)}</td>
+              <td className="py-2.5 px-3 text-right font-mono font-black text-slate-950">
+                ₹ {amount.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      {/* Bottom Split */}
+      <div className="grid grid-cols-2 gap-8 pt-3 border-t border-slate-200">
+        <div className="space-y-4 text-xs">
+          {showPaymentInfo && (
+            <>
+              <div className="space-y-1">
+                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">BANK DETAILS</h4>
+                <div className="grid grid-cols-3 gap-1 text-slate-700">
+                  <span className="text-slate-500">Name:</span>
+                  <span className="col-span-2 font-bold text-slate-900">ANANTA TRADERS</span>
+                  <span className="text-slate-500">IFSC Code:</span>
+                  <span className="col-span-2 font-mono font-bold text-slate-900">ICIC0007704</span>
+                  <span className="text-slate-500">Account No:</span>
+                  <span className="col-span-2 font-mono font-bold text-slate-900">770405000567</span>
+                  <span className="text-slate-500">Bank:</span>
+                  <span className="col-span-2 text-slate-900">ICICI Bank, JAGATPUR</span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4 pt-1">
+                <div className="space-y-1">
+                  <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">PAYMENT QR CODE</h4>
+                  <p className="text-[10px] text-slate-500">UPI ID:</p>
+                  <p className="text-xs font-mono font-bold text-indigo-900">anantatraders.ibz2@icici</p>
+                  <div className="flex items-center gap-1.5 pt-1 text-[9px] font-bold text-slate-600">
+                    <span className="text-indigo-600">PhonePe</span>
+                    <span>•</span>
+                    <span className="text-blue-600">GPay</span>
+                    <span>•</span>
+                    <span className="text-cyan-600">Paytm</span>
+                    <span>•</span>
+                    <span className="text-orange-600">UPI</span>
+                  </div>
+                </div>
+                {qrCodeUrl && (
+                  <div className="w-20 h-20 p-1 bg-white border border-slate-300 rounded-xl flex items-center justify-center shrink-0 shadow-sm">
+                    <img src={qrCodeUrl} alt="UPI Payment QR Code" className="w-full h-full object-contain" />
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          <div className="space-y-1 pt-1 text-[11px] text-slate-600">
+            <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">TERMS AND CONDITIONS</h4>
+            <ol className="list-decimal pl-4 space-y-0.5">
+              <li>Goods once sold will not be taken back or exchanged</li>
+              <li>All disputes are subject to [AHMEDABAD] jurisdiction only</li>
+            </ol>
+          </div>
+        </div>
+
+        <div className="space-y-4 text-xs">
+          <div className="space-y-1.5 border-b border-slate-200 pb-3">
+            <div className="flex justify-between items-center text-slate-700">
+              <span>Taxable Amount</span>
+              <span className="font-mono font-semibold">
+                ₹ {taxableAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-slate-700">
+              <span>CGST @{halfTaxPercent}%</span>
+              <span className="font-mono font-semibold">
+                ₹ {cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-slate-700">
+              <span>SGST @{halfTaxPercent}%</span>
+              <span className="font-mono font-semibold">
+                ₹ {sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-slate-950 font-bold border-t border-slate-200 pt-1.5 text-sm">
+              <span>Total Amount</span>
+              <span className="font-mono font-black text-indigo-950">
+                ₹ {amount.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-slate-700 pt-0.5">
+              <span>Received Amount</span>
+              <span className="font-mono font-semibold">
+                ₹ {receivedAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-0.5">
+            <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block">
+              Total Amount (in words)
+            </span>
+            <p className="text-xs font-semibold text-slate-900 leading-snug">{amountInWords}</p>
+          </div>
+
+          <div className="pt-4 text-right space-y-1">
+            {showSignature ? (
+              <div className="inline-block text-center space-y-1">
+                <div className="w-36 h-12 flex items-center justify-center font-serif text-2xl font-black italic tracking-widest text-indigo-950 border-b border-slate-400 mx-auto select-none opacity-90">
+                  Ashishpatel
+                </div>
+                <div className="text-[10px] uppercase tracking-wider font-bold text-slate-800">
+                  AUTHORISED SIGNATORY FOR<br />
+                  <span className="text-indigo-950 font-black">ANANTA TRADERS</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-[10px] text-slate-500 italic">
+                This is a system-generated invoice issued on behalf of the selling dealer.
+                No signature required.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function OrderInvoice() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -28,6 +300,11 @@ export default function OrderInvoice() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [justPaid, setJustPaid] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
+  // Ananta's real, Zoho-issued "Service Charge" invoice (18% GST, Ananta's own GSTIN) -- created
+  // lazily the moment this page is viewed for a PAID order, never at payment-confirmation time.
+  // null until it resolves; the invoice below falls back to a locally-formatted placeholder
+  // number in the meantime so the PDF never looks broken.
+  const [serviceChargeInfo, setServiceChargeInfo] = useState(null);
   const invoiceRef = useRef(null);
 
   useEffect(() => {
@@ -42,6 +319,19 @@ export default function OrderInvoice() {
         const res = await orderService.getOrderById(id);
         const orderData = res.data?.order || res.data;
         setOrder(orderData);
+
+        // Lazily issue (or retrieve the already-issued) Zoho Service Charge invoice -- only once
+        // the order is actually PAID, and only on this view, never automatically at payment time.
+        // Fails soft: the rest of the invoice still renders even if Zoho is briefly unavailable.
+        if (orderData?.paymentStatus === 'PAID') {
+          orderService
+            .getServiceChargeInvoice(id)
+            .then((scRes) => setServiceChargeInfo(scRes.data))
+            .catch((scErr) => {
+              console.warn('Service charge invoice notice:', scErr);
+              toast.error('Could not generate the service charge invoice right now. The material invoice is still shown below.');
+            });
+        }
 
         // Generate high-resolution local QR code
         if (orderData) {
@@ -89,12 +379,24 @@ export default function OrderInvoice() {
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      
+
       const imgWidth = pdfWidth;
       const imgHeight = (canvas.height * pdfWidth) / canvas.width;
 
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, Math.min(imgHeight, pdfHeight), undefined, 'FAST');
-      
+      // Two stacked invoices (Material + Service Charge) are almost always taller than one A4
+      // page -- slice the tall image across as many pages as needed instead of silently clipping
+      // anything past page 1.
+      let heightLeft = imgHeight;
+      let position = 0;
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+      heightLeft -= pdfHeight;
+      while (heightLeft > 0) {
+        position -= pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+        heightLeft -= pdfHeight;
+      }
+
       const safeNo = (order.invoiceNumber || order.orderNumber || 'Invoice').replace(/[/\\:]/g, '_');
       const result = await savePdfCrossPlatform(pdf, 'ANANTA_TRADERS_' + safeNo + '.pdf');
 
@@ -183,13 +485,25 @@ export default function OrderInvoice() {
   // Quantities and Unit Computations
   const totalAmount = order.totalAmount || 0;
   const isPaid = order.paymentStatus === 'PAID';
-  const receivedAmount = isPaid ? totalAmount : 0;
 
-  // GST 5% Split: Taxable = Total / 1.05, CGST = 2.5%, SGST = 2.5%
-  const taxableAmount = Math.round((totalAmount / 1.05) * 100) / 100;
-  const totalTax = Math.round((totalAmount - taxableAmount) * 100) / 100;
-  const cgstAmount = Math.round((totalTax / 2) * 100) / 100;
-  const sgstAmount = Math.round((totalTax - cgstAmount) * 100) / 100;
+  // Split the blended totalAmount into the dealer's material-sale portion and Ananta's own
+  // service-charge portion (falls back to the full amount as "material" until the Zoho call
+  // resolves, so the page is never stuck showing a blank/broken invoice).
+  const materialAmount = serviceChargeInfo ? serviceChargeInfo.materialAmount : totalAmount;
+  const serviceChargeAmount = serviceChargeInfo ? serviceChargeInfo.serviceChargeAmount : 0;
+  const serviceChargeInvoiceNo = serviceChargeInfo?.zohoInvoiceNumber || invoiceNo + '-SC';
+
+  // Material Invoice: 5% GST (the existing rate for sand/aggregate goods).
+  const materialTaxable = Math.round((materialAmount / 1.05) * 100) / 100;
+  const materialTax = Math.round((materialAmount - materialTaxable) * 100) / 100;
+  const materialCgst = Math.round((materialTax / 2) * 100) / 100;
+  const materialSgst = Math.round((materialTax - materialCgst) * 100) / 100;
+
+  // Service Charge Invoice: 18% GST (standard service rate), GST-inclusive.
+  const serviceTaxable = Math.round((serviceChargeAmount / 1.18) * 100) / 100;
+  const serviceTax = Math.round((serviceChargeAmount - serviceTaxable) * 100) / 100;
+  const serviceCgst = Math.round((serviceTax / 2) * 100) / 100;
+  const serviceSgst = Math.round((serviceTax - serviceCgst) * 100) / 100;
 
   const qtyDisplay = order.transportType === 'Tractor'
     ? (order.numberOfTractors || order.quantity || 1) + ' TRACTOR'
@@ -199,22 +513,35 @@ export default function OrderInvoice() {
     ? (order.numberOfTractors || order.quantity || 1)
     : (order.approximateTon || order.quantity || 41.67);
 
-  const ratePerUnit = qtyNumeric > 0 ? (taxableAmount / qtyNumeric).toFixed(2) : taxableAmount.toFixed(2);
+  const ratePerUnit = qtyNumeric > 0 ? (materialTaxable / qtyNumeric).toFixed(2) : materialTaxable.toFixed(2);
 
-  // Customer / Party Details
-  const customerName = order.shippingDetails?.fullName || order.userId?.name || 'SANKALP VENTURE LLP';
-  const customerMobile = order.shippingDetails?.mobile || order.userId?.mobile || '9925619793';
-  const customerAddress1 = order.shippingDetails?.addressLine1 || order.shippingAddress || 'SUR NO 207/20 FP 27 12, SANKALP HOUSE';
+  // Customer / Party (buyer) details -- real data; GSTIN is genuinely blank if the customer
+  // never registered one (no fake placeholder).
+  const customerName = order.shippingDetails?.fullName || order.userId?.name || 'Customer';
+  const customerMobile = order.shippingDetails?.mobile || order.userId?.mobile || '';
+  const customerAddress1 = order.shippingDetails?.addressLine1 || order.shippingAddress || '';
   const customerArea = order.shippingDetails?.area || order.deliveryArea || '';
-  const customerCity = order.shippingDetails?.city || order.deliveryCity || 'Ahmedabad';
+  const customerCity = order.shippingDetails?.city || order.deliveryCity || '';
   const customerState = order.shippingDetails?.state || order.deliveryState || 'Gujarat';
-  const customerPincode = order.pincode || order.shippingDetails?.pincode || '380054';
+  const customerPincode = order.pincode || order.shippingDetails?.pincode || '';
+  const customerGstin = order.userId?.gstNumber || '';
 
   const siteAreaPart = customerArea ? customerArea + ', ' : '';
   const siteAddress = order.shippingAddress || (customerAddress1 + ', ' + siteAreaPart + customerCity + ', ' + customerState + ' - ' + customerPincode);
   const siteShort = customerArea || customerCity || 'HIGH STREET';
 
-  const amountInWords = numberToWordsIndian(totalAmount);
+  // Selected dealer's own details -- the Material Invoice's "FROM" party. Real data only; a
+  // dealer who hasn't set their GST number yet shows a blank GSTIN rather than a fake one.
+  const dealerName = order.dealerId?.companyName || order.dealerId?.name || 'Selected Dealer';
+  const dealerAddress = order.dealerId?.officeAddress || '';
+  const dealerCityStatePin = [order.dealerId?.city, order.dealerId?.state, order.dealerId?.pincode].filter(Boolean).join(', ');
+  const dealerMobile = order.dealerId?.mobile || order.dealerId?.whatsappNumber || '';
+  const dealerGstin = order.dealerId?.gstNumber || '';
+  // A GSTIN's characters 3-12 ARE the holder's PAN by construction -- no separate PAN field needed.
+  const dealerPan = dealerGstin.length === 15 ? dealerGstin.slice(2, 12) : '';
+
+  const materialAmountInWords = numberToWordsIndian(materialAmount);
+  const serviceChargeAmountInWords = numberToWordsIndian(serviceChargeAmount);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 py-6 px-3 sm:px-6 selection:bg-amber-500 selection:text-slate-950">
@@ -344,261 +671,102 @@ export default function OrderInvoice() {
         </div>
       </div>
 
-      {/* ================= OFFICIAL TAX INVOICE CARD (EXACT A4 TEMPLATE) ================= */}
+      {/* ================= TWO TAX INVOICES, ONE PDF ================= */}
       <div className="max-w-4xl mx-auto overflow-x-auto pb-6">
         <div
           ref={invoiceRef}
-          className="print-container w-full min-w-[720px] max-w-4xl mx-auto bg-white text-slate-900 rounded-2xl p-8 sm:p-10 shadow-2xl border border-slate-200 space-y-5 font-sans"
+          className="print-container w-full min-w-[720px] max-w-4xl mx-auto bg-white text-slate-900 rounded-2xl p-8 sm:p-10 shadow-2xl border border-slate-200 space-y-8 font-sans"
         >
-          {/* Top Badges */}
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-black text-slate-900 uppercase tracking-wider font-mono">
-              TAX INVOICE
-            </span>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2 py-0.5 rounded-md border border-slate-300">
-              ORIGINAL FOR RECIPIENT
-            </span>
+          {/* 1. MATERIAL INVOICE -- issued under the selected dealer's own GSTIN, on their behalf */}
+          <div>
+            <div className="mb-3 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-[11px] font-black text-amber-800 uppercase tracking-wider inline-block">
+              Invoice 1 of 2 &mdash; Material (Dealer)
+            </div>
+            <InvoiceSection
+              badgeLabel="ORIGINAL FOR RECIPIENT"
+              sellerName={dealerName}
+              sellerAddress={[dealerAddress, dealerCityStatePin].filter(Boolean).join(', ')}
+              sellerMobile={dealerMobile}
+              sellerGstin={dealerGstin}
+              sellerPan={dealerPan}
+              sellerEmail=""
+              invoiceNo={invoiceNo}
+              invoiceDate={formattedInvoiceDate}
+              dueDate={formattedDueDate}
+              buyerName={customerName}
+              buyerAddressLine1={customerAddress1}
+              buyerArea={customerArea}
+              buyerCity={customerCity}
+              buyerState={customerState}
+              buyerPincode={customerPincode}
+              buyerMobile={customerMobile}
+              buyerGstin={customerGstin}
+              shipToAddress={siteAddress}
+              itemName={order.productNameSnapshot || 'Construction Material'}
+              hsnCode={hsnCode}
+              site={siteShort}
+              qtyDisplay={qtyDisplay}
+              qtyNumeric={qtyNumeric}
+              ratePerUnit={ratePerUnit}
+              taxPercent={5}
+              taxAmount={materialTax}
+              amount={materialAmount}
+              taxableAmount={materialTaxable}
+              cgstAmount={materialCgst}
+              sgstAmount={materialSgst}
+              receivedAmount={isPaid ? materialAmount : 0}
+              amountInWords={materialAmountInWords}
+              showPaymentInfo={false}
+              qrCodeUrl={qrCodeUrl}
+              showSignature={false}
+            />
           </div>
 
-          {/* Company Header */}
-          <div className="space-y-1">
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-indigo-950 font-display">
-              ANANTA TRADERS
-            </h1>
-            <p className="text-xs text-slate-700 leading-relaxed font-medium">
-              shop no 10 Love kush tower, Near Udgam school, Thalej, Ahmedabad , Gujarat, 380054
-            </p>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-800 pt-0.5 font-medium">
-              <span>Mobile: <strong className="font-mono">9974240461</strong></span>
-              <span>GSTIN: <strong className="font-mono">24BNFPP3477F1ZW</strong></span>
-              <span>PAN Number: <strong className="font-mono">BNFPP3477F</strong></span>
+          <div className="border-t-2 border-dashed border-slate-300" />
+
+          {/* 2. SERVICE CHARGE INVOICE -- Ananta's own real Zoho-issued invoice, 18% GST */}
+          <div>
+            <div className="mb-3 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-[11px] font-black text-indigo-800 uppercase tracking-wider inline-block">
+              Invoice 2 of 2 &mdash; Platform Service Charge (Ananta Traders)
             </div>
-            <p className="text-xs text-slate-700 font-medium">
-              Email: <span className="font-mono">anantatraders19422@gmail.com</span>
-            </p>
-          </div>
-
-          {/* Invoice Metadata Ribbon */}
-          <div className="bg-slate-100 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs font-semibold text-slate-800 border border-slate-200">
-            <div>
-              Invoice No.: <strong className="font-mono text-slate-950 font-bold">{invoiceNo}</strong>
-            </div>
-            <div>
-              Invoice Date: <strong className="font-mono text-slate-950 font-bold">{formattedInvoiceDate}</strong>
-            </div>
-            <div>
-              Due Date: <strong className="font-mono text-slate-950 font-bold">{formattedDueDate}</strong>
-            </div>
-          </div>
-
-          {/* 2-Column Party Details (BILL TO & SHIP TO) */}
-          <div className="grid grid-cols-2 gap-6 pt-1 text-xs">
-            {/* BILL TO */}
-            <div className="space-y-1.5">
-              <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
-                BILL TO
-              </h4>
-              <div className="font-black text-slate-950 text-sm">
-                {customerName}
-              </div>
-              <p className="text-slate-700 leading-relaxed">
-                {customerAddress1}
-                {customerArea ? ', ' + customerArea : ''}
-                <br />
-                {customerCity}, {customerState}, {customerPincode}
-              </p>
-              <div className="pt-1 space-y-0.5 text-slate-800">
-                <div>Mobile: <span className="font-mono font-bold">{customerMobile}</span></div>
-                <div>GSTIN: <span className="font-mono">24ACZFS2243J1ZN</span></div>
-                <div>PAN Number: <span className="font-mono">ACZFS2243J</span></div>
-                <div>Place of Supply: <span className="font-semibold text-slate-950">Gujarat</span></div>
-              </div>
-            </div>
-
-            {/* SHIP TO */}
-            <div className="space-y-1.5">
-              <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
-                SHIP TO
-              </h4>
-              <div className="font-black text-slate-950 text-sm">
-                {customerName}
-              </div>
-              <p className="text-slate-700 leading-relaxed">
-                {siteAddress}
-              </p>
-            </div>
-          </div>
-
-          {/* ================= ITEMS TABLE ================= */}
-          <div className="border border-slate-300 rounded-xl overflow-hidden mt-3">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-slate-100 text-slate-900 font-bold border-b border-slate-300 uppercase tracking-wider text-[11px]">
-                <tr>
-                  <th className="py-2.5 px-3">ITEMS</th>
-                  <th className="py-2.5 px-3">HSN</th>
-                  <th className="py-2.5 px-3">SITE</th>
-                  <th className="py-2.5 px-3 text-right">QTY.</th>
-                  <th className="py-2.5 px-3 text-right">RATE</th>
-                  <th className="py-2.5 px-3 text-right">TAX</th>
-                  <th className="py-2.5 px-3 text-right">AMOUNT</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 text-slate-800 font-medium">
-                <tr>
-                  <td className="py-3 px-3 font-bold text-slate-950">
-                    {order.productNameSnapshot || 'FILTER SAND PATAN'}
-                  </td>
-                  <td className="py-3 px-3 font-mono">{hsnCode}</td>
-                  <td className="py-3 px-3 uppercase text-slate-700">{siteShort}</td>
-                  <td className="py-3 px-3 text-right font-mono font-bold">{qtyDisplay}</td>
-                  <td className="py-3 px-3 text-right font-mono">{ratePerUnit}</td>
-                  <td className="py-3 px-3 text-right font-mono">
-                    {totalTax.toFixed(2)}
-                    <span className="block text-[10px] text-slate-500 font-normal">(5%)</span>
-                  </td>
-                  <td className="py-3 px-3 text-right font-mono font-bold text-slate-950">
-                    {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
-                  </td>
-                </tr>
-              </tbody>
-              {/* Subtotal Row */}
-              <tfoot className="bg-slate-50 border-t-2 border-slate-300 font-bold text-slate-900">
-                <tr>
-                  <td colSpan={3} className="py-2.5 px-3 uppercase tracking-wider">
-                    SUBTOTAL
-                  </td>
-                  <td className="py-2.5 px-3 text-right font-mono font-bold">{qtyNumeric}</td>
-                  <td className="py-2.5 px-3 text-right"></td>
-                  <td className="py-2.5 px-3 text-right font-mono">₹ {totalTax.toFixed(2)}</td>
-                  <td className="py-2.5 px-3 text-right font-mono font-black text-slate-950">
-                    ₹ {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-
-          {/* Bottom Split (Bank Details, QR Code & Tax Calculations) */}
-          <div className="grid grid-cols-2 gap-8 pt-3 border-t border-slate-200">
-            {/* Left Column: Bank Details, QR & Terms */}
-            <div className="space-y-4 text-xs">
-              {/* Bank Details */}
-              <div className="space-y-1">
-                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
-                  BANK DETAILS
-                </h4>
-                <div className="grid grid-cols-3 gap-1 text-slate-700">
-                  <span className="text-slate-500">Name:</span>
-                  <span className="col-span-2 font-bold text-slate-900">ANANTA TRADERS</span>
-                  <span className="text-slate-500">IFSC Code:</span>
-                  <span className="col-span-2 font-mono font-bold text-slate-900">ICIC0007704</span>
-                  <span className="text-slate-500">Account No:</span>
-                  <span className="col-span-2 font-mono font-bold text-slate-900">770405000567</span>
-                  <span className="text-slate-500">Bank:</span>
-                  <span className="col-span-2 text-slate-900">ICICI Bank, JAGATPUR</span>
-                </div>
-              </div>
-
-              {/* Payment QR Code */}
-              <div className="flex items-start gap-4 pt-1">
-                <div className="space-y-1">
-                  <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
-                    PAYMENT QR CODE
-                  </h4>
-                  <p className="text-[10px] text-slate-500">UPI ID:</p>
-                  <p className="text-xs font-mono font-bold text-indigo-900">anantatraders.ibz2@icici</p>
-                  <div className="flex items-center gap-1.5 pt-1 text-[9px] font-bold text-slate-600">
-                    <span className="text-indigo-600">PhonePe</span>
-                    <span>•</span>
-                    <span className="text-blue-600">GPay</span>
-                    <span>•</span>
-                    <span className="text-cyan-600">Paytm</span>
-                    <span>•</span>
-                    <span className="text-orange-600">UPI</span>
-                  </div>
-                </div>
-                {qrCodeUrl && (
-                  <div className="w-20 h-20 p-1 bg-white border border-slate-300 rounded-xl flex items-center justify-center shrink-0 shadow-sm">
-                    <img
-                      src={qrCodeUrl}
-                      alt="UPI Payment QR Code"
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Terms and Conditions */}
-              <div className="space-y-1 pt-1 text-[11px] text-slate-600">
-                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
-                  TERMS AND CONDITIONS
-                </h4>
-                <ol className="list-decimal pl-4 space-y-0.5">
-                  <li>Goods once sold will not be taken back or exchanged</li>
-                  <li>All disputes are subject to [AHMEDABAD] jurisdiction only</li>
-                </ol>
-              </div>
-            </div>
-
-            {/* Right Column: Tax Breakdown, Amount in Words & Authorised Signatory */}
-            <div className="space-y-4 text-xs">
-              {/* Calculation Rows */}
-              <div className="space-y-1.5 border-b border-slate-200 pb-3">
-                <div className="flex justify-between items-center text-slate-700">
-                  <span>Taxable Amount</span>
-                  <span className="font-mono font-semibold">
-                    ₹ {taxableAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-slate-700">
-                  <span>CGST @2.5%</span>
-                  <span className="font-mono font-semibold">
-                    ₹ {cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-slate-700">
-                  <span>SGST @2.5%</span>
-                  <span className="font-mono font-semibold">
-                    ₹ {sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-slate-950 font-bold border-t border-slate-200 pt-1.5 text-sm">
-                  <span>Total Amount</span>
-                  <span className="font-mono font-black text-indigo-950">
-                    ₹ {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-slate-700 pt-0.5">
-                  <span>Received Amount</span>
-                  <span className="font-mono font-semibold">
-                    ₹ {receivedAmount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-              </div>
-
-              {/* Total Amount in Words */}
-              <div className="space-y-0.5">
-                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block">
-                  Total Amount (in words)
-                </span>
-                <p className="text-xs font-semibold text-slate-900 leading-snug">
-                  {amountInWords}
-                </p>
-              </div>
-
-              {/* Signature Box */}
-              <div className="pt-4 text-right space-y-1">
-                <div className="inline-block text-center space-y-1">
-                  <div className="w-36 h-12 flex items-center justify-center font-serif text-2xl font-black italic tracking-widest text-indigo-950 border-b border-slate-400 mx-auto select-none opacity-90">
-                    Ashishpatel
-                  </div>
-                  <div className="text-[10px] uppercase tracking-wider font-bold text-slate-800">
-                    AUTHORISED SIGNATORY FOR<br />
-                    <span className="text-indigo-950 font-black">ANANTA TRADERS</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <InvoiceSection
+              badgeLabel="ORIGINAL FOR RECIPIENT"
+              sellerName="ANANTA TRADERS"
+              sellerAddress="shop no 10 Love kush tower, Near Udgam school, Thalej, Ahmedabad , Gujarat, 380054"
+              sellerMobile="9974240461"
+              sellerGstin="24BNFPP3477F1ZW"
+              sellerPan="BNFPP3477F"
+              sellerEmail="anantatraders19422@gmail.com"
+              invoiceNo={serviceChargeInvoiceNo}
+              invoiceDate={formattedInvoiceDate}
+              dueDate={formattedDueDate}
+              buyerName={customerName}
+              buyerAddressLine1={customerAddress1}
+              buyerArea={customerArea}
+              buyerCity={customerCity}
+              buyerState={customerState}
+              buyerPincode={customerPincode}
+              buyerMobile={customerMobile}
+              buyerGstin={customerGstin}
+              shipToAddress={siteAddress}
+              itemName={`Platform Service Charge - Order #${order.orderNumber}`}
+              hsnCode="998599"
+              site={siteShort}
+              qtyDisplay="1 SERVICE"
+              qtyNumeric={1}
+              ratePerUnit={serviceTaxable.toFixed(2)}
+              taxPercent={18}
+              taxAmount={serviceTax}
+              amount={serviceChargeAmount}
+              taxableAmount={serviceTaxable}
+              cgstAmount={serviceCgst}
+              sgstAmount={serviceSgst}
+              receivedAmount={isPaid ? serviceChargeAmount : 0}
+              amountInWords={serviceChargeAmountInWords}
+              showPaymentInfo
+              qrCodeUrl={qrCodeUrl}
+              showSignature
+            />
           </div>
         </div>
       </div>

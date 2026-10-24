@@ -39,6 +39,7 @@ export const orderService = {
   createOrder: (orderData) => api.post('/orders', orderData),
   getMyOrders: () => api.get('/orders/my-orders'),
   getOrderById: (id) => api.get(`/orders/${id}`),
+  getServiceChargeInvoice: (id) => api.get(`/orders/${id}/service-charge-invoice`),
   getDealerAvailable: () => api.get('/orders/dealer/available'),
   getDealerDeliveries: (status) => api.get('/orders/dealer/my-deliveries', { params: { status } }),
   getDealerVehicleSalesReport: (period) => api.get('/orders/dealer/reports/sales-by-vehicle', { params: { period } }),

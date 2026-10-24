@@ -108,6 +108,25 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       required: true
     },
+    // The admin's platform service-charge rate (per Ton for Dumper, per Tractor for Tractor)
+    // AT THE MOMENT this order was booked -- captured once so a later admin rate change never
+    // retroactively changes what a GST invoice for this order shows. Used to split totalAmount
+    // into the dealer's own material-sale portion vs Ananta's own service-charge portion.
+    serviceChargeRateSnapshot: {
+      type: Number,
+      default: 0
+    },
+    // Set once the Service Charge portion has actually been issued as a real Zoho Books invoice
+    // (lazily, the first time the customer views/downloads this order's invoice) -- never
+    // re-created on a later view, so a duplicate invoice is never issued in Zoho.
+    zohoServiceChargeInvoiceId: {
+      type: String,
+      default: ''
+    },
+    zohoServiceChargeInvoiceNumber: {
+      type: String,
+      default: ''
+    },
     sandLocation: {
       type: String,
       default: ''

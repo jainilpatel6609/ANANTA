@@ -21,6 +21,17 @@ module.exports = {
   ICICI_MERCHANT_ID: (process.env.ICICI_MERCHANT_ID || '').trim(),
   ICICI_AGGREGATOR_ID: (process.env.ICICI_AGGREGATOR_ID || '').trim(),
   ICICI_SECRET_KEY: (process.env.ICICI_SECRET_KEY || '').trim(),
+
+  // Zoho Books -- used only to issue Ananta's own Service Charge invoice (18% GST), on demand
+  // when a customer views/downloads an order invoice. Never used for the dealer's material
+  // invoice, which is rendered by the app itself under the dealer's own GSTIN.
+  ZOHO_CLIENT_ID: (process.env.ZOHO_CLIENT_ID || '').trim(),
+  ZOHO_CLIENT_SECRET: (process.env.ZOHO_CLIENT_SECRET || '').trim(),
+  ZOHO_ORG_ID: (process.env.ZOHO_ORG_ID || '').trim(),
+  ZOHO_REFRESH_TOKEN: (process.env.ZOHO_REFRESH_TOKEN || '').trim(),
+  ZOHO_ACCOUNTS_BASE: (process.env.ZOHO_ACCOUNTS_BASE || 'https://accounts.zoho.in').trim(),
+  ZOHO_API_BASE: (process.env.ZOHO_API_BASE || 'https://www.zohoapis.in').trim(),
+
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || '',
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || '',
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || '',

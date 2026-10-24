@@ -29,5 +29,6 @@ router.post('/:id/request-refund', authenticateToken, authorizeRoles('USER', 'AD
 
 // Common / Specific order lookup
 router.get('/:id', authenticateToken, orderController.getOrderById);
+router.get('/:id/service-charge-invoice', authenticateToken, orderController.getServiceChargeInvoice);
 
 module.exports = router;
