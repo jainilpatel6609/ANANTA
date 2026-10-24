@@ -40,6 +40,11 @@ export const orderService = {
   getMyOrders: () => api.get('/orders/my-orders'),
   getOrderById: (id) => api.get(`/orders/${id}`),
   getServiceChargeInvoice: (id) => api.get(`/orders/${id}/service-charge-invoice`),
+  getCombinedInvoicePdf: (id, materialPdfBlob) => {
+    const formData = new FormData();
+    formData.append('pdf', materialPdfBlob, 'material.pdf');
+    return api.post(`/orders/${id}/combined-invoice-pdf`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
   getDealerAvailable: () => api.get('/orders/dealer/available'),
   getDealerDeliveries: (status) => api.get('/orders/dealer/my-deliveries', { params: { status } }),
   getDealerVehicleSalesReport: (period) => api.get('/orders/dealer/reports/sales-by-vehicle', { params: { period } }),

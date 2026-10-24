@@ -125,8 +125,28 @@ const createServiceChargeInvoice = async ({ customerContactId, orderNumber, amou
   };
 };
 
+// @desc  Fetches Zoho's own rendered PDF for an already-issued invoice (raw bytes, not JSON) --
+//        used so the customer sees Zoho's real invoice for the Service Charge portion instead of
+//        a locally re-rendered copy of the same data.
+const getInvoicePdfBytes = async (invoiceId) => {
+  const accessToken = await getAccessToken();
+  const url = `${ZOHO_API_BASE}/books/v3/invoices/${invoiceId}?organization_id=${ZOHO_ORG_ID}&accept=pdf`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Zoho-oauthtoken ${accessToken}` }
+  });
+
+  if (!res.ok || !res.headers.get('content-type')?.includes('pdf')) {
+    const text = await res.text();
+    throw new Error(`Zoho invoice PDF fetch failed (HTTP ${res.status}): ${text.slice(0, 300)}`);
+  }
+
+  const arrayBuffer = await res.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+};
+
 module.exports = {
   getAccessToken,
   findOrCreateContact,
-  createServiceChargeInvoice
+  createServiceChargeInvoice,
+  getInvoicePdfBytes
 };

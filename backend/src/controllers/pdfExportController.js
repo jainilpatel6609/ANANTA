@@ -17,6 +17,23 @@ setInterval(() => {
   }
 }, 60 * 1000).unref();
 
+// Shared by createExport below (client-generated PDFs) and any server-generated PDF that needs
+// the same Android WebView-safe download URL (e.g. orderController's combined invoice merge) --
+// stages a PDF buffer and returns the absolute download URL, without going through an HTTP round
+// trip for server-originated buffers.
+const stageForDownload = (req, buffer, fileName) => {
+  const token = crypto.randomBytes(24).toString('hex');
+  const safeFileName = String(fileName || 'document.pdf').replace(/[^a-zA-Z0-9._-]/g, '_') || 'document.pdf';
+  pendingExports.set(token, {
+    buffer,
+    fileName: safeFileName,
+    expiresAt: Date.now() + TTL_MS
+  });
+
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  return `${protocol}://${req.get('host')}/api/pdf-export/${token}`;
+};
+
 // @desc    Stage a client-generated PDF for one-time download, returning an absolute URL
 // @route   POST /api/pdf-export
 // @access  Private (any authenticated role)
@@ -26,17 +43,7 @@ const createExport = async (req, res) => {
       return errorResponse(res, 'A PDF file is required.', 400);
     }
 
-    const token = crypto.randomBytes(24).toString('hex');
-    const fileName = String(req.body.fileName || 'document.pdf').replace(/[^a-zA-Z0-9._-]/g, '_') || 'document.pdf';
-    pendingExports.set(token, {
-      buffer: req.file.buffer,
-      fileName,
-      expiresAt: Date.now() + TTL_MS
-    });
-
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-    const url = `${protocol}://${req.get('host')}/api/pdf-export/${token}`;
-
+    const url = stageForDownload(req, req.file.buffer, req.body.fileName);
     return successResponse(res, 'PDF ready for download.', { url });
   } catch (error) {
     return errorResponse(res, error.message, 500);
@@ -66,4 +73,4 @@ const downloadExport = (req, res) => {
   res.send(entry.buffer);
 };
 
-module.exports = { createExport, downloadExport };
+module.exports = { createExport, downloadExport, stageForDownload };

@@ -18,6 +18,8 @@ const RazorpayService = require('../services/razorpayService');
 const IciciPaymentService = require('../services/iciciPaymentService');
 const ZohoInvoiceService = require('../services/zohoInvoiceService');
 const { splitOrderAmount } = require('../utils/invoiceSplit');
+const { stageForDownload } = require('./pdfExportController');
+const { PDFDocument } = require('pdf-lib');
 const NotificationService = require('../services/notificationService');
 const PincodeService = require('../services/pincodeService');
 const RoadDistanceService = require('../services/roadDistanceService');
@@ -727,6 +729,42 @@ const getOrderById = async (req, res) => {
   }
 };
 
+// @desc  Idempotently ensures this order's Zoho Service Charge invoice exists (creating it on
+//        the first call, just returning the cached id/number on every later call -- repeat page
+//        views, the Android WebView's known double-request pattern on downloads, etc. must never
+//        issue a second Zoho invoice for the same order). `order` must already have `userId`
+//        populated with at least name/email/mobile/whatsappNumber.
+const ensureServiceChargeInvoice = async (order) => {
+  const { serviceChargeAmount, materialAmount } = splitOrderAmount(order);
+
+  if (order.zohoServiceChargeInvoiceNumber) {
+    return {
+      invoiceId: order.zohoServiceChargeInvoiceId,
+      invoiceNumber: order.zohoServiceChargeInvoiceNumber,
+      serviceChargeAmount,
+      materialAmount
+    };
+  }
+
+  const contactId = await ZohoInvoiceService.findOrCreateContact({
+    name: order.userId.name,
+    email: order.userId.email,
+    mobile: order.userId.whatsappNumber || order.userId.mobile
+  });
+
+  const { invoiceId, invoiceNumber } = await ZohoInvoiceService.createServiceChargeInvoice({
+    customerContactId: contactId,
+    orderNumber: order.orderNumber,
+    amount: serviceChargeAmount
+  });
+
+  order.zohoServiceChargeInvoiceId = invoiceId;
+  order.zohoServiceChargeInvoiceNumber = invoiceNumber;
+  await order.save();
+
+  return { invoiceId, invoiceNumber, serviceChargeAmount, materialAmount };
+};
+
 // @desc    Issues (or, on a repeat call, simply returns) the real Zoho Books "Service Charge"
 //          invoice for this order's upfront payment -- Ananta's own GSTIN, 18% GST. Lazily
 //          created the first time the customer views/downloads the order's invoice, never at
@@ -753,35 +791,9 @@ const getServiceChargeInvoice = async (req, res) => {
       return errorResponse(res, 'This order has not been paid yet -- no invoice can be issued.', 400);
     }
 
-    const { serviceChargeAmount, materialAmount } = splitOrderAmount(order);
+    const { invoiceNumber, serviceChargeAmount, materialAmount } = await ensureServiceChargeInvoice(order);
 
-    // Idempotent: never issue a second Zoho invoice for the same order (repeat page views, the
-    // Android WebView's known double-request pattern on downloads, etc.).
-    if (order.zohoServiceChargeInvoiceNumber) {
-      return successResponse(res, 'Service charge invoice retrieved.', {
-        zohoInvoiceNumber: order.zohoServiceChargeInvoiceNumber,
-        serviceChargeAmount,
-        materialAmount
-      });
-    }
-
-    const contactId = await ZohoInvoiceService.findOrCreateContact({
-      name: order.userId.name,
-      email: order.userId.email,
-      mobile: order.userId.whatsappNumber || order.userId.mobile
-    });
-
-    const { invoiceId, invoiceNumber } = await ZohoInvoiceService.createServiceChargeInvoice({
-      customerContactId: contactId,
-      orderNumber: order.orderNumber,
-      amount: serviceChargeAmount
-    });
-
-    order.zohoServiceChargeInvoiceId = invoiceId;
-    order.zohoServiceChargeInvoiceNumber = invoiceNumber;
-    await order.save();
-
-    return successResponse(res, 'Service charge invoice issued.', {
+    return successResponse(res, 'Service charge invoice retrieved.', {
       zohoInvoiceNumber: invoiceNumber,
       serviceChargeAmount,
       materialAmount
@@ -789,6 +801,59 @@ const getServiceChargeInvoice = async (req, res) => {
   } catch (error) {
     console.error('[Zoho Service Charge Invoice Error]', error.message);
     return errorResponse(res, 'Unable to generate the service charge invoice right now. Please try again shortly.', 502);
+  }
+};
+
+// @desc    Merges the dealer's Material Invoice (rendered client-side, uploaded here as a PDF)
+//          with Ananta's real Zoho-issued Service Charge invoice PDF into one combined,
+//          downloadable PDF -- replacing the earlier approach of re-rendering a copy of the Zoho
+//          invoice's data locally. Reuses the exact same Android-WebView-safe staged-download
+//          mechanism already built for client-generated PDFs (pdfExportController.stageForDownload).
+// @route   POST /api/orders/:id/combined-invoice-pdf
+// @access  Private (User -- order owner, or Admin)
+const getCombinedInvoicePdf = async (req, res) => {
+  try {
+    if (!req.file) {
+      return errorResponse(res, 'The Material Invoice PDF is required.', 400);
+    }
+
+    const order = await Order.findById(req.params.id).populate('userId', 'name mobile whatsappNumber email');
+    if (!order) {
+      return errorResponse(res, 'Order not found.', 404);
+    }
+
+    const userIdStr = req.user._id ? req.user._id.toString() : req.user.id?.toString();
+    const isOwner = order.userId && order.userId._id?.toString() === userIdStr;
+    const isAdmin = req.user.role === 'ADMIN' || req.user.role === 'SUPER_ADMIN';
+    if (!isOwner && !isAdmin) {
+      return errorResponse(res, 'Unauthorized to view this order invoice.', 403);
+    }
+
+    if (order.paymentStatus !== 'PAID') {
+      return errorResponse(res, 'This order has not been paid yet -- no invoice can be issued.', 400);
+    }
+
+    const { invoiceId } = await ensureServiceChargeInvoice(order);
+    const zohoPdfBytes = await ZohoInvoiceService.getInvoicePdfBytes(invoiceId);
+
+    const mergedPdf = await PDFDocument.create();
+
+    const materialPdf = await PDFDocument.load(req.file.buffer);
+    const materialPages = await mergedPdf.copyPages(materialPdf, materialPdf.getPageIndices());
+    materialPages.forEach((page) => mergedPdf.addPage(page));
+
+    const zohoPdf = await PDFDocument.load(zohoPdfBytes);
+    const zohoPages = await mergedPdf.copyPages(zohoPdf, zohoPdf.getPageIndices());
+    zohoPages.forEach((page) => mergedPdf.addPage(page));
+
+    const mergedBytes = await mergedPdf.save();
+    const safeNo = (order.invoiceNumber || order.orderNumber || 'Invoice').replace(/[/\\:]/g, '_');
+    const url = stageForDownload(req, Buffer.from(mergedBytes), `ANANTA_TRADERS_${safeNo}.pdf`);
+
+    return successResponse(res, 'Combined invoice PDF ready.', { url });
+  } catch (error) {
+    console.error('[Combined Invoice PDF Error]', error.message);
+    return errorResponse(res, 'Unable to generate the combined invoice PDF right now. Please try again shortly.', 502);
   }
 };
 
@@ -1743,6 +1808,7 @@ module.exports = {
   getMyOrders,
   getOrderById,
   getServiceChargeInvoice,
+  getCombinedInvoicePdf,
   getDealerAvailableOrders,
   getDealerDeliveries,
   getDealerVehicleSalesReport,

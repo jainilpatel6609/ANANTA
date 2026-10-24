@@ -3,6 +3,7 @@ const router = express.Router();
 const orderController = require('../controllers/orderController');
 const { authenticateToken } = require('../middleware/auth');
 const { authorizeRoles } = require('../middleware/rbac');
+const pdfUpload = require('../middleware/pdfUpload');
 
 // Order creation and customer order history (Allows USER, DEALER, ADMIN for testing & cross-purchasing)
 router.post('/', authenticateToken, authorizeRoles('USER', 'DEALER', 'ADMIN'), orderController.createOrder);
@@ -30,5 +31,6 @@ router.post('/:id/request-refund', authenticateToken, authorizeRoles('USER', 'AD
 // Common / Specific order lookup
 router.get('/:id', authenticateToken, orderController.getOrderById);
 router.get('/:id/service-charge-invoice', authenticateToken, orderController.getServiceChargeInvoice);
+router.post('/:id/combined-invoice-pdf', authenticateToken, pdfUpload.single('pdf'), orderController.getCombinedInvoicePdf);
 
 module.exports = router;
