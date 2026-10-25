@@ -791,6 +791,15 @@ const getServiceChargeInvoice = async (req, res) => {
       return errorResponse(res, 'This order has not been paid yet -- no invoice can be issued.', 400);
     }
 
+    const isTractorOrder = order.vehicleTypeSnapshot === 'TRACTOR' || order.transportType === 'Tractor';
+    if (!isTractorOrder && order.finalPaymentStatus !== 'PAID') {
+      return errorResponse(
+        res,
+        'The final weight-based settlement for this order is still pending. The GST invoice will be available once the final payment is completed.',
+        400
+      );
+    }
+
     const { invoiceNumber, serviceChargeAmount, materialAmount } = await ensureServiceChargeInvoice(order);
 
     return successResponse(res, 'Service charge invoice retrieved.', {
@@ -831,6 +840,15 @@ const getCombinedInvoicePdf = async (req, res) => {
 
     if (order.paymentStatus !== 'PAID') {
       return errorResponse(res, 'This order has not been paid yet -- no invoice can be issued.', 400);
+    }
+
+    const isTractorOrder = order.vehicleTypeSnapshot === 'TRACTOR' || order.transportType === 'Tractor';
+    if (!isTractorOrder && order.finalPaymentStatus !== 'PAID') {
+      return errorResponse(
+        res,
+        'The final weight-based settlement for this order is still pending. The GST invoice will be available once the final payment is completed.',
+        400
+      );
     }
 
     const { invoiceId } = await ensureServiceChargeInvoice(order);

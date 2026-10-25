@@ -321,8 +321,15 @@ export default function OrderInvoice() {
 
         // Lazily issue (or retrieve the already-issued) Zoho Service Charge invoice -- only once
         // the order is actually PAID, and only on this view, never automatically at payment time.
-        // Fails soft: the rest of the invoice still renders even if Zoho is briefly unavailable.
-        if (orderData?.paymentStatus === 'PAID') {
+        // Dumper orders settle by real weighed tonnage AFTER the upfront payment (see
+        // enterTotalWeight), so the real total is only known once that final payment is also
+        // PAID -- issuing the Zoho invoice any earlier would permanently lock in the wrong
+        // (booking-token) amount. Fails soft: the rest of the invoice still renders even if Zoho
+        // is briefly unavailable.
+        const isTractorOrder = orderData?.transportType === 'Tractor' || orderData?.vehicleTypeSnapshot === 'TRACTOR';
+        const readyForServiceChargeInvoice = orderData?.paymentStatus === 'PAID'
+          && (isTractorOrder || orderData?.finalPaymentStatus === 'PAID');
+        if (readyForServiceChargeInvoice) {
           orderService
             .getServiceChargeInvoice(id)
             .then((scRes) => setServiceChargeInfo(scRes.data))
@@ -491,6 +498,11 @@ export default function OrderInvoice() {
   // Quantities and Unit Computations
   const totalAmount = order.totalAmount || 0;
   const isPaid = order.paymentStatus === 'PAID';
+  const isTractorOrder = order.transportType === 'Tractor' || order.vehicleTypeSnapshot === 'TRACTOR';
+  // Dumper orders settle by real weighed tonnage via a separate final payment AFTER the upfront
+  // booking payment -- the GST invoice (and its Zoho Service Charge portion) only reflects the
+  // real total once that final payment is also PAID.
+  const pendingFinalSettlement = !isTractorOrder && order.finalPaymentStatus !== 'PAID';
 
   // Split the blended totalAmount into the dealer's material-sale portion and Ananta's own
   // service-charge portion (falls back to the full amount as "material" until the Zoho call
@@ -511,13 +523,17 @@ export default function OrderInvoice() {
   const serviceCgst = Math.round((serviceTax / 2) * 100) / 100;
   const serviceSgst = Math.round((serviceTax - serviceCgst) * 100) / 100;
 
+  // Dumper's real quantity is only known once the dealer weighs it (order.totalWeight) -- before
+  // that, approximateTon is just a capacity estimate, not what was actually sold.
+  const dumperQty = order.totalWeight || order.approximateTon || order.quantity || 41.67;
+
   const qtyDisplay = order.transportType === 'Tractor'
     ? (order.numberOfTractors || order.quantity || 1) + ' TRACTOR'
-    : (order.approximateTon || order.quantity || 41.67) + ' TON';
+    : dumperQty + ' TON';
 
   const qtyNumeric = order.transportType === 'Tractor'
     ? (order.numberOfTractors || order.quantity || 1)
-    : (order.approximateTon || order.quantity || 41.67);
+    : dumperQty;
 
   const ratePerUnit = qtyNumeric > 0 ? (materialTaxable / qtyNumeric).toFixed(2) : materialTaxable.toFixed(2);
 
@@ -735,7 +751,13 @@ export default function OrderInvoice() {
           <div className="px-3 py-1.5 rounded-lg bg-indigo-100 border border-indigo-200 text-[11px] font-black text-indigo-800 uppercase tracking-wider inline-block">
             Invoice 2 of 2 &mdash; Platform Service Charge (Ananta Traders, Zoho)
           </div>
-          {serviceChargeInfo ? (
+          {pendingFinalSettlement ? (
+            <p className="text-xs text-indigo-700">
+              This order's final weight-based settlement is still pending. The GST invoice (both Material and
+              Service Charge) will reflect the actual weighed tonnage and become available once the final payment
+              is completed.
+            </p>
+          ) : serviceChargeInfo ? (
             <p className="text-xs text-indigo-900">
               Real Zoho tax invoice <strong className="font-mono">{serviceChargeInfo.zohoInvoiceNumber}</strong> for{' '}
               <strong>₹{serviceChargeAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</strong> (18% GST, Ananta's GSTIN) will
