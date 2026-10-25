@@ -524,18 +524,22 @@ export default function OrderInvoice() {
   const serviceSgst = Math.round((serviceTax - serviceCgst) * 100) / 100;
 
   // Dumper's real quantity is only known once the dealer weighs it (order.totalWeight) -- before
-  // that, approximateTon is just a capacity estimate, not what was actually sold.
+  // that, approximateTon is just a capacity estimate, not what was actually sold. Prefer the
+  // backend's own fresh computation (serviceChargeInfo.quantity, from its own live DB read) over
+  // this client's possibly-stale `order` snapshot, so the Material Invoice's Qty/Rate always
+  // matches the real Zoho Service Charge invoice's own breakdown exactly.
   const dumperQty = order.totalWeight || order.approximateTon || order.quantity || 41.67;
 
+  const qtyNumeric = serviceChargeInfo?.quantity
+    || (order.transportType === 'Tractor' ? (order.numberOfTractors || order.quantity || 1) : dumperQty);
+
   const qtyDisplay = order.transportType === 'Tractor'
-    ? (order.numberOfTractors || order.quantity || 1) + ' TRACTOR'
-    : dumperQty + ' TON';
+    ? qtyNumeric + ' TRACTOR'
+    : qtyNumeric + ' TON';
 
-  const qtyNumeric = order.transportType === 'Tractor'
-    ? (order.numberOfTractors || order.quantity || 1)
-    : dumperQty;
-
-  const ratePerUnit = qtyNumeric > 0 ? (materialTaxable / qtyNumeric).toFixed(2) : materialTaxable.toFixed(2);
+  const ratePerUnit = serviceChargeInfo?.materialRatePerUnit != null
+    ? serviceChargeInfo.materialRatePerUnit.toFixed(2)
+    : (qtyNumeric > 0 ? (materialTaxable / qtyNumeric).toFixed(2) : materialTaxable.toFixed(2));
 
   // Customer / Party (buyer) details -- real data; GSTIN is genuinely blank if the customer
   // never registered one (no fake placeholder).

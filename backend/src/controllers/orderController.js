@@ -737,12 +737,28 @@ const getOrderById = async (req, res) => {
 const ensureServiceChargeInvoice = async (order) => {
   const { serviceChargeAmount, materialAmount } = splitOrderAmount(order);
 
+  // The real sold quantity/unit/rate -- Tractor bills per trip, Dumper bills per the actual
+  // weighed tonnage (order.totalWeight, only reached once finalPaymentStatus is PAID -- see the
+  // route's own gate). Computed once here and handed back to the caller so the frontend's
+  // Material Invoice can show the SAME figures Zoho's Service Charge invoice uses, instead of
+  // re-deriving its own from whatever `order` snapshot the client currently holds.
+  const isTractorOrder = order.vehicleTypeSnapshot === 'TRACTOR' || order.transportType === 'Tractor';
+  const quantity = isTractorOrder ? (order.numberOfTractors || order.quantity || 1) : (order.totalWeight || 1);
+  const unit = isTractorOrder ? 'trip' : 'ton';
+  // Pre-tax (5% GST not yet added) per-unit rate -- the Material Invoice shows RATE and TAX as
+  // separate columns, so RATE itself must be the pre-tax figure, not the GST-inclusive total.
+  const materialTaxableForRate = Math.round((materialAmount / 1.05) * 100) / 100;
+  const materialRatePerUnit = quantity > 0 ? Math.round((materialTaxableForRate / quantity) * 100) / 100 : materialTaxableForRate;
+
   if (order.zohoServiceChargeInvoiceNumber) {
     return {
       invoiceId: order.zohoServiceChargeInvoiceId,
       invoiceNumber: order.zohoServiceChargeInvoiceNumber,
       serviceChargeAmount,
-      materialAmount
+      materialAmount,
+      quantity,
+      unit,
+      materialRatePerUnit
     };
   }
 
@@ -752,26 +768,19 @@ const ensureServiceChargeInvoice = async (order) => {
     mobile: order.userId.whatsappNumber || order.userId.mobile
   });
 
-  // Shown as Quantity x Rate on the real Zoho invoice (e.g. 40 TON x Rs25/Ton), matching the
-  // Material Invoice's own breakdown -- Tractor bills per trip, Dumper bills per the actual
-  // weighed tonnage (only reached once finalPaymentStatus is PAID -- see the route's own gate).
-  const isTractorOrder = order.vehicleTypeSnapshot === 'TRACTOR' || order.transportType === 'Tractor';
-  const scQuantity = isTractorOrder ? (order.numberOfTractors || order.quantity || 1) : (order.totalWeight || 1);
-  const scUnit = isTractorOrder ? 'trip' : 'ton';
-
   const { invoiceId, invoiceNumber } = await ZohoInvoiceService.createServiceChargeInvoice({
     customerContactId: contactId,
     orderNumber: order.orderNumber,
-    quantity: scQuantity,
+    quantity,
     ratePerUnit: order.serviceChargeRateSnapshot || 0,
-    unit: scUnit
+    unit
   });
 
   order.zohoServiceChargeInvoiceId = invoiceId;
   order.zohoServiceChargeInvoiceNumber = invoiceNumber;
   await order.save();
 
-  return { invoiceId, invoiceNumber, serviceChargeAmount, materialAmount };
+  return { invoiceId, invoiceNumber, serviceChargeAmount, materialAmount, quantity, unit, materialRatePerUnit };
 };
 
 // @desc    Issues (or, on a repeat call, simply returns) the real Zoho Books "Service Charge"
@@ -809,12 +818,16 @@ const getServiceChargeInvoice = async (req, res) => {
       );
     }
 
-    const { invoiceNumber, serviceChargeAmount, materialAmount } = await ensureServiceChargeInvoice(order);
+    const { invoiceNumber, serviceChargeAmount, materialAmount, quantity, unit, materialRatePerUnit } =
+      await ensureServiceChargeInvoice(order);
 
     return successResponse(res, 'Service charge invoice retrieved.', {
       zohoInvoiceNumber: invoiceNumber,
       serviceChargeAmount,
-      materialAmount
+      materialAmount,
+      quantity,
+      unit,
+      materialRatePerUnit
     });
   } catch (error) {
     console.error('[Zoho Service Charge Invoice Error]', error.message);
