@@ -24,7 +24,22 @@ export const formatOrderQuantity = (order) => {
     const n = Number(order.numberOfTractors || order.quantity) || 0;
     return `${n} Tractor${n === 1 ? '' : 's'}`;
   }
-  return `${order.quantity} Tons`;
+  // Dumper's real quantity is only known once the dealer weighs it (order.totalWeight) -- before
+  // that, order.quantity is just a booking placeholder (always 1).
+  const tons = order.totalWeight || order.approximateTon || order.quantity || 0;
+  return `${tons} Tons`;
+};
+
+// Dumper orders settle in two separate payments: a small upfront booking payment
+// (order.totalAmount) and a final, actual-weighed-tonnage payment (order.finalPaymentAmount,
+// Total Weight x Rate Per Ton) made afterwards. Once that final payment is PAID, it -- not the
+// upfront booking figure -- is the order's real bottom-line total.
+export const getOrderGrandTotal = (order) => {
+  if (!order) return 0;
+  if (!isTractorOrder(order) && order.finalPaymentStatus === 'PAID') {
+    return order.finalPaymentAmount || 0;
+  }
+  return order.totalAmount || 0;
 };
 
 export const formatOrderTransport = (order) => {

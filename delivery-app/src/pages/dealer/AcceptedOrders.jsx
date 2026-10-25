@@ -4,7 +4,7 @@ import StatusBadge from '../../components/StatusBadge';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
 import Modal from '../../components/Modal';
-import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport } from '../../utils/formatters';
+import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport, getOrderGrandTotal } from '../../utils/formatters';
 import {
   CheckCircle,
   Truck,
@@ -291,7 +291,7 @@ export default function AcceptedOrders() {
                       <span className="text-slate-500 block uppercase font-bold text-[9px] sm:text-[10px] tracking-wider">
                         Order Value
                       </span>
-                      <span className="text-sm sm:text-lg font-black text-amber-600 font-mono">{formatINR(order.totalAmount)}</span>
+                      <span className="text-sm sm:text-lg font-black text-amber-600 font-mono">{formatINR(getOrderGrandTotal(order))}</span>
                     </div>
                     <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                   </div>

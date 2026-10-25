@@ -6,7 +6,7 @@ import StatusBadge from '../../components/StatusBadge';
 import DeliveryTimeline from '../../components/DeliveryTimeline';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Modal from '../../components/Modal';
-import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport, isTractorOrder } from '../../utils/formatters';
+import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport, isTractorOrder, getOrderGrandTotal } from '../../utils/formatters';
 import {
   Package,
   Truck,
@@ -276,7 +276,7 @@ export default function OrderDetails() {
             <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-sans font-bold">
               Total Amount
             </span>
-            <span className="text-xl font-black text-slate-900">{formatINR(order.totalAmount)}</span>
+            <span className="text-xl font-black text-slate-900">{formatINR(getOrderGrandTotal(order))}</span>
           </div>
         </div>
       </div>
@@ -720,7 +720,7 @@ export default function OrderDetails() {
             )}
             <div className="pt-2 flex justify-between items-baseline font-bold text-sm text-slate-900">
               <span>Grand Total:</span>
-              <span className="text-xl font-black text-amber-700 font-mono">{formatINR(order.totalAmount)}</span>
+              <span className="text-xl font-black text-amber-700 font-mono">{formatINR(getOrderGrandTotal(order))}</span>
             </div>
             <div className="pt-1 text-[10px] text-slate-400 font-mono truncate">
               Payment ID: {order.paymentId || 'N/A'}

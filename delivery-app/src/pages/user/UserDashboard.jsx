@@ -5,7 +5,7 @@ import { orderService } from '../../services';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import StatusBadge from '../../components/StatusBadge';
 import DeliveryTimeline from '../../components/DeliveryTimeline';
-import { formatOrderQuantity, formatDate, formatINR } from '../../utils/formatters';
+import { formatOrderQuantity, formatDate, formatINR, getOrderGrandTotal } from '../../utils/formatters';
 import {
   Truck,
   PlusCircle,
@@ -704,7 +704,7 @@ export default function UserDashboard() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs font-black text-slate-900 font-mono">{formatINR(o.totalAmount)}</span>
+                      <span className="text-xs font-black text-slate-900 font-mono">{formatINR(getOrderGrandTotal(o))}</span>
                       <FileText className="w-4 h-4 text-indigo-500" />
                     </div>
                   </Link>

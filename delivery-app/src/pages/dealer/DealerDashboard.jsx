@@ -8,7 +8,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import OrderAlarmBanner from '../../components/OrderAlarmBanner';
 import NotificationPermissionPrompt from '../../components/NotificationPermissionPrompt';
 import { useAlarm } from '../../hooks/useAlarm';
-import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport } from '../../utils/formatters';
+import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport, getOrderGrandTotal } from '../../utils/formatters';
 import {
   Inbox,
   CheckCircle,
@@ -188,7 +188,7 @@ export default function DealerDashboard() {
                     <div className="flex items-center gap-2">
                       <span className="font-mono font-bold text-slate-900 text-xs">#{order.orderNumber}</span>
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                        {formatINR(order.totalAmount)}
+                        {formatINR(getOrderGrandTotal(order))}
                       </span>
                     </div>
                     <div className="text-xs font-bold text-slate-700">
