@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { orderService } from '../../services';
 import { numberToWordsIndian } from '../../utils/numberToWords';
+import { savePdfCrossPlatform } from '../../utils/downloadPdf';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import QRCode from 'qrcode';
@@ -362,21 +363,23 @@ export default function OrderInvoice() {
     }
   }, [id, location]);
 
-  // 1-Click Direct PDF Download using html2canvas & jsPDF
-  // Renders ONLY the Material Invoice to a PDF client-side, then hands it to the backend, which
-  // merges it with Ananta's real Zoho-generated Service Charge invoice PDF (not a local re-
-  // rendering of the same data) into one combined, downloadable file.
+  // 1-Click Direct PDF Download using html2canvas & jsPDF. Renders BOTH invoice blocks (Material
+  // + Service Charge) itself, one consistent visual style -- the real Zoho invoice record still
+  // gets created in the background (for Ananta's own GST accounting under its own GSTIN), but its
+  // invoice NUMBER is embedded here rather than merging Zoho's own separately-styled PDF, since
+  // the Material Invoice can never legally come from Zoho itself (one Zoho org = one fixed GSTIN,
+  // never the selling dealer's) -- keeping both invoices in the same rendered style avoids an
+  // visually-jarring mismatch between them.
   const handleDownloadPDF = async () => {
     if (!invoiceRef.current || !order) return;
     setIsDownloading(true);
     toast.loading('Generating Official Tax Invoice PDF...', { id: 'pdf-gen' });
 
     try {
-      // The Material Invoice's own Qty/Rate/Amount are derived from serviceChargeInfo (the real,
-      // weight/trip-settled split) once it loads -- a fast click right after the page mounts can
-      // otherwise capture the on-screen invoice BEFORE that background fetch resolves, baking in
-      // the pre-settlement fallback amount into the PDF while the Zoho invoice created moments
-      // later already reflects the correct final total. Make sure it's loaded first.
+      // The Service Charge section's Qty/Rate/Amount (and its real Zoho invoice number) are
+      // derived from serviceChargeInfo once it loads -- a fast click right after the page mounts
+      // can otherwise capture the on-screen invoice BEFORE that background fetch resolves. Make
+      // sure it's loaded first.
       if (!serviceChargeInfo && order.paymentStatus === 'PAID' && !pendingFinalSettlement) {
         const scRes = await orderService.getServiceChargeInvoice(order._id);
         setServiceChargeInfo(scRes.data);
@@ -404,6 +407,9 @@ export default function OrderInvoice() {
       const imgWidth = pdfWidth;
       const imgHeight = (canvas.height * pdfWidth) / canvas.width;
 
+      // Two stacked invoices (Material + Service Charge) are almost always taller than one A4
+      // page -- slice the tall image across as many pages as needed instead of silently clipping
+      // anything past page 1.
       let heightLeft = imgHeight;
       let position = 0;
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
@@ -415,24 +421,17 @@ export default function OrderInvoice() {
         heightLeft -= pdfHeight;
       }
 
-      toast.loading('Attaching the real Service Charge invoice from Zoho...', { id: 'pdf-gen' });
-      const materialBlob = pdf.output('blob');
-      const res = await orderService.getCombinedInvoicePdf(order._id, materialBlob);
-      const url = res.data?.url;
-      if (!url) {
-        throw new Error('The server did not return a download link.');
-      }
+      const safeNo = (order.invoiceNumber || order.orderNumber || 'Invoice').replace(/[/\\:]/g, '_');
+      const result = await savePdfCrossPlatform(pdf, 'ANANTA_TRADERS_' + safeNo + '.pdf');
 
-      // Content-Disposition: attachment on the backend's download route makes this trigger a
-      // save/download regardless of platform -- the same real-URL navigation already proven
-      // necessary for the Appilix/WebView Android app (a JS blob/data URI never reaches its
-      // native download handler).
-      window.location.href = url;
-
-      toast.success('🎉 Invoice PDF downloading…', { id: 'pdf-gen' });
+      toast.success(
+        result === 'opened' ? '🎉 Invoice PDF downloading…' : '🎉 Invoice PDF downloaded directly!',
+        { id: 'pdf-gen' }
+      );
     } catch (err) {
       console.error('PDF Generation Error:', err);
-      toast.error(err.response?.data?.message || err.message || 'PDF generation error. Please try again.', { id: 'pdf-gen' });
+      toast.error('Direct PDF generation error. Opening print preview...', { id: 'pdf-gen' });
+      window.print();
     } finally {
       setIsDownloading(false);
     }
@@ -534,6 +533,12 @@ export default function OrderInvoice() {
   const serviceTax = Math.round((serviceChargeAmount - serviceTaxable) * 100) / 100;
   const serviceCgst = Math.round((serviceTax / 2) * 100) / 100;
   const serviceSgst = Math.round((serviceTax - serviceCgst) * 100) / 100;
+
+  // Same real Qty/Rate breakdown the actual Zoho invoice uses (e.g. 30 TON x Rs25/Ton), from the
+  // backend's own fresh computation -- not a flattened "1 SERVICE" line.
+  const scQuantity = serviceChargeInfo?.quantity || 1;
+  const scUnit = serviceChargeInfo?.unit === 'trip' ? 'TRACTOR' : 'TON';
+  const scRatePerUnit = (order.serviceChargeRateSnapshot || 0).toFixed(2);
 
   // Dumper's real quantity is only known once the dealer weighs it (order.totalWeight) -- before
   // that, approximateTon is just a capacity estimate, not what was actually sold. Prefer the
@@ -709,81 +714,119 @@ export default function OrderInvoice() {
         </div>
       </div>
 
-      {/* ================= MATERIAL INVOICE (rendered by the app, dealer's own GSTIN) ================= */}
-      <div className="max-w-4xl mx-auto overflow-x-auto pb-4">
+      {/* ================= TWO TAX INVOICES, ONE PDF ================= */}
+      <div className="max-w-4xl mx-auto overflow-x-auto pb-6">
         <div
           ref={invoiceRef}
-          className="print-container w-full min-w-[720px] max-w-4xl mx-auto bg-white text-slate-900 rounded-2xl p-8 sm:p-10 shadow-2xl border border-slate-200 space-y-5 font-sans"
+          className="print-container w-full min-w-[720px] max-w-4xl mx-auto bg-white text-slate-900 rounded-2xl p-8 sm:p-10 shadow-2xl border border-slate-200 space-y-8 font-sans"
         >
-          <div className="mb-1 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-[11px] font-black text-amber-800 uppercase tracking-wider inline-block">
-            Invoice 1 of 2 &mdash; Material (Dealer)
+          {/* 1. MATERIAL INVOICE -- issued under the selected dealer's own GSTIN, on their behalf */}
+          <div>
+            <div className="mb-3 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-[11px] font-black text-amber-800 uppercase tracking-wider inline-block">
+              Invoice 1 of 2 &mdash; Material (Dealer)
+            </div>
+            <InvoiceSection
+              badgeLabel="ORIGINAL FOR RECIPIENT"
+              sellerName={dealerName}
+              sellerAddress={[dealerAddress, dealerCityStatePin].filter(Boolean).join(', ')}
+              sellerMobile={dealerMobile}
+              sellerGstin={dealerGstin}
+              sellerPan={dealerPan}
+              sellerEmail=""
+              invoiceNo={invoiceNo}
+              invoiceDate={formattedInvoiceDate}
+              dueDate={formattedDueDate}
+              buyerName={customerName}
+              buyerAddressLine1={customerAddress1}
+              buyerArea={customerArea}
+              buyerCity={customerCity}
+              buyerState={customerState}
+              buyerPincode={customerPincode}
+              buyerMobile={customerMobile}
+              buyerGstin={customerGstin}
+              shipToAddress={siteAddress}
+              itemName={order.productNameSnapshot || 'Construction Material'}
+              hsnCode={hsnCode}
+              site={siteShort}
+              qtyDisplay={qtyDisplay}
+              qtyNumeric={qtyNumeric}
+              ratePerUnit={ratePerUnit}
+              taxPercent={5}
+              taxAmount={materialTax}
+              amount={materialAmount}
+              taxableAmount={materialTaxable}
+              cgstAmount={materialCgst}
+              sgstAmount={materialSgst}
+              receivedAmount={isPaid ? materialAmount : 0}
+              amountInWords={materialAmountInWords}
+              showPaymentInfo={false}
+              qrCodeUrl={qrCodeUrl}
+              showSignature={false}
+            />
           </div>
-          <InvoiceSection
-            badgeLabel="ORIGINAL FOR RECIPIENT"
-            sellerName={dealerName}
-            sellerAddress={[dealerAddress, dealerCityStatePin].filter(Boolean).join(', ')}
-            sellerMobile={dealerMobile}
-            sellerGstin={dealerGstin}
-            sellerPan={dealerPan}
-            sellerEmail=""
-            invoiceNo={invoiceNo}
-            invoiceDate={formattedInvoiceDate}
-            dueDate={formattedDueDate}
-            buyerName={customerName}
-            buyerAddressLine1={customerAddress1}
-            buyerArea={customerArea}
-            buyerCity={customerCity}
-            buyerState={customerState}
-            buyerPincode={customerPincode}
-            buyerMobile={customerMobile}
-            buyerGstin={customerGstin}
-            shipToAddress={siteAddress}
-            itemName={order.productNameSnapshot || 'Construction Material'}
-            hsnCode={hsnCode}
-            site={siteShort}
-            qtyDisplay={qtyDisplay}
-            qtyNumeric={qtyNumeric}
-            ratePerUnit={ratePerUnit}
-            taxPercent={5}
-            taxAmount={materialTax}
-            amount={materialAmount}
-            taxableAmount={materialTaxable}
-            cgstAmount={materialCgst}
-            sgstAmount={materialSgst}
-            receivedAmount={isPaid ? materialAmount : 0}
-            amountInWords={materialAmountInWords}
-            showPaymentInfo={false}
-            qrCodeUrl={qrCodeUrl}
-            showSignature={false}
-          />
+
+          <div className="border-t-2 border-dashed border-slate-300" />
+
+          {/* 2. SERVICE CHARGE INVOICE -- Ananta's own real Zoho-issued invoice, 18% GST. Rendered
+              in the same style as the Material Invoice (not Zoho's own PDF layout, which could
+              never legally carry the dealer's GSTIN anyway), carrying Zoho's real invoice number
+              and the same Qty/Rate breakdown the actual Zoho record uses. */}
+          <div>
+            <div className="mb-3 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-[11px] font-black text-indigo-800 uppercase tracking-wider inline-block">
+              Invoice 2 of 2 &mdash; Platform Service Charge (Ananta Traders)
+            </div>
+            <InvoiceSection
+              badgeLabel="ORIGINAL FOR RECIPIENT"
+              sellerName="ANANTA TRADERS"
+              sellerAddress="shop no 10 Love kush tower, Near Udgam school, Thalej, Ahmedabad , Gujarat, 380054"
+              sellerMobile="9974240461"
+              sellerGstin="24BNFPP3477F1ZW"
+              sellerPan="BNFPP3477F"
+              sellerEmail="anantatraders19422@gmail.com"
+              invoiceNo={serviceChargeInvoiceNo}
+              invoiceDate={formattedInvoiceDate}
+              dueDate={formattedDueDate}
+              buyerName={customerName}
+              buyerAddressLine1={customerAddress1}
+              buyerArea={customerArea}
+              buyerCity={customerCity}
+              buyerState={customerState}
+              buyerPincode={customerPincode}
+              buyerMobile={customerMobile}
+              buyerGstin={customerGstin}
+              shipToAddress={siteAddress}
+              itemName={`Platform Service Charge - Order #${order.orderNumber}`}
+              hsnCode="998599"
+              site={siteShort}
+              qtyDisplay={`${scQuantity} ${scUnit}`}
+              qtyNumeric={scQuantity}
+              ratePerUnit={scRatePerUnit}
+              taxPercent={18}
+              taxAmount={serviceTax}
+              amount={serviceChargeAmount}
+              taxableAmount={serviceTaxable}
+              cgstAmount={serviceCgst}
+              sgstAmount={serviceSgst}
+              receivedAmount={isPaid ? serviceChargeAmount : 0}
+              amountInWords={serviceChargeAmountInWords}
+              showPaymentInfo
+              qrCodeUrl={qrCodeUrl}
+              showSignature
+            />
+          </div>
         </div>
       </div>
 
-      {/* ================= SERVICE CHARGE -- Ananta's own REAL Zoho Books invoice, not a local
-          copy. Shown here only as a summary; the actual Zoho-generated PDF page is merged into
-          the downloaded file by the backend (see handleDownloadPDF). ================= */}
-      <div className="max-w-4xl mx-auto pb-6 no-print">
-        <div className="bg-indigo-50/60 border border-indigo-200 rounded-2xl p-5 sm:p-6 space-y-2">
-          <div className="px-3 py-1.5 rounded-lg bg-indigo-100 border border-indigo-200 text-[11px] font-black text-indigo-800 uppercase tracking-wider inline-block">
-            Invoice 2 of 2 &mdash; Platform Service Charge (Ananta Traders, Zoho)
-          </div>
-          {pendingFinalSettlement ? (
+      {pendingFinalSettlement && (
+        <div className="max-w-4xl mx-auto pb-6 no-print">
+          <div className="bg-indigo-50/60 border border-indigo-200 rounded-2xl p-5 sm:p-6">
             <p className="text-xs text-indigo-700">
-              This order's final weight-based settlement is still pending. The GST invoice (both Material and
-              Service Charge) will reflect the actual weighed tonnage and become available once the final payment
-              is completed.
+              This order's final weight-based settlement is still pending. Both invoices above will
+              reflect the actual weighed tonnage once the final payment is completed.
             </p>
-          ) : serviceChargeInfo ? (
-            <p className="text-xs text-indigo-900">
-              Real Zoho tax invoice <strong className="font-mono">{serviceChargeInfo.zohoInvoiceNumber}</strong> for{' '}
-              <strong>₹{serviceChargeAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</strong> (18% GST, Ananta's GSTIN) will
-              be attached as page 2+ of the downloaded PDF.
-            </p>
-          ) : (
-            <p className="text-xs text-indigo-700">Generating the real Zoho tax invoice for this order...</p>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
