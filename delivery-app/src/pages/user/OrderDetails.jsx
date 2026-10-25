@@ -710,7 +710,10 @@ export default function OrderDetails() {
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-100">
                   <span className="text-slate-500">Freight Charge:</span>
-                  <span className="font-mono font-bold text-slate-800">{formatINR(order.deliveryCharge)}</span>
+                  {/* Dumper has no separate material price -- the per-Ton rate IS the whole order
+                      value, so Freight Charge should track the same real (weight-settled) total
+                      Grand Total below shows, not the pre-weighing booking snapshot. */}
+                  <span className="font-mono font-bold text-slate-800">{formatINR(getOrderGrandTotal(order))}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-100">
                   <span className="text-slate-500">GST (5%):</span>

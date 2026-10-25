@@ -32,11 +32,15 @@ export const formatOrderQuantity = (order) => {
 
 // Dumper orders settle in two separate payments: a small upfront booking payment
 // (order.totalAmount) and a final, actual-weighed-tonnage payment (order.finalPaymentAmount,
-// Total Weight x Rate Per Ton) made afterwards. Once that final payment is PAID, it -- not the
-// upfront booking figure -- is the order's real bottom-line total.
+// Total Weight x Rate Per Ton). finalPaymentAmount is computed and saved the moment the dealer
+// enters the weighed tonnage (enterTotalWeight) -- well before that final payment is actually
+// PAID -- so once the real weight is known, it (not the upfront booking figure) is the order's
+// real bottom-line total, matching formatOrderQuantity's own totalWeight check above. Whether
+// that final payment has actually been collected yet is a separate concern (shown by the "Final
+// Payment Due" section elsewhere), not something this total should hide behind.
 export const getOrderGrandTotal = (order) => {
   if (!order) return 0;
-  if (!isTractorOrder(order) && order.finalPaymentStatus === 'PAID') {
+  if (!isTractorOrder(order) && order.totalWeight) {
     return order.finalPaymentAmount || 0;
   }
   return order.totalAmount || 0;
