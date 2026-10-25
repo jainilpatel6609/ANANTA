@@ -752,10 +752,19 @@ const ensureServiceChargeInvoice = async (order) => {
     mobile: order.userId.whatsappNumber || order.userId.mobile
   });
 
+  // Shown as Quantity x Rate on the real Zoho invoice (e.g. 40 TON x Rs25/Ton), matching the
+  // Material Invoice's own breakdown -- Tractor bills per trip, Dumper bills per the actual
+  // weighed tonnage (only reached once finalPaymentStatus is PAID -- see the route's own gate).
+  const isTractorOrder = order.vehicleTypeSnapshot === 'TRACTOR' || order.transportType === 'Tractor';
+  const scQuantity = isTractorOrder ? (order.numberOfTractors || order.quantity || 1) : (order.totalWeight || 1);
+  const scUnit = isTractorOrder ? 'trip' : 'ton';
+
   const { invoiceId, invoiceNumber } = await ZohoInvoiceService.createServiceChargeInvoice({
     customerContactId: contactId,
     orderNumber: order.orderNumber,
-    amount: serviceChargeAmount
+    quantity: scQuantity,
+    ratePerUnit: order.serviceChargeRateSnapshot || 0,
+    unit: scUnit
   });
 
   order.zohoServiceChargeInvoiceId = invoiceId;

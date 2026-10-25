@@ -100,10 +100,12 @@ const findOrCreateContact = async ({ name, email, mobile }) => {
   return createData.contact.contact_id;
 };
 
-// @desc  Issues the real, 18%-GST, Ananta-GSTIN Service Charge invoice for one order's upfront
-//        payment. Caller is responsible for idempotency (never calling this twice for the same
-//        order) -- see orderController.getServiceChargeInvoice.
-const createServiceChargeInvoice = async ({ customerContactId, orderNumber, amount }) => {
+// @desc  Issues the real, 18%-GST, Ananta-GSTIN Service Charge invoice for one order's final
+//        (weight/trip-based) settlement. Shown as Quantity x Rate (e.g. 40 TON x Rs25/Ton), not a
+//        single flattened "1 x total" line, so the breakdown matches the Material Invoice's own
+//        Qty/Rate columns. Caller is responsible for idempotency (never calling this twice for the
+//        same order) -- see orderController.getServiceChargeInvoice.
+const createServiceChargeInvoice = async ({ customerContactId, orderNumber, quantity, ratePerUnit, unit }) => {
   const data = await zohoRequest('/books/v3/invoices', {
     method: 'POST',
     body: {
@@ -111,8 +113,9 @@ const createServiceChargeInvoice = async ({ customerContactId, orderNumber, amou
       line_items: [
         {
           name: `Platform Service Charge - Order #${orderNumber}`,
-          rate: amount,
-          quantity: 1,
+          rate: ratePerUnit,
+          quantity,
+          unit,
           tax_id: GST_18_TAX_ID
         }
       ]
