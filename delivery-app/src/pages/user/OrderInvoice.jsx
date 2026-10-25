@@ -372,6 +372,18 @@ export default function OrderInvoice() {
     toast.loading('Generating Official Tax Invoice PDF...', { id: 'pdf-gen' });
 
     try {
+      // The Material Invoice's own Qty/Rate/Amount are derived from serviceChargeInfo (the real,
+      // weight/trip-settled split) once it loads -- a fast click right after the page mounts can
+      // otherwise capture the on-screen invoice BEFORE that background fetch resolves, baking in
+      // the pre-settlement fallback amount into the PDF while the Zoho invoice created moments
+      // later already reflects the correct final total. Make sure it's loaded first.
+      if (!serviceChargeInfo && order.paymentStatus === 'PAID' && !pendingFinalSettlement) {
+        const scRes = await orderService.getServiceChargeInvoice(order._id);
+        setServiceChargeInfo(scRes.data);
+        // Give React a chance to commit that state update to the DOM before html2canvas reads it.
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      }
+
       const element = invoiceRef.current;
 
       // Capture element canvas at 2x scale for crisp 300 DPI vector-like clarity
