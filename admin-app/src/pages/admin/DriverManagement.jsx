@@ -128,13 +128,17 @@ export default function DriverManagement() {
   };
 
   const handleDelete = async (driver) => {
+    if (driver.status === 'ON_DELIVERY') {
+      toast.error('This driver is currently on an active delivery and cannot be deleted.');
+      return;
+    }
     if (!window.confirm(`Are you sure you want to remove ${driver.name} from the fleet?`)) return;
     try {
       await driverService.deleteDriver(driver._id);
       toast.success('Driver removed.');
       loadDrivers();
     } catch (err) {
-      toast.error('Failed to delete driver.');
+      toast.error(err.response?.data?.message || err.message || 'Failed to delete driver.');
     }
   };
 
@@ -255,7 +259,9 @@ export default function DriverManagement() {
                     </button>
                     <button
                       onClick={() => handleDelete(driver)}
-                      className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800"
+                      disabled={driver.status === 'ON_DELIVERY'}
+                      title={driver.status === 'ON_DELIVERY' ? 'Driver is on an active delivery -- cannot delete' : 'Delete Driver'}
+                      className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-400"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

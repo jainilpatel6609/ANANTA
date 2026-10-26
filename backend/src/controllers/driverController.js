@@ -369,6 +369,10 @@ const deleteDriver = async (req, res) => {
       return errorResponse(res, 'Unauthorized to delete this driver.', 403);
     }
 
+    if (driver.status === 'ON_DELIVERY') {
+      return errorResponse(res, 'This driver is currently on an active delivery and cannot be deleted. Please wait until their current order is delivered.', 409);
+    }
+
     driver.isActive = false;
     driver.status = 'INACTIVE';
     await driver.save();
