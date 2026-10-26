@@ -25,16 +25,15 @@ import {
   XCircle,
   Eye,
   EyeOff,
-  Radio,
-  RefreshCw,
-  AlertTriangle,
   Calendar,
   Camera,
   UploadCloud,
   FileCheck,
   CreditCard,
-  Mail
+  Mail,
+  X
 } from 'lucide-react';
+import MapPicker from '../../components/MapPicker';
 import toast from 'react-hot-toast';
 
 export default function Register() {
@@ -77,12 +76,11 @@ export default function Register() {
     pincode: ''
   });
 
-  // Dealer GPS Live Location State
-  const [gpsStatus, setGpsStatus] = useState('CHECKING'); // 'CHECKING' | 'LOCKED' | 'DENIED' | 'UNSUPPORTED'
-  const [gpsCoords, setGpsCoords] = useState(null);
-  const [gpsAccuracy, setGpsAccuracy] = useState(null);
-  const [gpsError, setGpsError] = useState('');
-  const [isSyncingGps, setIsSyncingGps] = useState(false);
+  // Dealer Depot Location -- picked on an interactive map (search, drag marker, or the map's own
+  // "Use My Current Location" GPS button) instead of a mandatory raw browser GPS prompt, which
+  // frequently times out/denies on devices with poor GPS lock or restrictive permissions.
+  const [depotCoordinates, setDepotCoordinates] = useState(null); // { lat, lng }
+  const [showDepotMapModal, setShowDepotMapModal] = useState(false);
 
   // Dealer Phone OTP Verification State
   const [dealerOtp, setDealerOtp] = useState({
@@ -163,47 +161,12 @@ export default function Register() {
   const { register, registerDealer, registerSuperAdmin } = useAuth();
   const navigate = useNavigate();
 
-  // 1. Mandatory GPS Location Request for Dealers
-  const requestDealerGpsLocation = () => {
-    if (!navigator.geolocation) {
-      setGpsStatus('UNSUPPORTED');
-      setGpsError('Geolocation is not supported by your browser or device.');
-      return;
-    }
-
-    setIsSyncingGps(true);
-    setGpsStatus('CHECKING');
-    setGpsError('');
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude, accuracy } = pos.coords;
-        setGpsCoords({ latitude, longitude });
-        setGpsAccuracy(accuracy);
-        setGpsStatus('LOCKED');
-        setIsSyncingGps(false);
-        toast.success(`📍 Live GPS Locked: ${latitude.toFixed(4)}, ${longitude.toFixed(4)} (±${Math.round(accuracy)}m)`);
-      },
-      (err) => {
-        setIsSyncingGps(false);
-        setGpsStatus('DENIED');
-        if (err.code === err.PERMISSION_DENIED) {
-          setGpsError('Location permission denied. Please allow location access in browser/device settings.');
-        } else if (err.code === err.POSITION_UNAVAILABLE) {
-          setGpsError('GPS location unavailable. Please ensure Device Location/GPS is turned ON.');
-        } else {
-          setGpsError(err.message || 'Unable to fetch GPS location.');
-        }
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
-    );
+  // 1. Dealer Depot Location -- set by picking a spot on the map (search, drag the marker, or
+  // its own "Use My Current Location" GPS button), not a mandatory raw browser GPS prompt on
+  // page load.
+  const handleDepotMapLocationChange = (lat, lng) => {
+    setDepotCoordinates({ lat, lng });
   };
-
-  useEffect(() => {
-    if (selectedRole === 'DEALER') {
-      requestDealerGpsLocation();
-    }
-  }, [selectedRole]);
 
   // 2. Upload Document Helper
   const handleFileUpload = async (fieldKey, file) => {
@@ -354,8 +317,8 @@ export default function Register() {
 
     // Role-specific validations
     if (selectedRole === 'DEALER') {
-      if (!gpsCoords || gpsStatus !== 'LOCKED') {
-        toast.error('Mandatory Live GPS Location required. Please turn ON location and click Refresh GPS.');
+      if (!depotCoordinates) {
+        toast.error('Please select your depot location on the map before submitting.');
         return;
       }
 
@@ -456,8 +419,8 @@ export default function Register() {
           panBackUrl: kycDocs.panBack.url,
           dealerPhotoUrl: kycDocs.dealerPhoto.url,
           officeFrontPhotoUrl: kycDocs.officeFrontPhoto.url,
-          latitude: gpsCoords.latitude,
-          longitude: gpsCoords.longitude,
+          latitude: depotCoordinates.lat,
+          longitude: depotCoordinates.lng,
           password: formData.password
         });
       } else {
@@ -563,49 +526,47 @@ export default function Register() {
           {/* ========================================================= */}
           {selectedRole === 'DEALER' && (
             <div className="p-4 sm:p-5 rounded-2xl bg-slate-950 border-2 border-blue-500/40 space-y-3 shadow-lg shadow-blue-500/5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-xs font-black text-blue-400 uppercase tracking-wider">
-                  <MapPin className="w-4 h-4 text-blue-400 animate-bounce" />
-                  <span>Mandatory Depot GPS Location</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={requestDealerGpsLocation}
-                  disabled={isSyncingGps}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 text-xs font-bold border border-blue-500/30 transition-all disabled:opacity-50"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncingGps ? 'animate-spin text-amber-400' : ''}`} />
-                  <span>{isSyncingGps ? 'Locking GPS...' : 'Refresh GPS'}</span>
-                </button>
+              <div className="flex items-center gap-2 text-xs font-black text-blue-400 uppercase tracking-wider">
+                <MapPin className="w-4 h-4 text-blue-400" />
+                <span>Mandatory Depot Location</span>
               </div>
 
-              {gpsStatus === 'LOCKED' && gpsCoords && (
-                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-400 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 font-mono">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                    <strong>GPS Locked:</strong> {gpsCoords.latitude.toFixed(4)}, {gpsCoords.longitude.toFixed(4)}
-                    {gpsAccuracy && ` (±${Math.round(gpsAccuracy)}m)`}
+              <button
+                type="button"
+                onClick={() => setShowDepotMapModal(true)}
+                className={`w-full flex items-center justify-between gap-3 p-3.5 rounded-xl border transition-all text-left ${
+                  depotCoordinates
+                    ? 'border-emerald-500/40 bg-emerald-500/10 hover:border-emerald-500/60'
+                    : 'border-blue-500/40 bg-blue-500/10 hover:border-blue-500/60'
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      depotCoordinates ? 'bg-emerald-500 text-white' : 'bg-blue-500 text-white'
+                    }`}
+                  >
+                    <MapPin className="w-4 h-4" />
                   </div>
-                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-                </div>
-              )}
-
-              {gpsStatus === 'CHECKING' && (
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center gap-2">
-                  <Radio className="w-4 h-4 text-amber-400 animate-pulse" />
-                  <span>Requesting high-accuracy GPS coordinates from device...</span>
-                </div>
-              )}
-
-              {gpsStatus === 'DENIED' && (
-                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="block font-bold">Location Permission Required:</strong>
-                    {gpsError || 'Please enable GPS/Location in your device settings to proceed.'}
+                  <div className="min-w-0">
+                    <h4 className="text-xs sm:text-sm font-black text-white">
+                      {depotCoordinates ? 'Depot Location Set' : 'Select Depot Location'}
+                    </h4>
+                    <p className="text-[10px] sm:text-xs text-slate-400 truncate">
+                      {depotCoordinates
+                        ? `Lat: ${depotCoordinates.lat.toFixed(5)}, Lng: ${depotCoordinates.lng.toFixed(5)} — tap to change`
+                        : 'Pin your depot on the map for accurate 5 KM dispatch radius'}
+                    </p>
                   </div>
                 </div>
-              )}
+                <span
+                  className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold ${
+                    depotCoordinates ? 'bg-emerald-500 text-white' : 'bg-blue-500 text-white'
+                  }`}
+                >
+                  {depotCoordinates ? 'Change' : 'Select on Map'}
+                </span>
+              </button>
             </div>
           )}
 
@@ -1274,6 +1235,44 @@ export default function Register() {
           }
         }}
       />
+
+      {/* Select Depot Location on Map Modal */}
+      {showDepotMapModal && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-slate-950/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-2.5 sm:py-3 border-b border-slate-100 sticky top-0 bg-white z-10">
+              <h3 className="text-sm sm:text-base font-black text-slate-900 font-display">
+                Select Depot Location
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowDepotMapModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3 sm:p-4 space-y-2.5">
+              <MapPicker
+                coordinates={depotCoordinates || undefined}
+                onLocationChange={handleDepotMapLocationChange}
+                onGPSDetect={handleDepotMapLocationChange}
+                zoom={16}
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowDepotMapModal(false)}
+                disabled={!depotCoordinates}
+                className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-sm active:scale-95 transition-all disabled:opacity-50"
+              >
+                Confirm Depot Location
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
