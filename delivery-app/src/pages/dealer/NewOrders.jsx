@@ -344,6 +344,7 @@ export default function NewOrders() {
                       {order.category}{' '}
                       {order.sandLocation ? `• Origin: ${order.sandLocation}` : ''}
                       {order.aggregateType ? `• Grade: ${order.aggregateType}` : ''}
+                      {order.vehicleOptionSnapshot ? `• ${order.vehicleOptionSnapshot}` : ''}
                     </div>
                   </div>
 
@@ -364,6 +365,11 @@ export default function NewOrders() {
                       Site Delivery Destination
                     </div>
                     <div className="flex items-center gap-2">
+                      {(order.distanceToDealer ?? order.dealerDistanceKm) != null && (
+                        <span className="px-2 py-0.5 rounded bg-sky-50 text-sky-700 font-mono font-bold text-[10px] border border-sky-200">
+                          {(order.distanceToDealer ?? order.dealerDistanceKm).toFixed(1)} km
+                        </span>
+                      )}
                       {order.pincode && (
                         <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 font-mono font-bold text-[10px] border border-amber-200">
                           PIN: {order.pincode}
@@ -374,6 +380,14 @@ export default function NewOrders() {
 
                   {order.shippingAddress ? (
                     <div className="text-slate-700 font-medium">{order.shippingAddress}</div>
+                  ) : (order.deliveryArea || order.deliveryCity) ? (
+                    <div className="text-slate-700 font-medium">
+                      {[order.deliveryArea, order.deliveryCity, order.deliveryState].filter(Boolean).join(', ')}
+                      <span className="text-slate-400 italic flex items-center gap-1.5 mt-0.5">
+                        <Lock className="w-3 h-3" />
+                        Exact address unlocks after you accept
+                      </span>
+                    </div>
                   ) : (
                     <div className="text-slate-400 italic flex items-center gap-1.5">
                       <Lock className="w-3 h-3" />

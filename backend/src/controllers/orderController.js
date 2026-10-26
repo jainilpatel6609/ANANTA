@@ -42,9 +42,6 @@ const DEALER_HIDDEN_ADDRESS_FIELDS = [
   'gpsAccuracy',
   'gpsLatitude',
   'gpsLongitude',
-  'deliveryArea',
-  'deliveryCity',
-  'deliveryState',
   'latitude',
   'longitude',
   'deliveryLatitude',
@@ -52,11 +49,13 @@ const DEALER_HIDDEN_ADDRESS_FIELDS = [
   'deliveryInstructions'
 ];
 
-// @desc    Strips the customer's exact shipping address/coordinates from an order before it is
-//          sent to a dealer who has not yet accepted it (order.dealerId is null, or belongs to
-//          a different dealer). Distance in KM, material, quantity and price remain visible --
-//          only "where exactly" is hidden. Full address/coordinates unlock automatically once
-//          `dealerId` is set to that dealer via acceptOrder.
+// @desc    Strips the customer's exact shipping address/coordinates (street address, PIN code,
+//          GPS) from an order before it is sent to a dealer who has not yet accepted it
+//          (order.dealerId is null, or belongs to a different dealer) -- only "where exactly"
+//          is hidden. Distance in KM, the broad delivery Area/City/State, material, quantity and
+//          price all remain visible, so a dealer can judge a job before accepting it. Full
+//          address/coordinates unlock automatically once `dealerId` is set to that dealer via
+//          acceptOrder.
 const maskAddressForPendingDealer = (orderDoc, requestingDealerId) => {
   const obj = orderDoc.toObject ? orderDoc.toObject() : { ...orderDoc };
   const ownerId = obj.dealerId && obj.dealerId._id ? String(obj.dealerId._id) : obj.dealerId ? String(obj.dealerId) : null;
