@@ -5,23 +5,28 @@ export default function StatsCard({ title, value, subtitle, icon: Icon, trend, t
   const colorMap = {
     brand: {
       badge: 'bg-amber-500/10 border-amber-500/25 text-amber-300',
-      border: 'hover:border-amber-500/30'
+      border: 'hover:border-amber-500/30',
+      value: 'text-amber-400'
     },
     blue: {
       badge: 'bg-blue-500/10 border-blue-500/25 text-blue-300',
-      border: 'hover:border-blue-500/30'
+      border: 'hover:border-blue-500/30',
+      value: 'text-blue-400'
     },
     emerald: {
       badge: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300',
-      border: 'hover:border-emerald-500/30'
+      border: 'hover:border-emerald-500/30',
+      value: 'text-emerald-400'
     },
     purple: {
       badge: 'bg-indigo-500/10 border-indigo-500/25 text-indigo-300',
-      border: 'hover:border-indigo-500/30'
+      border: 'hover:border-indigo-500/30',
+      value: 'text-indigo-400'
     },
     rose: {
       badge: 'bg-rose-500/10 border-rose-500/25 text-rose-300',
-      border: 'hover:border-rose-500/30'
+      border: 'hover:border-rose-500/30',
+      value: 'text-rose-400'
     }
   };
 
@@ -41,7 +46,7 @@ export default function StatsCard({ title, value, subtitle, icon: Icon, trend, t
           )}
         </div>
         <div>
-          <h3 className="text-lg sm:text-xl font-bold text-white font-display tracking-tight leading-none">
+          <h3 className={`text-lg sm:text-xl font-bold font-display tracking-tight leading-none ${currentTheme.value}`}>
             {value}
           </h3>
           {subtitle && (
@@ -69,7 +74,7 @@ export default function StatsCard({ title, value, subtitle, icon: Icon, trend, t
         </div>
 
         <div className="mt-3 flex items-baseline gap-2.5 flex-wrap">
-          <h3 className="text-2xl sm:text-3xl font-bold text-white font-display tracking-tight leading-none">
+          <h3 className={`text-2xl sm:text-3xl font-bold font-display tracking-tight leading-none ${currentTheme.value}`}>
             {value}
           </h3>
           {trend && (
