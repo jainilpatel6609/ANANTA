@@ -4,6 +4,7 @@ const { successResponse, errorResponse } = require('../utils/responseHelper');
 const SmsService = require('../services/smsService');
 const OtpService = require('../services/otpService');
 const { logDealerActivity } = require('../utils/dealerActivityLogger');
+const { getBusyDriverIds } = require('../utils/driverAvailability');
 
 // In-memory OTP storage for Driver onboarding phone verification
 const driverOtpStore = new Map();
@@ -97,15 +98,37 @@ const getDealerDrivers = async (req, res) => {
       filter.dealerId = req.query.dealerId;
     }
 
-    if (req.query.status) {
-      filter.status = req.query.status;
-    }
-
+    // Fetch without the status filter first -- it's applied below against each driver's LIVE
+    // status (reconciled against their actual active orders), not the possibly-stale stored
+    // value, so a driver who still has an unfinished order never wrongly appears as AVAILABLE
+    // (or vice versa) in the Fleet dashboard's counts or the Assign Driver list.
     const drivers = await Driver.find(filter)
       .populate('dealerId', 'name companyName mobile')
       .sort({ createdAt: -1 });
 
-    return successResponse(res, 'Drivers retrieved successfully.', { drivers });
+    const busyDriverIds = await getBusyDriverIds(drivers.map((d) => d._id));
+    const staleUpdates = [];
+
+    const reconciled = drivers.map((driver) => {
+      // A dealer-deactivated driver (INACTIVE) stays that way regardless of order activity --
+      // only the AVAILABLE/ON_DELIVERY distinction is order-driven.
+      if (driver.status === 'INACTIVE') return driver;
+
+      const liveStatus = busyDriverIds.has(String(driver._id)) ? 'ON_DELIVERY' : 'AVAILABLE';
+      if (driver.status !== liveStatus) {
+        driver.status = liveStatus;
+        staleUpdates.push(driver.save());
+      }
+      return driver;
+    });
+
+    if (staleUpdates.length > 0) {
+      await Promise.allSettled(staleUpdates);
+    }
+
+    const result = req.query.status ? reconciled.filter((d) => d.status === req.query.status) : reconciled;
+
+    return successResponse(res, 'Drivers retrieved successfully.', { drivers: result });
   } catch (error) {
     return errorResponse(res, error.message, 500);
   }

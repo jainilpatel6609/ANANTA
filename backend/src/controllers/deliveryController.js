@@ -476,12 +476,22 @@ const verifyDeliveryOtp = async (req, res) => {
     // Delivery complete: the dealer's dumper goes back to Available (IN_ORDER -> AVAILABLE)
     await releaseDumperForOrder(order._id);
 
-    // If driver is linked, update stats & release driver back to AVAILABLE
+    // If driver is linked, update stats & release driver back to AVAILABLE -- but only if they
+    // have no OTHER active delivery still in progress. A driver can be on more than one active
+    // order at a time (nothing stops a dealer from assigning a second order once the first is
+    // dispatched); completing one of them must never free the driver while the other is still
+    // live, or the Fleet dashboard's availability count and the Assign Driver list would both
+    // wrongly show them as free.
     if (order.driverId) {
       const driver = await Driver.findById(order.driverId);
       if (driver) {
-        driver.status = 'AVAILABLE';
         driver.totalDeliveries = (driver.totalDeliveries || 0) + 1;
+        const stillBusy = await findConflictingActiveOrder({
+          driverId: driver._id,
+          mobile: driver.mobile,
+          excludeOrderId: order._id
+        });
+        driver.status = stillBusy ? 'ON_DELIVERY' : 'AVAILABLE';
         await driver.save();
       }
     }

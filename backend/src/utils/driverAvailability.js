@@ -27,4 +27,20 @@ const findConflictingActiveOrder = async ({ driverId, mobile, excludeOrderId }) 
   }).select('orderNumber');
 };
 
-module.exports = { findConflictingActiveOrder };
+/**
+ * Bulk version of the same check, for building a fleet list/stats view -- returns the Set of
+ * driver ids (as strings) that currently have at least one active (not-yet-delivered) order.
+ * A driver's own `status` field is a cached label that can drift out of sync (e.g. it is only
+ * ever written at the specific moments a driver is assigned or an order is delivered); this is
+ * the live source of truth it should be reconciled against.
+ */
+const getBusyDriverIds = async (driverIds) => {
+  if (!Array.isArray(driverIds) || driverIds.length === 0) return new Set();
+  const activeOrders = await Order.find({
+    orderStatus: { $in: ACTIVE_STATUSES },
+    driverId: { $in: driverIds }
+  }).select('driverId').lean();
+  return new Set(activeOrders.map((o) => String(o.driverId)));
+};
+
+module.exports = { findConflictingActiveOrder, getBusyDriverIds };
