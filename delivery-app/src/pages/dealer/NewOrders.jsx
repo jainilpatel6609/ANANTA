@@ -344,7 +344,11 @@ export default function NewOrders() {
                       {order.category}{' '}
                       {order.sandLocation ? `• Origin: ${order.sandLocation}` : ''}
                       {order.aggregateType ? `• Grade: ${order.aggregateType}` : ''}
-                      {order.vehicleOptionSnapshot ? `• ${order.vehicleOptionSnapshot}` : ''}
+                      {/* Filter Sand / Without Filter Sand is a Sand-only variant -- the backend
+                          defaults vehicleOptionSnapshot to "Filter Sand" for ANY Dumper order
+                          lacking a more specific option, so showing it unconditionally leaked
+                          that default onto Aggregate orders too. */}
+                      {order.category === 'Sand' && order.vehicleOptionSnapshot ? `• ${order.vehicleOptionSnapshot}` : ''}
                     </div>
                   </div>
 
