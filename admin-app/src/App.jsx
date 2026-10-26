@@ -1,11 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import AppRoutes from './routes/AppRoutes';
+import { getApiBaseUrl } from './services/api';
 
 export default function App() {
+  // The free-tier Render backend spins down after inactivity -- pinging it the moment the app
+  // opens gives it a head start waking up, so it's more likely already warm by the time the admin
+  // reaches a request-heavy screen. Fire-and-forget: failure here (e.g. offline) is harmless.
+  useEffect(() => {
+    fetch(`${getApiBaseUrl()}/health`).catch(() => {});
+  }, []);
+
   return (
     <BrowserRouter>
       <AuthProvider>

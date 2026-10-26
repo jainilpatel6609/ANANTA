@@ -10,9 +10,13 @@ export const getApiBaseUrl = () => {
   return url;
 };
 
+// Render's free-tier backend spins down after inactivity and can take 50+ seconds to wake back up
+// on the next request -- a 30s timeout was firing (and showing a scary raw "timeout of 30000ms
+// exceeded" error) before a cold-starting backend even finished processing an otherwise-fine
+// request, most visibly on order creation. 60s gives it enough room to wake up and still respond.
 const api = axios.create({
   baseURL: getApiBaseUrl(),
-  timeout: 30000
+  timeout: 60000
 });
 
 // Request interceptor to attach JWT and ensure dynamic host resolution
