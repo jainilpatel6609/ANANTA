@@ -25,7 +25,8 @@ const getDashboardStats = async (req, res) => {
       statusCounts,
       recentOrders,
       categoryStats,
-      dealerCancelledOrders
+      dealerCancelledOrders,
+      todayDealerCancelled
     ] = await Promise.all([
       Order.countDocuments(),
       User.countDocuments({ role: 'USER' }),
@@ -53,7 +54,14 @@ const getDashboardStats = async (req, res) => {
       // "Dealer Cancelled" = at least one dealer declined this order, ever. `declinedBy` is a
       // permanent record -- unlike `dealerResponseStatus`, which resets to PENDING once the
       // customer picks a new dealer -- so this count never drops as orders get resolved.
-      Order.countDocuments({ declinedBy: { $exists: true, $not: { $size: 0 } } })
+      Order.countDocuments({ declinedBy: { $exists: true, $not: { $size: 0 } } }),
+      // Today's dealer cancellations specifically -- keyed on dealerRejectedAt (when the decline/
+      // auto-timeout actually happened), not createdAt, since an order placed yesterday can still
+      // be declined today.
+      Order.countDocuments({
+        dealerRejectedAt: { $gte: startOfToday, $lte: endOfToday },
+        declinedBy: { $exists: true, $not: { $size: 0 } }
+      })
     ]);
 
     const totalRevenue = revenueResult[0]?.totalRevenue || 0;
@@ -72,7 +80,11 @@ const getDashboardStats = async (req, res) => {
       ).length,
       revenue: todayOrders
         .filter((o) => o.paymentStatus === 'PAID')
-        .reduce((sum, o) => sum + o.totalAmount, 0)
+        .reduce((sum, o) => sum + o.totalAmount, 0),
+      tonnage: todayOrders
+        .filter((o) => o.paymentStatus === 'PAID')
+        .reduce((sum, o) => sum + (o.quantity || 0), 0),
+      dealerCancelled: todayDealerCancelled
     };
 
     const statusMap = {};

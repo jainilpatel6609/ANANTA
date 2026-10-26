@@ -176,8 +176,9 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* 3. Today's Operations Snapshot */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 3. Today's Operations Snapshot -- every card here is scoped to today only. All-time
+          grand totals live in the Global Overview Cards section below. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatsCard
           title="Today's Active Orders"
           value={todaySummary?.active || 0}
@@ -186,9 +187,9 @@ export default function AdminDashboard() {
           color="blue"
         />
         <StatsCard
-          title="Total Orders"
-          value={overview?.totalOrders || 0}
-          subtitle="All-time lifecycle records"
+          title="Today's Total Orders"
+          value={todaySummary?.total || 0}
+          subtitle="Placed today"
           icon={Package}
           color="purple"
         />
@@ -201,13 +202,27 @@ export default function AdminDashboard() {
         />
         <Link to="/dealer-cancelled-orders">
           <StatsCard
-            title="Dealer Cancelled Orders"
-            value={overview?.dealerCancelledOrders || 0}
-            subtitle="Declined by a dealer, all-time"
+            title="Today's Cancelled Orders"
+            value={todaySummary?.dealerCancelled || 0}
+            subtitle="Declined or auto-cancelled today"
             icon={Ban}
             color="rose"
           />
         </Link>
+        <StatsCard
+          title="Today's Tonnage Dispatched"
+          value={`${todaySummary?.tonnage || 0} Tons`}
+          subtitle="Sand, aggregate & grit, today"
+          icon={Truck}
+          color="blue"
+        />
+        <StatsCard
+          title="Today's Revenue"
+          value={formatINR(todaySummary?.revenue || 0)}
+          subtitle="Confirmed bookings today"
+          icon={Coins}
+          color="brand"
+        />
       </div>
 
       {/* Dealer Unavailable Reports -- customer-flagged checkout dead-ends: no dealer configured
@@ -324,6 +339,15 @@ export default function AdminDashboard() {
           icon={BadgeCheck}
           color="emerald"
         />
+        <Link to="/dealer-cancelled-orders">
+          <StatsCard
+            title="Dealer Cancelled Orders"
+            value={overview?.dealerCancelledOrders || 0}
+            subtitle="Declined by a dealer, all-time"
+            icon={Ban}
+            color="rose"
+          />
+        </Link>
         <StatsCard
           title="Active Dealers"
           value={overview?.totalDealers || 0}
