@@ -9,6 +9,7 @@ const PincodeService = require('../services/pincodeService');
 const OtpService = require('../services/otpService');
 const SmsService = require('../services/smsService');
 const { logDealerActivity } = require('../utils/dealerActivityLogger');
+const CashfreeVerificationService = require('../services/cashfreeVerificationService');
 
 const generateToken = (user) => {
   return jwt.sign(
@@ -204,6 +205,43 @@ const uploadRegistrationDoc = async (req, res) => {
     });
   } catch (error) {
     return errorResponse(res, error.message, 500);
+  }
+};
+
+// @desc    Verify a GSTIN (via Cashfree's Verification Suite) before letting a Dealer proceed
+//          with signup. A 15-character format check happens first so a genuinely malformed GSTIN
+//          never even reaches Cashfree.
+// @route   POST /api/auth/dealer/verify-gst
+// @access  Public
+const verifyDealerGst = async (req, res) => {
+  try {
+    const gstin = String(req.body.gstin || '').trim().toUpperCase();
+    const businessName = req.body.businessName ? String(req.body.businessName).trim().slice(0, 200) : undefined;
+
+    if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gstin)) {
+      return errorResponse(res, 'That does not look like a valid 15-character GSTIN. Please check and re-enter.', 400);
+    }
+
+    const result = await CashfreeVerificationService.verifyGSTIN(gstin, businessName);
+
+    if (!result.valid) {
+      return successResponse(res, result.message || 'This GSTIN could not be verified.', {
+        verified: false,
+        message: result.message || 'This GSTIN could not be verified.'
+      });
+    }
+
+    return successResponse(res, 'GSTIN verified successfully.', {
+      verified: true,
+      legalName: result.legalName,
+      tradeName: result.tradeName,
+      gstInStatus: result.gstInStatus,
+      dateOfRegistration: result.dateOfRegistration,
+      principalPlaceAddress: result.principalPlaceAddress
+    });
+  } catch (error) {
+    console.error('[Cashfree GST Verification Error]', error.message);
+    return errorResponse(res, 'Unable to verify GSTIN right now. Please try again shortly.', 502);
   }
 };
 
@@ -955,6 +993,7 @@ module.exports = {
   sendDealerSignupOtp,
   verifyDealerSignupOtp,
   uploadRegistrationDoc,
+  verifyDealerGst,
   registerSuperAdmin,
   login,
   updateLiveLocation,

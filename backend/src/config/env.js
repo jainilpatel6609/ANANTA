@@ -32,6 +32,13 @@ module.exports = {
   ZOHO_ACCOUNTS_BASE: (process.env.ZOHO_ACCOUNTS_BASE || 'https://accounts.zoho.in').trim(),
   ZOHO_API_BASE: (process.env.ZOHO_API_BASE || 'https://www.zohoapis.in').trim(),
 
+  // Cashfree Verification Suite -- GSTIN verification during Dealer signup. Requires the
+  // calling server's outbound IP to be whitelisted in the Cashfree dashboard (Secure ID > IP
+  // Whitelisting) or every call fails with a 403 regardless of how correct the credentials are.
+  CASHFREE_CLIENT_ID: (process.env.CASHFREE_CLIENT_ID || '').trim(),
+  CASHFREE_CLIENT_SECRET: (process.env.CASHFREE_CLIENT_SECRET || '').trim(),
+  CASHFREE_VERIFICATION_BASE: (process.env.CASHFREE_VERIFICATION_BASE || 'https://sandbox.cashfree.com').trim(),
+
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || '',
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || '',
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || '',

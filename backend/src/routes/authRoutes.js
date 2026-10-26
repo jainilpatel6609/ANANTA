@@ -15,6 +15,7 @@ router.post('/live-location', authenticateToken, authController.updateLiveLocati
 // Dealer KYC registration flow with Phone OTP and Document Uploads
 router.post('/dealer/send-otp', authController.sendDealerSignupOtp);
 router.post('/dealer/verify-otp', authController.verifyDealerSignupOtp);
+router.post('/dealer/verify-gst', authController.verifyDealerGst);
 router.post('/upload-doc', upload.single('document'), authController.uploadRegistrationDoc);
 router.post('/dealer/register', authController.registerDealer);
 

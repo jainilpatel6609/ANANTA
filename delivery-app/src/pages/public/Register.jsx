@@ -82,6 +82,11 @@ export default function Register() {
   const [depotCoordinates, setDepotCoordinates] = useState(null); // { lat, lng }
   const [showDepotMapModal, setShowDepotMapModal] = useState(false);
 
+  // Dealer GST Verification State -- gates signup submission until the entered GSTIN is verified
+  // against the government registry (via Cashfree). Resets to 'idle' the moment the GST field is
+  // edited again, so a stale verification can never cover a different (unverified) number.
+  const [gstVerification, setGstVerification] = useState({ status: 'idle', message: '', legalName: '' });
+
   // Dealer Phone OTP Verification State
   const [dealerOtp, setDealerOtp] = useState({
     sent: false,
@@ -281,6 +286,35 @@ export default function Register() {
     }
   };
 
+  // 4b. Verify the Dealer's GSTIN against the government registry (via Cashfree) -- required
+  // before signup can proceed, same gating pattern as mobile OTP verification above.
+  const handleVerifyGst = async () => {
+    const gstin = formData.gstNumber.trim().toUpperCase();
+    if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gstin)) {
+      toast.error('Please enter a valid 15-character GSTIN before verifying.');
+      return;
+    }
+
+    setGstVerification({ status: 'checking', message: '', legalName: '' });
+    try {
+      const res = await authService.verifyDealerGst(gstin, formData.companyName.trim());
+      if (res.data?.verified) {
+        setGstVerification({
+          status: 'verified',
+          message: res.data.legalName ? `Registered to: ${res.data.legalName}` : 'GSTIN verified.',
+          legalName: res.data.legalName || ''
+        });
+        toast.success('✓ GSTIN verified successfully!');
+      } else {
+        setGstVerification({ status: 'failed', message: res.data?.message || 'This GSTIN could not be verified.', legalName: '' });
+        toast.error(res.data?.message || 'This GSTIN could not be verified.');
+      }
+    } catch (err) {
+      setGstVerification({ status: 'failed', message: err.message || 'GST verification failed.', legalName: '' });
+      toast.error(err.message || 'GST verification failed. Please try again.');
+    }
+  };
+
   const handleBackToRoleSelection = () => {
     setSelectedRole(null);
     setSearchParams({});
@@ -350,6 +384,11 @@ export default function Register() {
 
       if (!formData.gstNumber.trim()) {
         toast.error('GST Number is mandatory for Authorized Dealer registration.');
+        return;
+      }
+
+      if (gstVerification.status !== 'verified') {
+        toast.error('Please verify your GST Number before submitting.');
         return;
       }
 
@@ -873,15 +912,54 @@ export default function Register() {
                   <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
                     GST Number (Mandatory) *
                   </label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={15}
-                    placeholder="15-digit GSTIN (e.g. 24AAAAA0000A1Z5)"
-                    value={formData.gstNumber}
-                    onChange={(e) => setFormData({ ...formData, gstNumber: e.target.value.toUpperCase() })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-amber-400 placeholder-slate-600 focus:outline-none focus:border-blue-500 uppercase font-mono font-bold"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      required
+                      maxLength={15}
+                      placeholder="15-digit GSTIN (e.g. 24AAAAA0000A1Z5)"
+                      value={formData.gstNumber}
+                      onChange={(e) => {
+                        setFormData({ ...formData, gstNumber: e.target.value.toUpperCase() });
+                        // Editing the number after verification must never leave a stale "verified"
+                        // badge sitting over a now-different, unverified GSTIN.
+                        if (gstVerification.status !== 'idle') {
+                          setGstVerification({ status: 'idle', message: '', legalName: '' });
+                        }
+                      }}
+                      className="flex-1 min-w-0 px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-amber-400 placeholder-slate-600 focus:outline-none focus:border-blue-500 uppercase font-mono font-bold"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleVerifyGst}
+                      disabled={gstVerification.status === 'checking' || gstVerification.status === 'verified' || formData.gstNumber.trim().length !== 15}
+                      className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-xs transition-all disabled:opacity-50 ${
+                        gstVerification.status === 'verified'
+                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                          : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                      }`}
+                    >
+                      {gstVerification.status === 'checking' ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : gstVerification.status === 'verified' ? (
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                      ) : null}
+                      <span>{gstVerification.status === 'verified' ? 'Verified' : gstVerification.status === 'checking' ? 'Checking...' : 'Verify'}</span>
+                    </button>
+                  </div>
+
+                  {gstVerification.status === 'verified' && (
+                    <p className="text-[11px] text-emerald-400 font-medium mt-1.5 flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                      {gstVerification.message}
+                    </p>
+                  )}
+                  {gstVerification.status === 'failed' && (
+                    <p className="text-[11px] text-rose-400 font-medium mt-1.5 flex items-center gap-1.5">
+                      <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+                      Not Verified — {gstVerification.message}
+                    </p>
+                  )}
                 </div>
               </div>
 
