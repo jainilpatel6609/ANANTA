@@ -387,9 +387,14 @@ export default function OrderInvoice() {
 
       const element = invoiceRef.current;
 
-      // Capture element canvas at 2x scale for crisp 300 DPI vector-like clarity
+      // Capture element canvas for crisp print clarity. Scale is kept lower than the single-
+      // invoice capture used to run at (2x) -- with TWO full invoices now stacked in one capture,
+      // 2x pushed the resulting canvas past the memory/size limits some Android WebViews enforce,
+      // silently failing html2canvas and falling through to the much plainer window.print()
+      // fallback below (which loses Tailwind's styling unless every element explicitly opts into
+      // print-color-adjust -- see the @media print rules above).
       const canvas = await html2canvas(element, {
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
         allowTaint: true,
         logging: false,
@@ -596,6 +601,13 @@ export default function OrderInvoice() {
           body {
             background: #ffffff !important;
             color: #000000 !important;
+          }
+          /* print-color-adjust on body alone is unreliable on some mobile WebView print
+             engines -- forcing it on every element is what actually keeps the invoice's
+             background colors, badges, and table borders from silently vanishing (an
+             <img>, like the UPI QR code, always prints regardless -- only CSS
+             background/border color needs this). */
+          * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
@@ -609,8 +621,6 @@ export default function OrderInvoice() {
             width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
-            background: #ffffff !important;
-            color: #000000 !important;
           }
         }
       `}</style>
