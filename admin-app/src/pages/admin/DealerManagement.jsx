@@ -6,6 +6,7 @@ import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import DealerDumpersModal from '../../components/DealerDumpersModal';
 import DealerActivityLogModal from '../../components/DealerActivityLogModal';
+import DealerDetailsModal from '../../components/DealerDetailsModal';
 import { formatINR, formatDate } from '../../utils/formatters';
 import {
   Building2,
@@ -24,7 +25,8 @@ import {
   MapPin,
   AlertTriangle,
   Truck,
-  History
+  History,
+  Eye
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -83,6 +85,7 @@ export default function DealerManagement() {
   const [deleteModalDealer, setDeleteModalDealer] = useState(null);
   const [dumperModalDealer, setDumperModalDealer] = useState(null);
   const [logsModalDealer, setLogsModalDealer] = useState(null);
+  const [detailsModalDealer, setDetailsModalDealer] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
   // Reset Password Modal
@@ -466,6 +469,15 @@ export default function DealerManagement() {
                     </td>
                     <td className="px-4 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => setDetailsModalDealer(dealer)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-700/30 hover:bg-slate-700/50 text-slate-200 font-bold text-xs border border-slate-600/40 transition-all shadow-sm"
+                          title="View full profile, KYC documents & live photos"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Details</span>
+                        </button>
+
                         <button
                           onClick={() => setDumperModalDealer(dealer)}
                           className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 font-bold text-xs border border-sky-500/20 transition-all shadow-sm"
@@ -1079,6 +1091,8 @@ export default function DealerManagement() {
       />
 
       <DealerActivityLogModal dealer={logsModalDealer} onClose={() => setLogsModalDealer(null)} />
+
+      <DealerDetailsModal dealer={detailsModalDealer} onClose={() => setDetailsModalDealer(null)} />
     </div>
   );
 }
