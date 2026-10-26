@@ -1,7 +1,7 @@
 import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
-export default function StatsCard({ title, value, subtitle, icon: Icon, trend, trendDirection = 'up', color = 'brand' }) {
+export default function StatsCard({ title, value, subtitle, icon: Icon, trend, trendDirection = 'up', color = 'brand', compact = false }) {
   const colorMap = {
     brand: {
       badge: 'bg-amber-500/10 border-amber-500/25 text-amber-300',
@@ -26,6 +26,33 @@ export default function StatsCard({ title, value, subtitle, icon: Icon, trend, t
   };
 
   const currentTheme = colorMap[color] || colorMap.brand;
+
+  if (compact) {
+    return (
+      <div className={`relative overflow-hidden bg-slate-900 border border-slate-800 rounded-2xl p-3 aspect-square flex flex-col justify-between shadow-classic transition-all duration-150 ${currentTheme.border} group`}>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider leading-tight line-clamp-2">
+            {title}
+          </span>
+          {Icon && (
+            <div className={`p-1.5 rounded-lg border shrink-0 ${currentTheme.badge}`}>
+              <Icon className="w-3 h-3" />
+            </div>
+          )}
+        </div>
+        <div>
+          <h3 className="text-lg sm:text-xl font-bold text-white font-display tracking-tight leading-none">
+            {value}
+          </h3>
+          {subtitle && (
+            <p className="text-[9px] text-slate-500 mt-1 font-normal leading-snug line-clamp-2">
+              {subtitle}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`relative overflow-hidden bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-classic transition-all duration-150 ${currentTheme.border} group`}>

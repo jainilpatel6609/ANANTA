@@ -176,50 +176,56 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* 3. Today's Operations Snapshot -- every card here is scoped to today only. All-time
-          grand totals live in the Global Overview Cards section below. */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* 3. Today's Operations Snapshot -- small square tiles, every one scoped to today only.
+          All-time grand totals live in the Global Overview Cards section below. */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
         <StatsCard
-          title="Today's Active Orders"
+          compact
+          title="Active"
           value={todaySummary?.active || 0}
-          subtitle="Placed, accepted & out for delivery"
+          subtitle="Today"
           icon={Activity}
           color="blue"
         />
         <StatsCard
-          title="Today's Total Orders"
+          compact
+          title="Total Orders"
           value={todaySummary?.total || 0}
-          subtitle="Placed today"
+          subtitle="Today"
           icon={Package}
           color="purple"
         />
         <StatsCard
-          title="Today's Delivered Orders"
+          compact
+          title="Delivered"
           value={todaySummary?.delivered || 0}
-          subtitle="Completed with OTP today"
+          subtitle="Today"
           icon={BadgeCheck}
           color="emerald"
         />
-        <Link to="/dealer-cancelled-orders">
+        <Link to="/dealer-cancelled-orders" className="block">
           <StatsCard
-            title="Today's Cancelled Orders"
+            compact
+            title="Cancelled"
             value={todaySummary?.dealerCancelled || 0}
-            subtitle="Declined or auto-cancelled today"
+            subtitle="Today"
             icon={Ban}
             color="rose"
           />
         </Link>
         <StatsCard
-          title="Today's Tonnage Dispatched"
-          value={`${todaySummary?.tonnage || 0} Tons`}
-          subtitle="Sand, aggregate & grit, today"
+          compact
+          title="Tonnage"
+          value={`${todaySummary?.tonnage || 0}T`}
+          subtitle="Today"
           icon={Truck}
           color="blue"
         />
         <StatsCard
-          title="Today's Revenue"
+          compact
+          title="Revenue"
           value={formatINR(todaySummary?.revenue || 0)}
-          subtitle="Confirmed bookings today"
+          subtitle="Today"
           icon={Coins}
           color="brand"
         />
