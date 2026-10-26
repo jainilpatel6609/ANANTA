@@ -905,15 +905,14 @@ const getDealerAvailableOrders = async (req, res) => {
         }
       }
 
-      let distanceToDealer = order.dealerDistanceKm;
-      if (dealerLat && dealerLng && order.latitude && order.longitude) {
-        distanceToDealer = PincodeService.calculateHaversineDistanceKm(
-          dealerLat,
-          dealerLng,
-          order.latitude,
-          order.longitude
-        );
-      }
+      // Trust the distance already computed and shown to the customer at checkout
+      // (order.dealerDistanceKm -- the real road distance from the ASSIGNED dealer's coordinates
+      // AT ORDER-CREATION TIME) instead of live-recomputing a straight-line Haversine distance
+      // from this calling dealer's CURRENT profile coordinates. The two can diverge wildly (e.g.
+      // if a dealer edits their depot location later, or simply because Haversine straight-line
+      // distance is a poor substitute for the road distance actually used to price/route the
+      // order), and the dealer's pool card must show the same number the customer already saw.
+      const distanceToDealer = order.dealerDistanceKm;
 
       const isWithin5km = distanceToDealer !== null && distanceToDealer <= MAX_DISPATCH_RADIUS_KM;
 
