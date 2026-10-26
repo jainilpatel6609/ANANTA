@@ -153,3 +153,8 @@ export const helpService = {
   getAll: (params) => api.get('/help', { params }),
   toggleResolve: (id) => api.patch(`/help/${id}/resolve`)
 };
+
+export const dealerUnavailableService = {
+  getAll: (status) => api.get('/dealer-unavailable-reports', { params: status ? { status } : {} }),
+  resolve: (id) => api.post(`/dealer-unavailable-reports/${id}/resolve`)
+};

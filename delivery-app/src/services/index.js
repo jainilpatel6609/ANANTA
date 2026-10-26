@@ -221,3 +221,7 @@ export const pdfExportService = {
 export const helpService = {
   create: (data) => api.post('/help', data)
 };
+
+export const dealerUnavailableService = {
+  report: (data) => api.post('/dealer-unavailable-reports', data)
+};

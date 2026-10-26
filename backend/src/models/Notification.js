@@ -23,6 +23,7 @@ const notificationSchema = new mongoose.Schema(
         'ORDER_REASSIGNED',
         'ORDER_REJECTED_NEEDS_ACTION',
         'REFUND_REQUESTED',
+        'DEALER_UNAVAILABLE_REPORT',
         'DRIVER_ASSIGNED',
         'OUT_FOR_DELIVERY',
         'DELIVERY_OTP',

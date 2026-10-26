@@ -8,7 +8,8 @@ import {
   orderService,
   paymentService,
   pincodeService,
-  dealerTransportService
+  dealerTransportService,
+  dealerUnavailableService
 } from '../../services';
 import { formatINR } from '../../utils/formatters';
 import MapPicker from '../../components/MapPicker';
@@ -36,7 +37,8 @@ import {
   X,
   Phone,
   ChevronRight,
-  Search
+  Search,
+  Bell
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -132,6 +134,8 @@ export default function CreateOrder() {
   const [dealers, setDealers] = useState([]);
   const [loadingDealers, setLoadingDealers] = useState(false);
   const [selectedDealerId, setSelectedDealerId] = useState('');
+  const [notifyingAdmin, setNotifyingAdmin] = useState(false);
+  const [notifiedAdminNoDealer, setNotifiedAdminNoDealer] = useState(false);
 
   // Two-Way Location & Map Synchronization States
   const [mapStatus, setMapStatus] = useState(null); // { type: 'success' | 'warning' | 'error' | 'info', text: string }
@@ -696,6 +700,40 @@ export default function CreateOrder() {
       toast.error('Failed to load dealers for this delivery location.');
     } finally {
       setLoadingDealers(false);
+    }
+  };
+
+  // Lets the customer flag a checkout dead-end (no dealer configured for this exact Material +
+  // Location + Wheel/Patiya combination) instead of silently abandoning the order -- creates a
+  // DealerUnavailableReport Admin can see and act on (e.g. onboard/configure a dealer for the gap).
+  const handleNotifyAdminNoDealer = async () => {
+    setNotifyingAdmin(true);
+    const reason = selectedVehicleType === 'DUMPER'
+      ? `No dealers currently offer transport for ${selectedMaterial?.category}${selectedLocation?.name ? ` from ${selectedLocation.name}` : ''} with an available ${selectedCapacity?.wheelCount || ''} Wheel dumper.`
+      : `No dealers within 5 km of the delivery location have set their own rate for ${selectedOptionName === 'Double Patiya' ? 'Double Patiya' : 'Single Patiya'}${isAggregate ? ` (${selectedAggregateType})` : selectedLocation?.name ? ` from ${selectedLocation.name}` : ''}.`;
+
+    try {
+      await dealerUnavailableService.report({
+        vehicleType: selectedVehicleType,
+        category: selectedMaterial?.category || '',
+        productName: selectedMaterial?.name || '',
+        sourcingLocation: selectedLocation?.name || '',
+        aggregateType: isAggregate ? selectedAggregateType : '',
+        tractorType: selectedVehicleType === 'TRACTOR' ? selectedOptionName : '',
+        wheelCount: selectedVehicleType === 'DUMPER' ? selectedCapacity?.wheelCount || null : null,
+        variantName: selectedVehicleType === 'DUMPER' ? selectedOptionName : '',
+        deliveryArea: shippingDetails.area,
+        deliveryCity: shippingDetails.city,
+        deliveryState: shippingDetails.state,
+        pincode: shippingDetails.pincode,
+        reason
+      });
+      setNotifiedAdminNoDealer(true);
+      toast.success('Admin has been notified. We will set up a dealer for this shortly.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not notify admin right now. Please try again.');
+    } finally {
+      setNotifyingAdmin(false);
     }
   };
 
@@ -1697,15 +1735,34 @@ export default function CreateOrder() {
                 <span>Finding dealers near your delivery address...</span>
               </div>
             ) : dealers.length === 0 ? (
-              <div className="p-4 sm:p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center text-xs sm:text-sm text-slate-500">
-                {selectedVehicleType === 'DUMPER' ? (
-                  <>
-                    No dealers currently offer transport for {selectedMaterial?.category}
-                    {selectedLocation?.name ? ` from ${selectedLocation.name}` : ''}.{' '}
-                    A Dumper booking needs a dealer with a configured rate for this location and an available {selectedCapacity?.wheelCount || ''} Wheel dumper — please choose a different wheel type or sourcing location, or contact support.
-                  </>
+              <div className="p-4 sm:p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center text-xs sm:text-sm text-slate-500 space-y-3">
+                <div>
+                  {selectedVehicleType === 'DUMPER' ? (
+                    <>
+                      No dealers currently offer transport for {selectedMaterial?.category}
+                      {selectedLocation?.name ? ` from ${selectedLocation.name}` : ''}.{' '}
+                      A Dumper booking needs a dealer with a configured rate for this location and an available {selectedCapacity?.wheelCount || ''} Wheel dumper — please choose a different wheel type or sourcing location, or notify admin below.
+                    </>
+                  ) : (
+                    `No dealers within 5 km of your delivery location have set their own rate for ${selectedOptionName === 'Double Patiya' ? 'Double Patiya' : 'Single Patiya'}${isAggregate ? ` (${selectedAggregateType})` : selectedLocation?.name ? ` from ${selectedLocation.name}` : ''} — please notify admin below if none are available nearby.`
+                  )}
+                </div>
+
+                {notifiedAdminNoDealer ? (
+                  <div className="inline-flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Admin notified — we'll set up a dealer for this shortly.
+                  </div>
                 ) : (
-                  `No dealers within 5 km of your delivery location have set their own rate for ${selectedOptionName === 'Double Patiya' ? 'Double Patiya' : 'Single Patiya'}${isAggregate ? ` (${selectedAggregateType})` : selectedLocation?.name ? ` from ${selectedLocation.name}` : ''} — please contact support if none are available nearby.`
+                  <button
+                    type="button"
+                    disabled={notifyingAdmin}
+                    onClick={handleNotifyAdminNoDealer}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-amber-400 font-bold text-xs shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {notifyingAdmin ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+                    <span>Notify Admin</span>
+                  </button>
                 )}
               </div>
             ) : (
