@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { adminService, orderService, dealerService, dealerUnavailableService } from '../../services';
+import { adminService, orderService, dealerUnavailableService } from '../../services';
 import StatsCard from '../../components/StatsCard';
 import StatusBadge from '../../components/StatusBadge';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import OrderAlarmBanner from '../../components/OrderAlarmBanner';
 import NotificationPermissionPrompt from '../../components/NotificationPermissionPrompt';
-import Modal from '../../components/Modal';
 import { useAlarm } from '../../hooks/useAlarm';
 import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport } from '../../utils/formatters';
 import {
@@ -18,19 +17,12 @@ import {
   Coins,
   Truck,
   TrendingUp,
-  ArrowRight,
   CheckCircle2,
   FileSpreadsheet,
   AlertTriangle,
-  XCircle,
-  Phone,
-  MessageSquare,
   MapPin,
-  RefreshCw,
   Volume2,
   VolumeX,
-  Loader2,
-  UserCheck,
   Activity,
   BadgeCheck,
   Ban
@@ -54,22 +46,15 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [escalations, setEscalations] = useState([]);
   const [dealerUnavailableReports, setDealerUnavailableReports] = useState([]);
-  const [dealers, setDealers] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Reassignment Modal State
-  const [reassigningOrder, setReassigningOrder] = useState(null);
-  const [selectedDealerId, setSelectedDealerId] = useState('');
-  const [submittingReassign, setSubmittingReassign] = useState(false);
 
   const { isMuted, triggerAlarm, clearAlarm, toggleMute } = useAlarm();
 
   const loadData = async () => {
     try {
-      const [statsRes, escRes, dealersRes, unavailableRes] = await Promise.all([
+      const [statsRes, escRes, unavailableRes] = await Promise.all([
         adminService.getDashboardStats(),
         orderService.getAdminEscalations(),
-        dealerService.getAllDealers(),
         dealerUnavailableService.getAll('OPEN')
       ]);
 
@@ -84,9 +69,6 @@ export default function AdminDashboard() {
         } else {
           clearAlarm();
         }
-      }
-      if (dealersRes.data?.dealers) {
-        setDealers(dealersRes.data.dealers.filter((d) => d.isActive && !d.isDeleted));
       }
       if (unavailableRes.data?.reports) {
         setDealerUnavailableReports(unavailableRes.data.reports);
@@ -127,31 +109,6 @@ export default function AdminDashboard() {
       setDealerUnavailableReports((prev) => prev.filter((r) => r._id !== reportId));
     } catch (err) {
       toast.error('Failed to resolve report.');
-    }
-  };
-
-  const openReassignModal = (order) => {
-    setReassigningOrder(order);
-    setSelectedDealerId('');
-  };
-
-  const handleConfirmReassign = async (e) => {
-    e.preventDefault();
-    if (!selectedDealerId || !reassigningOrder) {
-      toast.error('Please select a target dealer for reassignment.');
-      return;
-    }
-
-    setSubmittingReassign(true);
-    try {
-      await orderService.adminReassign(reassigningOrder._id, selectedDealerId);
-      toast.success(`Order #${reassigningOrder.orderNumber} successfully reassigned to new dealer with a fresh 15-minute SLA timer.`);
-      setReassigningOrder(null);
-      loadData();
-    } catch (err) {
-      toast.error(err.message || 'Failed to reassign order');
-    } finally {
-      setSubmittingReassign(false);
     }
   };
 
@@ -252,205 +209,6 @@ export default function AdminDashboard() {
           />
         </Link>
       </div>
-
-      {/* 4. Order Escalation & Rejection Alerts Section */}
-      {escalations.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-red-500/15 text-red-400 border border-red-500/30">
-                <AlertTriangle className="w-5 h-5" />
-              </span>
-              <div>
-                <h2 className="text-lg font-bold text-white font-display">
-                  Active Order Escalations & Rejections ({escalations.length})
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Orders requiring Super Admin re-routing or dealer intervention.
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={loadData}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-medium text-slate-300"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Refresh Alerts
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4">
-            {escalations.map((order) => {
-              const isDeclined = order.dealerResponseStatus === 'REJECTED' || order.adminAlertType === 'DEALER_DECLINED';
-              const assignedDealer = order.assignedDealerId || order.dealerRejectedBy;
-              const customerName = order.shippingDetails?.fullName || order.userId?.name || 'Customer';
-              const customerMobile = order.shippingDetails?.mobile || order.userId?.mobile || '';
-
-              return (
-                <div
-                  key={order._id}
-                  className={`p-5 rounded-3xl border transition-all ${
-                    isDeclined
-                      ? 'bg-slate-900 border-red-500/40 shadow-classic'
-                      : 'bg-slate-900 border-amber-500/40 shadow-classic'
-                  }`}
-                >
-                  <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <span className="text-base font-mono font-bold text-white">#{order.orderNumber}</span>
-
-                      {/* Escalation Tag */}
-                      {isDeclined ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-950/40 text-red-300 border border-red-800/40">
-                          <XCircle className="w-3.5 h-3.5 text-red-400" />
-                          Dealer Declined
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-950/40 text-amber-300 border border-amber-800/40">
-                          <Clock className="w-3.5 h-3.5 text-amber-400" />
-                          15-Min Response Timeout
-                        </span>
-                      )}
-
-                      <span className="text-xs font-medium text-slate-400 font-mono">
-                        {order.dealerRejectedAt
-                          ? `Declined: ${formatDate(order.dealerRejectedAt)}`
-                          : `Assigned: ${formatDate(order.orderAssignedAt || order.createdAt)}`}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-black font-mono text-amber-400">
-                        {formatINR(order.totalAmount)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Body Info Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3 py-4 text-xs">
-                    {/* Customer Info */}
-                    <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800/80 space-y-1">
-                      <span className="text-slate-400 block uppercase font-bold text-[10px] tracking-wider">
-                        Customer
-                      </span>
-                      <div className="text-sm font-bold text-white">{customerName}</div>
-                      <div className="text-slate-400 font-mono">
-                        PIN: <strong className="text-amber-400">{order.pincode}</strong>
-                      </div>
-                      {customerMobile && <div className="text-slate-300 font-mono">{customerMobile}</div>}
-                    </div>
-
-                    {/* Assigned / Declining Dealer */}
-                    <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800/80 space-y-1">
-                      <span className="text-slate-400 block uppercase font-bold text-[10px] tracking-wider">
-                        {isDeclined ? 'Declined By Dealer' : 'Assigned Dealer (No Response)'}
-                      </span>
-                      <div className="text-sm font-bold text-white">
-                        {assignedDealer ? (assignedDealer.companyName || assignedDealer.name) : 'Unassigned'}
-                      </div>
-                      {assignedDealer?.pincode && (
-                        <div className="text-slate-400 font-mono">
-                          Depot PIN: <strong className="text-amber-400">{assignedDealer.pincode}</strong>
-                        </div>
-                      )}
-                      {assignedDealer?.mobile && (
-                        <div className="text-slate-300 font-mono">{assignedDealer.mobile}</div>
-                      )}
-                    </div>
-
-                    {/* Material & Transport */}
-                    <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800/80 space-y-1">
-                      <span className="text-slate-400 block uppercase font-bold text-[10px] tracking-wider">
-                        Material Details
-                      </span>
-                      <div className="text-sm font-bold text-white">{order.productNameSnapshot}</div>
-                      <div className="text-amber-400 font-medium">
-                        {order.numberOfTractors || order.quantity} Tractor(s) ({order.tractorType || order.vehicleType})
-                      </div>
-                    </div>
-
-                    {/* Rejection / Escalation Status */}
-                    <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800/80 space-y-1">
-                      <span className="text-slate-400 block uppercase font-bold text-[10px] tracking-wider">
-                        Alert Reason & SLA
-                      </span>
-                      {isDeclined ? (
-                        <div className="text-red-400 font-semibold">
-                          "{order.dealerRejectionReason || 'Dealer clicked decline'}"
-                        </div>
-                      ) : (
-                        <div className="text-amber-400 font-semibold">
-                          Exceeded 15 minutes without response
-                        </div>
-                      )}
-                      <div className="text-[11px] text-slate-400">
-                        {order.assignedDealerId
-                          ? `Currently pending: ${order.assignedDealerId.companyName || order.assignedDealerId.name}`
-                          : 'Awaiting manual reassignment'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions Row */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
-                    <div className="flex items-center gap-2">
-                      {assignedDealer?.mobile && (
-                        <>
-                          <a
-                            href={`tel:${assignedDealer.mobile}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-slate-300"
-                          >
-                            <Phone className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>Call Dealer</span>
-                          </a>
-                          <a
-                            href={`https://wa.me/91${assignedDealer.mobile}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-slate-300"
-                          >
-                            <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>WhatsApp</span>
-                          </a>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2.5">
-                      {order.adminAlarmActive && (
-                        <button
-                          type="button"
-                          onClick={() => handleAcknowledge(order._id)}
-                          className="px-3 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-bold transition-colors"
-                        >
-                          Silence Alarm
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => openReassignModal(order)}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-amber-500/20"
-                      >
-                        <UserCheck className="w-4 h-4" />
-                        <span>Reassign Dealer</span>
-                      </button>
-
-                      <Link
-                        to={`/user/orders/${order._id}`}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-white"
-                      >
-                        <span>View Order</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Dealer Unavailable Reports -- customer-flagged checkout dead-ends: no dealer configured
           for a Material + Location + Wheel/Patiya combination. Purely informational, no order
@@ -636,69 +394,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Manual Reassign Modal */}
-      {reassigningOrder && (
-        <Modal
-          isOpen={!!reassigningOrder}
-          onClose={() => setReassigningOrder(null)}
-          title={`Reassign Order #${reassigningOrder.orderNumber}`}
-        >
-          <form onSubmit={handleConfirmReassign} className="space-y-4">
-            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-1 text-xs">
-              <div className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Order Context</div>
-              <div className="text-white font-bold">{reassigningOrder.productNameSnapshot}</div>
-              <div className="text-slate-300">
-                Destination: {reassigningOrder.shippingAddress} (PIN: <strong className="text-amber-400">{reassigningOrder.pincode}</strong>)
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">Select Target Dealer Depot:</label>
-              <select
-                value={selectedDealerId}
-                onChange={(e) => setSelectedDealerId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500"
-                required
-              >
-                <option value="">-- Choose active dealer depot --</option>
-                {dealers.map((d) => (
-                  <option key={d._id} value={d._id}>
-                    {d.companyName || d.name} — PIN: {d.pincode} ({d.city || d.state}) — Mobile: {d.mobile}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300">
-              💡 Reassigning will restart a fresh <strong>15-minute SLA timer</strong> and trigger immediate notifications and alarms on the chosen dealer's dashboard.
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-3">
-              <button
-                type="button"
-                onClick={() => setReassigningOrder(null)}
-                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-bold"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submittingReassign || !selectedDealerId}
-                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 disabled:opacity-50"
-              >
-                {submittingReassign ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    Reassigning...
-                  </>
-                ) : (
-                  'Confirm Reassignment'
-                )}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
     </div>
   );
 }
