@@ -1243,6 +1243,7 @@ const declineOrder = async (req, res) => {
     order.dealerRejectedAt = now;
     order.dealerRejectedBy = req.user._id;
     order.dealerRejectionReason = reason;
+    order.dealerCancellationType = 'DEALER_DECLINED';
     order.dealerAlarmActive = false; // Stop Dealer Alarm
     order.declinedBy.addToSet(req.user._id);
 
@@ -1732,7 +1733,32 @@ const getDealerCancelledOrders = async (req, res) => {
     // `declinedBy` is a permanent record of every dealer who ever declined this order, unlike
     // `dealerResponseStatus` which gets reset back to PENDING once the customer picks a new
     // dealer -- so this stays a complete history even after the order is resolved.
-    const orders = await Order.find({ declinedBy: { $exists: true, $not: { $size: 0 } } })
+    const filter = { declinedBy: { $exists: true, $not: { $size: 0 } } };
+
+    if (req.query.type && ['DEALER_DECLINED', 'AUTO_TIMEOUT'].includes(req.query.type)) {
+      filter.dealerCancellationType = req.query.type;
+    }
+
+    if (req.query.from || req.query.to) {
+      filter.dealerRejectedAt = {};
+      if (req.query.from) {
+        const fromDate = new Date(req.query.from);
+        if (!Number.isNaN(fromDate.getTime())) {
+          fromDate.setHours(0, 0, 0, 0);
+          filter.dealerRejectedAt.$gte = fromDate;
+        }
+      }
+      if (req.query.to) {
+        const toDate = new Date(req.query.to);
+        if (!Number.isNaN(toDate.getTime())) {
+          toDate.setHours(23, 59, 59, 999);
+          filter.dealerRejectedAt.$lte = toDate;
+        }
+      }
+      if (Object.keys(filter.dealerRejectedAt).length === 0) delete filter.dealerRejectedAt;
+    }
+
+    const orders = await Order.find(filter)
       .populate('userId', 'name mobile email')
       .populate('dealerRejectedBy', 'name companyName mobile pincode')
       .populate('assignedDealerId', 'name companyName mobile pincode')

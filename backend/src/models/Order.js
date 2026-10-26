@@ -488,6 +488,16 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: ''
     },
+    // How the most recent dealerRejectedAt/By/Reason came about -- an explicit decline (dealer
+    // tapped Decline) vs an automatic 15-minute SLA timeout (EscalationScheduler). Never reset on
+    // reassignment, same as the three fields above, so the Admin "Dealer Cancelled Orders" list
+    // can always show/filter by how the order was actually cancelled.
+    dealerCancellationType: {
+      type: String,
+      enum: ['DEALER_DECLINED', 'AUTO_TIMEOUT', null],
+      default: null,
+      index: true
+    },
     // Set true the moment a dealer declines (instead of auto-re-routing to the next nearest
     // dealer) -- the customer must then pick a new dealer themselves or request a refund.
     // Cleared the moment either of those actions happens, or an Admin manually reassigns.

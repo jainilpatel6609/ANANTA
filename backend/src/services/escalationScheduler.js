@@ -46,6 +46,7 @@ class EscalationScheduler {
         order.adminAlertType = 'DEALER_TIMEOUT';
         order.dealerRejectedAt = now;
         order.dealerRejectionReason = 'Dealer did not respond within the 15-minute SLA window (auto-expired).';
+        order.dealerCancellationType = 'AUTO_TIMEOUT';
         order.dealerAlarmActive = false;
         if (dealer?._id) {
           order.declinedBy.addToSet(dealer._id);

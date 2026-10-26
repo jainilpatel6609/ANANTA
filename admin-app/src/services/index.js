@@ -48,7 +48,7 @@ export const orderService = {
   adminAcknowledge: (id) => api.post(`/orders/${id}/admin-acknowledge`),
   adminReassign: (id, targetDealerId) => api.post(`/orders/${id}/reassign`, { targetDealerId }),
   getAllAdmin: (params) => api.get('/admin/orders', { params }),
-  getDealerCancelledOrders: () => api.get('/admin/dealer-cancelled-orders'),
+  getDealerCancelledOrders: (params) => api.get('/admin/dealer-cancelled-orders', { params }),
   markRefundProcessed: (id) => api.patch(`/admin/orders/${id}/refund-processed`)
 };
 
