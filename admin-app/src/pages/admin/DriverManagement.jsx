@@ -3,6 +3,7 @@ import { driverService } from '../../services';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
 import Modal from '../../components/Modal';
+import DriverDetailsModal from '../../components/DriverDetailsModal';
 import {
   Users,
   UserPlus,
@@ -17,7 +18,8 @@ import {
   Loader2,
   Shield,
   FileText,
-  AlertCircle
+  AlertCircle,
+  Eye
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -31,6 +33,7 @@ export default function DriverManagement() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingDriver, setEditingDriver] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [detailsDriver, setDetailsDriver] = useState(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -238,6 +241,13 @@ export default function DriverManagement() {
                   </div>
                   <div className="flex items-center gap-1">
                     <button
+                      onClick={() => setDetailsDriver(driver)}
+                      title="View full profile & license/KYC documents"
+                      className="p-1.5 text-slate-400 hover:text-sky-400 rounded-lg hover:bg-slate-800"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => handleOpenEditModal(driver)}
                       className="p-1.5 text-slate-400 hover:text-amber-400 rounded-lg hover:bg-slate-800"
                     >
@@ -440,6 +450,8 @@ export default function DriverManagement() {
           </div>
         </form>
       </Modal>
+
+      <DriverDetailsModal driver={detailsDriver} onClose={() => setDetailsDriver(null)} />
     </div>
   );
 }
