@@ -300,10 +300,10 @@ export default function OrderInvoice() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [justPaid, setJustPaid] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
-  // Ananta's real, Zoho-issued "Service Charge" invoice (18% GST, Ananta's own GSTIN) -- created
-  // lazily the moment this page is viewed for a PAID order, never at payment-confirmation time.
-  // null until it resolves; the invoice below falls back to a locally-formatted placeholder
-  // number in the meantime so the PDF never looks broken.
+  // Ananta's own "Service Charge" invoice (18% GST, Ananta's own GSTIN) -- NOT a Zoho invoice,
+  // rendered by the app itself; created lazily the moment this page is viewed for a PAID order,
+  // never at payment-confirmation time. null until it resolves; the invoice below falls back to a
+  // locally-formatted placeholder number in the meantime so the PDF never looks broken.
   const [serviceChargeInfo, setServiceChargeInfo] = useState(null);
   const invoiceRef = useRef(null);
 
@@ -320,13 +320,13 @@ export default function OrderInvoice() {
         const orderData = res.data?.order || res.data;
         setOrder(orderData);
 
-        // Lazily issue (or retrieve the already-issued) Zoho Service Charge invoice -- only once
-        // the order is actually PAID, and only on this view, never automatically at payment time.
-        // Dumper orders settle by real weighed tonnage AFTER the upfront payment (see
+        // Lazily issue (or retrieve the already-issued) Service Charge invoice number -- only
+        // once the order is actually PAID, and only on this view, never automatically at payment
+        // time. Dumper orders settle by real weighed tonnage AFTER the upfront payment (see
         // enterTotalWeight), so the real total is only known once that final payment is also
-        // PAID -- issuing the Zoho invoice any earlier would permanently lock in the wrong
-        // (booking-token) amount. Fails soft: the rest of the invoice still renders even if Zoho
-        // is briefly unavailable.
+        // PAID -- issuing the invoice any earlier would permanently lock in the wrong
+        // (booking-token) amount. Fails soft: the rest of the invoice still renders even if this
+        // call is briefly unavailable.
         const isTractorOrder = orderData?.transportType === 'Tractor' || orderData?.vehicleTypeSnapshot === 'TRACTOR';
         const readyForServiceChargeInvoice = orderData?.paymentStatus === 'PAID'
           && (isTractorOrder || orderData?.finalPaymentStatus === 'PAID');
@@ -364,22 +364,20 @@ export default function OrderInvoice() {
   }, [id, location]);
 
   // 1-Click Direct PDF Download using html2canvas & jsPDF. Renders BOTH invoice blocks (Material
-  // + Service Charge) itself, one consistent visual style -- the real Zoho invoice record still
-  // gets created in the background (for Ananta's own GST accounting under its own GSTIN), but its
-  // invoice NUMBER is embedded here rather than merging Zoho's own separately-styled PDF, since
-  // the Material Invoice can never legally come from Zoho itself (one Zoho org = one fixed GSTIN,
-  // never the selling dealer's) -- keeping both invoices in the same rendered style avoids an
-  // visually-jarring mismatch between them.
+  // + Service Charge) itself, in one consistent visual style -- neither is a Zoho invoice. The
+  // Material Invoice can never legally come from Zoho anyway (one Zoho org = one fixed GSTIN,
+  // never the selling dealer's), and the Service Charge invoice uses a locally-generated number
+  // instead, so both invoices always share the same rendered style.
   const handleDownloadPDF = async () => {
     if (!invoiceRef.current || !order) return;
     setIsDownloading(true);
     toast.loading('Generating Official Tax Invoice PDF...', { id: 'pdf-gen' });
 
     try {
-      // The Service Charge section's Qty/Rate/Amount (and its real Zoho invoice number) are
-      // derived from serviceChargeInfo once it loads -- a fast click right after the page mounts
-      // can otherwise capture the on-screen invoice BEFORE that background fetch resolves. Make
-      // sure it's loaded first.
+      // The Service Charge section's Qty/Rate/Amount (and its invoice number) are derived from
+      // serviceChargeInfo once it loads -- a fast click right after the page mounts can otherwise
+      // capture the on-screen invoice BEFORE that background fetch resolves. Make sure it's
+      // loaded first.
       if (!serviceChargeInfo && order.paymentStatus === 'PAID' && !pendingFinalSettlement) {
         const scRes = await orderService.getServiceChargeInvoice(order._id);
         setServiceChargeInfo(scRes.data);
@@ -511,13 +509,13 @@ export default function OrderInvoice() {
   const isPaid = order.paymentStatus === 'PAID';
   const isTractorOrder = order.transportType === 'Tractor' || order.vehicleTypeSnapshot === 'TRACTOR';
   // Dumper orders settle by real weighed tonnage via a separate final payment AFTER the upfront
-  // booking payment -- the GST invoice (and its Zoho Service Charge portion) only reflects the
+  // booking payment -- the GST invoice (and its Service Charge portion) only reflects the
   // real total once that final payment is also PAID.
   const pendingFinalSettlement = !isTractorOrder && order.finalPaymentStatus !== 'PAID';
 
   // Split the blended totalAmount into the dealer's material-sale portion and Ananta's own
-  // service-charge portion (falls back to the full amount as "material" until the Zoho call
-  // resolves, so the page is never stuck showing a blank/broken invoice).
+  // service-charge portion (falls back to the full amount as "material" until the invoice-number
+  // fetch resolves, so the page is never stuck showing a blank/broken invoice).
   const materialAmount = serviceChargeInfo ? serviceChargeInfo.materialAmount : totalAmount;
   const serviceChargeAmount = serviceChargeInfo ? serviceChargeInfo.serviceChargeAmount : 0;
   const serviceChargeInvoiceNo = serviceChargeInfo?.zohoInvoiceNumber || invoiceNo + '-SC';
@@ -534,8 +532,8 @@ export default function OrderInvoice() {
   const serviceCgst = Math.round((serviceTax / 2) * 100) / 100;
   const serviceSgst = Math.round((serviceTax - serviceCgst) * 100) / 100;
 
-  // Same real Qty/Rate breakdown the actual Zoho invoice uses (e.g. 30 TON x Rs25/Ton), from the
-  // backend's own fresh computation -- not a flattened "1 SERVICE" line.
+  // Same real Qty/Rate breakdown the backend's own fresh computation uses (e.g. 30 TON x
+  // Rs25/Ton) -- not a flattened "1 SERVICE" line.
   const scQuantity = serviceChargeInfo?.quantity || 1;
   const scUnit = serviceChargeInfo?.unit === 'trip' ? 'TRACTOR' : 'TON';
   const scRatePerUnit = (order.serviceChargeRateSnapshot || 0).toFixed(2);
@@ -544,7 +542,7 @@ export default function OrderInvoice() {
   // that, approximateTon is just a capacity estimate, not what was actually sold. Prefer the
   // backend's own fresh computation (serviceChargeInfo.quantity, from its own live DB read) over
   // this client's possibly-stale `order` snapshot, so the Material Invoice's Qty/Rate always
-  // matches the real Zoho Service Charge invoice's own breakdown exactly.
+  // matches the Service Charge invoice's own breakdown exactly.
   const dumperQty = order.totalWeight || order.approximateTon || order.quantity || 41.67;
 
   const qtyNumeric = serviceChargeInfo?.quantity
@@ -767,10 +765,12 @@ export default function OrderInvoice() {
 
           <div className="border-t-2 border-dashed border-slate-300" />
 
-          {/* 2. SERVICE CHARGE INVOICE -- Ananta's own real Zoho-issued invoice, 18% GST. Rendered
-              in the same style as the Material Invoice (not Zoho's own PDF layout, which could
-              never legally carry the dealer's GSTIN anyway), carrying Zoho's real invoice number
-              and the same Qty/Rate breakdown the actual Zoho record uses. */}
+          {/* 2. SERVICE CHARGE INVOICE -- Ananta's own invoice, 18% GST, under Ananta's own GSTIN.
+              Rendered by the app in the same style as the Material Invoice (NOT a Zoho invoice --
+              the dealer's own Material Invoice above it can't legally come from Zoho either, since
+              one Zoho org carries one fixed GSTIN, never the selling dealer's), with its own
+              locally-generated invoice number and the same Qty/Rate breakdown the backend
+              computes. */}
           <div>
             <div className="mb-3 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-[11px] font-black text-indigo-800 uppercase tracking-wider inline-block">
               Invoice 2 of 2 &mdash; Platform Service Charge (Ananta Traders)

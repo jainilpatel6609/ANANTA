@@ -16,10 +16,7 @@ const { findConflictingActiveOrder } = require('../utils/driverAvailability');
 const { claimDumperForOrder, releaseDumperForOrder } = require('../utils/dumperAvailability');
 const RazorpayService = require('../services/razorpayService');
 const IciciPaymentService = require('../services/iciciPaymentService');
-const ZohoInvoiceService = require('../services/zohoInvoiceService');
 const { splitOrderAmount } = require('../utils/invoiceSplit');
-const { stageForDownload } = require('./pdfExportController');
-const { PDFDocument } = require('pdf-lib');
 const NotificationService = require('../services/notificationService');
 const PincodeService = require('../services/pincodeService');
 const RoadDistanceService = require('../services/roadDistanceService');
@@ -761,33 +758,27 @@ const ensureServiceChargeInvoice = async (order) => {
     };
   }
 
-  const contactId = await ZohoInvoiceService.findOrCreateContact({
-    name: order.userId.name,
-    email: order.userId.email,
-    mobile: order.userId.whatsappNumber || order.userId.mobile
-  });
+  // Locally generated -- NOT a real Zoho Books invoice. Ananta's Service Charge invoice is
+  // rendered by the app itself (InvoiceSection), in the exact same template as the Material
+  // Invoice, rather than a separately Zoho-styled PDF. Field names (zohoServiceChargeInvoice*)
+  // are kept from when this really did call Zoho, to avoid a model/field rename.
+  const digits = (order.orderNumber || '').replace(/^[^\d]*/, '');
+  const invoiceNumber = `AN/SC/26-27/${digits}`;
 
-  const { invoiceId, invoiceNumber } = await ZohoInvoiceService.createServiceChargeInvoice({
-    customerContactId: contactId,
-    orderNumber: order.orderNumber,
-    quantity,
-    ratePerUnit: order.serviceChargeRateSnapshot || 0,
-    unit
-  });
-
-  order.zohoServiceChargeInvoiceId = invoiceId;
+  order.zohoServiceChargeInvoiceId = '';
   order.zohoServiceChargeInvoiceNumber = invoiceNumber;
   await order.save();
 
-  return { invoiceId, invoiceNumber, serviceChargeAmount, materialAmount, quantity, unit, materialRatePerUnit };
+  return { invoiceId: '', invoiceNumber, serviceChargeAmount, materialAmount, quantity, unit, materialRatePerUnit };
 };
 
-// @desc    Issues (or, on a repeat call, simply returns) the real Zoho Books "Service Charge"
-//          invoice for this order's upfront payment -- Ananta's own GSTIN, 18% GST. Lazily
-//          created the first time the customer views/downloads the order's invoice, never at
-//          payment-confirmation time. The dealer's own "Material Invoice" is NOT a Zoho invoice
-//          (Zoho ties one GSTIN to the whole organization, so it cannot carry the dealer's own
-//          GSTIN) -- it's rendered by the app itself using the order's real dealer/customer data.
+// @desc    Issues (or, on a repeat call, simply returns) Ananta's own "Service Charge" invoice
+//          for this order's upfront payment -- Ananta's own GSTIN, 18% GST. Lazily created the
+//          first time the customer views/downloads the order's invoice, never at
+//          payment-confirmation time. Rendered by the app itself (not Zoho) in the exact same
+//          template as the dealer's own "Material Invoice" below it, which likewise is not a
+//          Zoho invoice (Zoho ties one GSTIN to the whole organization, so it cannot carry the
+//          dealer's own GSTIN anyway) -- both use the order's real dealer/customer data.
 // @route   GET /api/orders/:id/service-charge-invoice
 // @access  Private (User -- order owner, or Admin)
 const getServiceChargeInvoice = async (req, res) => {
@@ -829,70 +820,8 @@ const getServiceChargeInvoice = async (req, res) => {
       materialRatePerUnit
     });
   } catch (error) {
-    console.error('[Zoho Service Charge Invoice Error]', error.message);
+    console.error('[Service Charge Invoice Error]', error.message);
     return errorResponse(res, 'Unable to generate the service charge invoice right now. Please try again shortly.', 502);
-  }
-};
-
-// @desc    Merges the dealer's Material Invoice (rendered client-side, uploaded here as a PDF)
-//          with Ananta's real Zoho-issued Service Charge invoice PDF into one combined,
-//          downloadable PDF -- replacing the earlier approach of re-rendering a copy of the Zoho
-//          invoice's data locally. Reuses the exact same Android-WebView-safe staged-download
-//          mechanism already built for client-generated PDFs (pdfExportController.stageForDownload).
-// @route   POST /api/orders/:id/combined-invoice-pdf
-// @access  Private (User -- order owner, or Admin)
-const getCombinedInvoicePdf = async (req, res) => {
-  try {
-    if (!req.file) {
-      return errorResponse(res, 'The Material Invoice PDF is required.', 400);
-    }
-
-    const order = await Order.findById(req.params.id).populate('userId', 'name mobile whatsappNumber email');
-    if (!order) {
-      return errorResponse(res, 'Order not found.', 404);
-    }
-
-    const userIdStr = req.user._id ? req.user._id.toString() : req.user.id?.toString();
-    const isOwner = order.userId && order.userId._id?.toString() === userIdStr;
-    const isAdmin = req.user.role === 'ADMIN' || req.user.role === 'SUPER_ADMIN';
-    if (!isOwner && !isAdmin) {
-      return errorResponse(res, 'Unauthorized to view this order invoice.', 403);
-    }
-
-    if (order.paymentStatus !== 'PAID') {
-      return errorResponse(res, 'This order has not been paid yet -- no invoice can be issued.', 400);
-    }
-
-    const isTractorOrder = order.vehicleTypeSnapshot === 'TRACTOR' || order.transportType === 'Tractor';
-    if (!isTractorOrder && order.finalPaymentStatus !== 'PAID') {
-      return errorResponse(
-        res,
-        'The final weight-based settlement for this order is still pending. The GST invoice will be available once the final payment is completed.',
-        400
-      );
-    }
-
-    const { invoiceId } = await ensureServiceChargeInvoice(order);
-    const zohoPdfBytes = await ZohoInvoiceService.getInvoicePdfBytes(invoiceId);
-
-    const mergedPdf = await PDFDocument.create();
-
-    const materialPdf = await PDFDocument.load(req.file.buffer);
-    const materialPages = await mergedPdf.copyPages(materialPdf, materialPdf.getPageIndices());
-    materialPages.forEach((page) => mergedPdf.addPage(page));
-
-    const zohoPdf = await PDFDocument.load(zohoPdfBytes);
-    const zohoPages = await mergedPdf.copyPages(zohoPdf, zohoPdf.getPageIndices());
-    zohoPages.forEach((page) => mergedPdf.addPage(page));
-
-    const mergedBytes = await mergedPdf.save();
-    const safeNo = (order.invoiceNumber || order.orderNumber || 'Invoice').replace(/[/\\:]/g, '_');
-    const url = stageForDownload(req, Buffer.from(mergedBytes), `ANANTA_TRADERS_${safeNo}.pdf`);
-
-    return successResponse(res, 'Combined invoice PDF ready.', { url });
-  } catch (error) {
-    console.error('[Combined Invoice PDF Error]', error.message);
-    return errorResponse(res, 'Unable to generate the combined invoice PDF right now. Please try again shortly.', 502);
   }
 };
 
@@ -1844,7 +1773,6 @@ module.exports = {
   getMyOrders,
   getOrderById,
   getServiceChargeInvoice,
-  getCombinedInvoicePdf,
   getDealerAvailableOrders,
   getDealerDeliveries,
   getDealerVehicleSalesReport,
