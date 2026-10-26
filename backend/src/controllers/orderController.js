@@ -845,12 +845,20 @@ const getDealerAvailableOrders = async (req, res) => {
       orderStatus: 'PLACED',
       dealerId: null,
       paymentStatus: 'PAID',
-      declinedBy: { $ne: req.user._id },
       awaitingCustomerDealerChoice: { $ne: true }
     };
 
     if (!isAdmin) {
-      filter.$or = [{ assignedDealerId: req.user._id }, { assignedDealerId: null }];
+      // `declinedBy` only matters for the OPEN pool (an order nobody has specifically routed to
+      // this dealer) -- it must never hide an order that's directly assigned to them right now,
+      // or a customer/admin reassignment back to a dealer who previously declined/timed-out on
+      // this same order would notify them but then make the order invisible in their own pool
+      // forever (the notification fires regardless, since NotificationService doesn't check
+      // declinedBy at all -- only this query did).
+      filter.$or = [
+        { assignedDealerId: req.user._id },
+        { assignedDealerId: null, declinedBy: { $ne: req.user._id } }
+      ];
     }
 
     const orders = await Order.find(filter)
