@@ -179,30 +179,36 @@ export default function AdminDashboard() {
       {/* 3. Today's Operations Snapshot -- small square tiles, every one scoped to today only.
           All-time grand totals live in the Global Overview Cards section below. */}
       <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-        <StatsCard
-          compact
-          title="Active"
-          value={todaySummary?.active || 0}
-          subtitle="Today"
-          icon={Activity}
-          color="blue"
-        />
-        <StatsCard
-          compact
-          title="Total Orders"
-          value={todaySummary?.total || 0}
-          subtitle="Today"
-          icon={Package}
-          color="purple"
-        />
-        <StatsCard
-          compact
-          title="Delivered"
-          value={todaySummary?.delivered || 0}
-          subtitle="Today"
-          icon={BadgeCheck}
-          color="emerald"
-        />
+        <Link to="/todays-orders?status=ACTIVE" className="block">
+          <StatsCard
+            compact
+            title="Active"
+            value={todaySummary?.active || 0}
+            subtitle="Today"
+            icon={Activity}
+            color="blue"
+          />
+        </Link>
+        <Link to="/todays-orders" className="block">
+          <StatsCard
+            compact
+            title="Total Orders"
+            value={todaySummary?.total || 0}
+            subtitle="Today"
+            icon={Package}
+            color="purple"
+          />
+        </Link>
+        <Link to="/todays-orders?status=DELIVERED" className="block">
+          <StatsCard
+            compact
+            title="Delivered"
+            value={todaySummary?.delivered || 0}
+            subtitle="Today"
+            icon={BadgeCheck}
+            color="emerald"
+          />
+        </Link>
         <Link to="/dealer-cancelled-orders" className="block">
           <StatsCard
             compact

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { adminService } from '../../services';
 import StatusBadge from '../../components/StatusBadge';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -8,9 +8,12 @@ import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport } from
 import { Clock, Search, Truck, Phone, MapPin, ShieldCheck, ArrowRight } from 'lucide-react';
 
 export default function TodaysOrders() {
+  const [searchParams] = useSearchParams();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState('ALL');
+  // Deep-linked from the dashboard's Today tiles (e.g. ?status=DELIVERED) -- defaults to ALL when
+  // opened from the sidebar/nav directly.
+  const [filterStatus, setFilterStatus] = useState(searchParams.get('status') || 'ALL');
 
   const loadTodays = async () => {
     try {

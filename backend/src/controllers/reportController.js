@@ -102,6 +102,7 @@ const getDashboardStats = async (req, res) => {
         dealerCancelledOrders
       },
       todaySummary,
+      todayOrders,
       statusCounts: statusMap,
       recentOrders,
       categoryStats,
