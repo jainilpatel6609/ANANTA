@@ -116,7 +116,7 @@ export default function AdminDashboard() {
     return <LoadingSpinner message="Aggregating executive command center metrics & escalation alerts..." />;
   }
 
-  const { overview, todaySummary, recentOrders, categoryStats } = stats || {};
+  const { overview, todaySummary, recentOrders, categoryStats, statusCounts } = stats || {};
   const activeAlarms = escalations.filter((e) => e.adminAlarmActive);
 
   const categoryChartData = (categoryStats || []).map((c) => ({
@@ -295,7 +295,7 @@ export default function AdminDashboard() {
       )}
 
       {/* Global Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatsCard
           title="Total Gross Revenue"
           value={formatINR(overview?.totalRevenue || 0)}
@@ -316,6 +316,13 @@ export default function AdminDashboard() {
           subtitle="Lifecycle records"
           icon={Package}
           color="purple"
+        />
+        <StatsCard
+          title="Delivered Orders"
+          value={statusCounts?.DELIVERED || 0}
+          subtitle="Completed with OTP, all-time"
+          icon={BadgeCheck}
+          color="emerald"
         />
         <StatsCard
           title="Active Dealers"
