@@ -39,16 +39,12 @@ export default function DealerCancelledOrders() {
   const [expandedId, setExpandedId] = useState(null);
 
   const [typeFilter, setTypeFilter] = useState('ALL');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
 
   const loadOrders = async () => {
     setLoading(true);
     try {
       const res = await orderService.getDealerCancelledOrders({
-        type: typeFilter !== 'ALL' ? typeFilter : undefined,
-        from: fromDate || undefined,
-        to: toDate || undefined
+        type: typeFilter !== 'ALL' ? typeFilter : undefined
       });
       if (res.data?.orders) {
         setOrders(res.data.orders);
@@ -63,7 +59,7 @@ export default function DealerCancelledOrders() {
   useEffect(() => {
     loadOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [typeFilter, fromDate, toDate]);
+  }, [typeFilter]);
 
   const handleMarkProcessed = async (orderId) => {
     setProcessingId(orderId);
@@ -82,11 +78,9 @@ export default function DealerCancelledOrders() {
 
   const clearFilters = () => {
     setTypeFilter('ALL');
-    setFromDate('');
-    setToDate('');
   };
 
-  const hasActiveFilters = typeFilter !== 'ALL' || fromDate || toDate;
+  const hasActiveFilters = typeFilter !== 'ALL';
 
   return (
     <div className="space-y-6 pb-12">
@@ -97,29 +91,11 @@ export default function DealerCancelledOrders() {
         </p>
       </div>
 
-      {/* Filter bar -- Date range + cancellation type */}
+      {/* Filter bar -- cancellation type */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-end gap-3">
         <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 sm:mb-0 sm:mr-1">
           <Filter className="w-3.5 h-3.5" />
           <span>Filters</span>
-        </div>
-        <div>
-          <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">From</label>
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500"
-          />
-        </div>
-        <div>
-          <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">To</label>
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500"
-          />
         </div>
         <div>
           <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Type</label>
