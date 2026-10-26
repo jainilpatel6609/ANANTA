@@ -907,10 +907,11 @@ const getDealerAvailableOrders = async (req, res) => {
 
     const isAdmin = req.user.role === 'ADMIN';
 
-    // Find orders that are confirmed/paid and pending dealer acceptance. A dealer-declined
-    // order stays hidden from every dealer's pool (assignedDealerId is cleared, which would
-    // otherwise make it match the `assignedDealerId: null` branch below) until the customer
-    // explicitly picks a new dealer or requests a refund.
+    // Find orders that are confirmed/paid and pending dealer acceptance. A dealer-declined OR
+    // 15-minute-SLA-timed-out order stays hidden from every dealer's pool (assignedDealerId is
+    // cleared and awaitingCustomerDealerChoice is set by declineOrder / EscalationScheduler,
+    // which would otherwise make it match the `assignedDealerId: null` branch below) until the
+    // customer explicitly picks a new dealer or requests a refund.
     const filter = {
       orderStatus: 'PLACED',
       dealerId: null,
@@ -920,11 +921,7 @@ const getDealerAvailableOrders = async (req, res) => {
     };
 
     if (!isAdmin) {
-      filter.$or = [
-        { assignedDealerId: req.user._id },
-        { assignedDealerId: null },
-        { dealerResponseDeadline: { $lte: new Date() } } // Expired 15-min SLA orders open to all active dealers
-      ];
+      filter.$or = [{ assignedDealerId: req.user._id }, { assignedDealerId: null }];
     }
 
     const orders = await Order.find(filter)

@@ -35,12 +35,27 @@ class EscalationScheduler {
         const dealerName = dealer ? (dealer.companyName || dealer.name) : 'Assigned Dealer';
         const customerName = order.userId ? order.userId.name : (order.shippingDetails?.fullName || 'Customer');
 
-        // 1. Update Order state atomically
+        // 1. Update Order state atomically -- auto-reject this assignment (not just alert the
+        // admin) so the customer can immediately pick a new dealer or request a refund, exactly
+        // like an explicit dealer decline. Leaving assignedDealerId set here would strand the
+        // order with no way forward until an admin manually intervened.
         order.dealerResponseStatus = 'TIMEOUT';
         order.adminEscalationSent = true;
         order.adminEscalationSentAt = now;
         order.adminAlarmActive = true;
         order.adminAlertType = 'DEALER_TIMEOUT';
+        order.dealerRejectedAt = now;
+        order.dealerRejectionReason = 'Dealer did not respond within the 15-minute SLA window (auto-expired).';
+        order.dealerAlarmActive = false;
+        if (dealer?._id) {
+          order.declinedBy.addToSet(dealer._id);
+          // Not an explicit decline click, but the admin escalation view keys its "which dealer"
+          // display off this field (falling back to it once assignedDealerId is cleared below) --
+          // reuse it so the timed-out dealer stays visible there instead of showing "Unassigned".
+          order.dealerRejectedBy = dealer._id;
+        }
+        order.assignedDealerId = null;
+        order.awaitingCustomerDealerChoice = true;
 
         // 2. Update assignment history record
         if (Array.isArray(order.assignmentHistory) && order.assignmentHistory.length > 0) {
@@ -59,7 +74,17 @@ class EscalationScheduler {
           recipientRole: 'ADMIN',
           type: 'DEALER_NO_RESPONSE_ESCALATION',
           title: '🚨 ORDER ESCALATION — Dealer Timeout',
-          message: `Order #${order.orderNumber} (Customer: ${customerName}, PIN: ${order.pincode}) assigned to ${dealerName} has had NO RESPONSE for 15 minutes. Immediate dispatch action required.`,
+          message: `Order #${order.orderNumber} (Customer: ${customerName}, PIN: ${order.pincode}) assigned to ${dealerName} has had NO RESPONSE for 15 minutes. Order auto-rejected; customer notified to choose a new dealer or request a refund.`,
+          orderId: order._id
+        });
+
+        // 3b. Notify the customer -- their order was not silently stuck, they now need to act.
+        await NotificationService.send({
+          recipientId: order.userId?._id || order.userId,
+          recipientRole: 'USER',
+          type: 'ORDER_REJECTED_NEEDS_ACTION',
+          title: 'Your order was not accepted in time',
+          message: `Order #${order.orderNumber} was not accepted by ${dealerName} within 15 minutes. Please select a new dealer or request a refund.`,
           orderId: order._id
         });
 
@@ -69,10 +94,10 @@ class EscalationScheduler {
           dealerName,
           customerName,
           pincode: order.pincode,
-          message: `Order #${order.orderNumber} has exceeded the 15-minute dealer response deadline.`
+          message: `Order #${order.orderNumber} has exceeded the 15-minute dealer response deadline and was auto-rejected.`
         });
 
-        logger.info(`[Escalation Dispatched] Order #${order.orderNumber} escalated to Super Admin (15-min timeout).`);
+        logger.info(`[Escalation Dispatched] Order #${order.orderNumber} auto-rejected and escalated to Super Admin (15-min timeout).`);
       }
 
       return timedOutOrders.length;
