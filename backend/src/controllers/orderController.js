@@ -1735,8 +1735,14 @@ const getDealerCancelledOrders = async (req, res) => {
     // dealer -- so this stays a complete history even after the order is resolved.
     const filter = { declinedBy: { $exists: true, $not: { $size: 0 } } };
 
-    if (req.query.type && ['DEALER_DECLINED', 'AUTO_TIMEOUT'].includes(req.query.type)) {
-      filter.dealerCancellationType = req.query.type;
+    if (req.query.type === 'DEALER_DECLINED') {
+      // Orders cancelled before this field existed have no dealerCancellationType on record
+      // (null/missing) -- they were all explicit declines (the auto-timeout type is new), so the
+      // "Dealer Cancelled" filter must also match those, not just the exact string, or every
+      // historical decline silently disappears the moment this filter is applied.
+      filter.dealerCancellationType = { $in: ['DEALER_DECLINED', null] };
+    } else if (req.query.type === 'AUTO_TIMEOUT') {
+      filter.dealerCancellationType = 'AUTO_TIMEOUT';
     }
 
     if (req.query.from || req.query.to) {
