@@ -72,7 +72,10 @@ export default function UserDashboard() {
     return <LoadingSpinner message="Loading contractor portal..." />;
   }
 
-  // Pending/Ongoing/Delivered counts reset every day -- never all-time totals.
+  // The "Today" reset only ever applies to Delivered -- an order already sitting in Pending or
+  // Ongoing for more than 24h is still genuinely pending/ongoing and must keep being counted
+  // there, not silently drop to 0 once it crosses the day boundary. Only "how many were delivered
+  // today" is meant to reset daily.
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
   const todayOrders = orders.filter((o) => o.createdAt && new Date(o.createdAt) >= startOfToday);
@@ -82,8 +85,8 @@ export default function UserDashboard() {
   // orders (PENDING_PAYMENT) never reach this component at all -- getMyOrders excludes them.
   // "Pending" here means paid and PLACED, but the dealer hasn't accepted it yet -- a real,
   // meaningful wait state, distinct from an order already ACCEPTED/OUT_FOR_DELIVERY.
-  const displayPending = todayOrders.filter((o) => o.orderStatus === 'PLACED').length;
-  const displayInTransit = todayOrders.filter((o) => ['ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length;
+  const displayPending = orders.filter((o) => o.orderStatus === 'PLACED').length;
+  const displayInTransit = orders.filter((o) => ['ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length;
   const displayDelivered = todayOrders.filter((o) => o.orderStatus === 'DELIVERED').length;
 
   // Every order currently out for delivery with a live Gate Pass OTP -- not just one, so a
@@ -293,7 +296,7 @@ export default function UserDashboard() {
         {/* Stat columns */}
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           <Link
-            to="/user/orders?status=PENDING&period=today"
+            to="/user/orders?status=PENDING"
             className="flex flex-col items-center text-center gap-1 p-2.5 sm:p-3 rounded-2xl bg-rose-50/50 border border-rose-100 active:scale-95 transition-transform cursor-pointer"
           >
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-rose-600 border border-rose-200 flex items-center justify-center shadow-xs">
@@ -307,7 +310,7 @@ export default function UserDashboard() {
           </Link>
 
           <Link
-            to="/user/orders?status=ACTIVE&period=today"
+            to="/user/orders?status=ACTIVE"
             className="flex flex-col items-center text-center gap-1 p-2.5 sm:p-3 rounded-2xl bg-sky-50/50 border border-sky-100 active:scale-95 transition-transform cursor-pointer"
           >
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-sky-600 border border-sky-200 flex items-center justify-center shadow-xs">
