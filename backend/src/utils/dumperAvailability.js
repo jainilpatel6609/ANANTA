@@ -3,10 +3,16 @@ const Dumper = require('../models/Dumper');
 
 const { WHEEL_TYPES } = Dumper;
 
-// Dealer ids that currently have at least one enabled AND available dumper of this wheel type.
-// Reads live Dumper records so it always reflects current status.
+// Dealer ids that currently have at least one enabled AND available dumper of this wheel type
+// with its empty (tare) weight set -- a dumper registered before that field became mandatory, or
+// otherwise missing it, is never offered to a customer. Reads live Dumper records so it always
+// reflects current status.
 const getDealerIdsWithAvailableDumper = async (wheelType) => {
-  const ids = await Dumper.distinct('dealerId', { wheelType: Number(wheelType), status: 'AVAILABLE' });
+  const ids = await Dumper.distinct('dealerId', {
+    wheelType: Number(wheelType),
+    status: 'AVAILABLE',
+    emptyWeight: { $gt: 0 }
+  });
   return ids.map((id) => id.toString());
 };
 
@@ -14,7 +20,7 @@ const getDealerIdsWithAvailableDumper = async (wheelType) => {
 // is not this dealer's / not that wheel type / no longer available.
 const claimDumperForOrder = async ({ dumperId, dealerId, wheelType, orderId }) => {
   if (!mongoose.isValidObjectId(dumperId)) return null;
-  const filter = { _id: dumperId, dealerId, status: 'AVAILABLE' };
+  const filter = { _id: dumperId, dealerId, status: 'AVAILABLE', emptyWeight: { $gt: 0 } };
   if (wheelType) filter.wheelType = Number(wheelType);
   return Dumper.findOneAndUpdate(filter, { status: 'IN_ORDER', orderId }, { new: true });
 };

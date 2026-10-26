@@ -62,7 +62,7 @@ const getDumpers = async (req, res) => {
 // @route   POST /api/dumpers
 const createDumper = async (req, res) => {
   try {
-    const { wheelType, numberPlate, capacity } = req.body;
+    const { wheelType, numberPlate, capacity, emptyWeight } = req.body;
 
     let dealerId = req.user._id;
     if (req.user.role === 'ADMIN') {
@@ -78,18 +78,20 @@ const createDumper = async (req, res) => {
     if (!plate) return errorResponse(res, 'Number plate is required.', 400);
     const cap = parseCapacity(capacity);
     if (!cap) return errorResponse(res, 'Capacity (Ton) must be a number greater than 0.', 400);
+    const empty = parseCapacity(emptyWeight);
+    if (!empty) return errorResponse(res, 'Empty (tare) weight (Ton) must be a number greater than 0 -- required before this dumper can be registered.', 400);
 
     if (await Dumper.exists({ numberPlate: plate })) {
       return errorResponse(res, `A dumper with number plate ${plate} is already registered.`, 409);
     }
 
-    const dumper = await Dumper.create({ dealerId, wheelType: wheel, numberPlate: plate, capacity: cap });
+    const dumper = await Dumper.create({ dealerId, wheelType: wheel, numberPlate: plate, capacity: cap, emptyWeight: empty });
 
     logDealerActivity({
       dealerId,
       category: 'DUMPER',
       action: 'Added dumper',
-      description: `Registered a ${wheel}-wheel dumper ${plate} (${cap}T).`,
+      description: `Registered a ${wheel}-wheel dumper ${plate} (${cap}T, empty weight ${empty}T).`,
       actor: req.user
     });
 
@@ -106,7 +108,7 @@ const updateDumper = async (req, res) => {
     const { dumper, error } = await findAuthorizedDumper(req);
     if (error) return errorResponse(res, error[0], error[1]);
 
-    const { wheelType, numberPlate, capacity } = req.body;
+    const { wheelType, numberPlate, capacity, emptyWeight } = req.body;
 
     if (wheelType !== undefined) {
       const wheel = parseWheel(wheelType);
@@ -128,6 +130,11 @@ const updateDumper = async (req, res) => {
       const cap = parseCapacity(capacity);
       if (!cap) return errorResponse(res, 'Capacity (Ton) must be a number greater than 0.', 400);
       dumper.capacity = cap;
+    }
+    if (emptyWeight !== undefined) {
+      const empty = parseCapacity(emptyWeight);
+      if (!empty) return errorResponse(res, 'Empty (tare) weight (Ton) must be a number greater than 0.', 400);
+      dumper.emptyWeight = empty;
     }
 
     const changedFields = dumper.modifiedPaths();

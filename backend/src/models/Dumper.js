@@ -31,6 +31,14 @@ const dumperSchema = new mongoose.Schema(
       required: [true, 'Dumper weight / capacity (Ton) is required'],
       min: [0.1, 'Capacity must be greater than 0']
     },
+    // Tare/empty weight (Ton) of the dumper itself -- mandatory so a dealer can never register a
+    // dumper without it, and never surfaced to customers until it's set (see
+    // utils/dumperAvailability.js's getDealerIdsWithAvailableDumper).
+    emptyWeight: {
+      type: Number, // tons
+      required: [true, 'Dumper empty (tare) weight is required'],
+      min: [0.1, 'Empty weight must be greater than 0']
+    },
     // Single source of truth for availability. DISABLED = dealer/admin switched it off.
     status: {
       type: String,

@@ -17,7 +17,7 @@ const STATUS_STYLES = {
 
 const STATUS_LABELS = { AVAILABLE: 'Available', IN_ORDER: 'In Order', DISABLED: 'Disabled' };
 
-const emptyDumperForm = { wheelType: 10, numberPlate: '', capacity: '' };
+const emptyDumperForm = { wheelType: 10, numberPlate: '', capacity: '', emptyWeight: '' };
 const emptyTractorForm = { tractorType: 'Single Patiya', numberPlate: '' };
 
 export default function VehicleManagement() {
@@ -75,7 +75,7 @@ export default function VehicleManagement() {
 
   const openEditDumper = (d) => {
     setEditingDumper(d);
-    setDumperForm({ wheelType: d.wheelType, numberPlate: d.numberPlate, capacity: d.capacity });
+    setDumperForm({ wheelType: d.wheelType, numberPlate: d.numberPlate, capacity: d.capacity, emptyWeight: d.emptyWeight || '' });
     setDumperModalOpen(true);
   };
 
@@ -85,12 +85,17 @@ export default function VehicleManagement() {
       toast.error('Number plate and a capacity greater than 0 Ton are required.');
       return;
     }
+    if (!(Number(dumperForm.emptyWeight) > 0)) {
+      toast.error('Empty (tare) weight greater than 0 Ton is required before this dumper can be registered.');
+      return;
+    }
     setSavingDumper(true);
     try {
       const payload = {
         wheelType: Number(dumperForm.wheelType),
         numberPlate: dumperForm.numberPlate,
-        capacity: Number(dumperForm.capacity)
+        capacity: Number(dumperForm.capacity),
+        emptyWeight: Number(dumperForm.emptyWeight)
       };
       if (editingDumper) {
         await dumperService.updateDumper(editingDumper._id, payload);
@@ -293,6 +298,14 @@ export default function VehicleManagement() {
                       <div className="text-xs text-slate-500">
                         {d.wheelType} Wheel • <span className="text-slate-700 font-mono">{d.capacity} Ton</span>
                       </div>
+                      <div className="text-xs text-slate-500">
+                        Empty Weight:{' '}
+                        {d.emptyWeight ? (
+                          <span className="text-slate-700 font-mono">{d.emptyWeight} Ton</span>
+                        ) : (
+                          <span className="text-rose-600 font-bold">Not set — hidden from customers</span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 pt-1">
                         <button
                           type="button"
@@ -418,6 +431,21 @@ export default function VehicleManagement() {
               onChange={(e) => setDumperForm({ ...dumperForm, capacity: e.target.value })}
               className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500 font-mono"
             />
+          </div>
+          <div>
+            <label className="text-[11px] font-bold text-slate-400 block mb-1">Empty / Tare Weight (Ton) *</label>
+            <input
+              type="number"
+              min="0.1"
+              step="0.1"
+              placeholder="e.g. 9.5"
+              value={dumperForm.emptyWeight}
+              onChange={(e) => setDumperForm({ ...dumperForm, emptyWeight: e.target.value })}
+              className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500 font-mono"
+            />
+            <p className="text-[10px] text-slate-500 mt-1">
+              The dumper's own weight when empty -- mandatory before customers can select this vehicle.
+            </p>
           </div>
           <button
             type="submit"
