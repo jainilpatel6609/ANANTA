@@ -28,6 +28,7 @@ import Reports from '../pages/admin/Reports';
 import AdminProfile from '../pages/admin/AdminProfile';
 import HelpCenter from '../pages/admin/HelpCenter';
 import DealerCancelledOrders from '../pages/admin/DealerCancelledOrders';
+import NoDealerAvailableReports from '../pages/admin/NoDealerAvailableReports';
 
 export default function AppRoutes() {
   return (
@@ -57,6 +58,7 @@ export default function AppRoutes() {
           <Route path="/reports" element={<Reports />} />
           <Route path="/help-center" element={<HelpCenter />} />
           <Route path="/dealer-cancelled-orders" element={<DealerCancelledOrders />} />
+          <Route path="/no-dealer-available-reports" element={<NoDealerAvailableReports />} />
           <Route path="/profile" element={<AdminProfile />} />
           <Route path="/settings" element={<AdminProfile />} />
         </Route>

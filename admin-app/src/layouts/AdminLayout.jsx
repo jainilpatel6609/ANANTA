@@ -21,7 +21,8 @@ import {
   Route as RouteIcon,
   LifeBuoy,
   Ban,
-  Percent
+  Percent,
+  MapPin
 } from 'lucide-react';
 
 export default function AdminLayout() {
@@ -44,6 +45,7 @@ export default function AdminLayout() {
     { name: 'Delivery Radar & OTP', path: '/deliveries', icon: ShieldAlert },
     { name: 'Reports & Analytics', path: '/reports', icon: FileBarChart },
     { name: 'Dealer Cancelled Orders', path: '/dealer-cancelled-orders', icon: Ban },
+    { name: 'No-Dealer-Available Reports', path: '/no-dealer-available-reports', icon: MapPin },
     { name: 'Help Center', path: '/help-center', icon: LifeBuoy },
     { name: 'Profile & Security', path: '/profile', icon: ShieldCheck }
   ];
