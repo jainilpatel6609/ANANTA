@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { orderService } from '../../services';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
-import { formatINR, formatDate } from '../../utils/formatters';
-import { Ban, Wallet, CheckCircle2, Clock, Building2, Loader2, ChevronDown, Filter } from 'lucide-react';
+import { formatINR, formatDate, formatShortDate, formatOrderQuantity, formatOrderTransport, isTractorOrder } from '../../utils/formatters';
+import { Ban, Wallet, CheckCircle2, Clock, Building2, Loader2, ChevronDown, Filter, Package, Truck, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const resolutionBadge = (order) => {
@@ -161,7 +161,7 @@ export default function DealerCancelledOrders() {
 
                 {isExpanded && (
                   <div className="px-5 pb-5 space-y-3.5 border-t border-slate-800/80 pt-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
                       <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800/80 space-y-1">
                         <span className="text-slate-500 block uppercase font-bold text-[10px] tracking-wider">Customer</span>
                         <div className="text-white font-bold">{order.userId?.name || 'N/A'}</div>
@@ -180,6 +180,37 @@ export default function DealerCancelledOrders() {
                         <span className="text-slate-500 block uppercase font-bold text-[10px] tracking-wider">Reason</span>
                         <div className="text-rose-300 font-medium">
                           "{order.dealerRejectionReason || 'No reason provided'}"
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800/80 space-y-1">
+                        <span className="text-slate-500 flex items-center gap-1.5 uppercase font-bold text-[10px] tracking-wider">
+                          <Package className="w-3 h-3" /> Material
+                        </span>
+                        <div className="text-white font-bold">{order.productNameSnapshot || order.category || 'N/A'}</div>
+                        <div className="text-slate-400">
+                          {order.sandLocation ? `Origin: ${order.sandLocation}` : ''}
+                          {order.aggregateType ? `Grade: ${order.aggregateType}` : ''}
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800/80 space-y-1">
+                        <span className="text-slate-500 flex items-center gap-1.5 uppercase font-bold text-[10px] tracking-wider">
+                          <Truck className="w-3 h-3" /> {isTractorOrder(order) ? 'Tractor' : 'Wheels'}
+                        </span>
+                        <div className="text-white font-bold">
+                          {isTractorOrder(order)
+                            ? formatOrderQuantity(order)
+                            : order.wheelCountSnapshot
+                            ? `${order.wheelCountSnapshot} Wheel Dumper`
+                            : order.vehicleType || 'N/A'}
+                        </div>
+                        <div className="text-slate-400">{formatOrderTransport(order)}</div>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800/80 space-y-1">
+                        <span className="text-slate-500 flex items-center gap-1.5 uppercase font-bold text-[10px] tracking-wider">
+                          <Calendar className="w-3 h-3" /> Delivery Date
+                        </span>
+                        <div className="text-white font-bold">
+                          {order.deliveryDate ? formatShortDate(order.deliveryDate) : 'Not scheduled'}
                         </div>
                       </div>
                     </div>
