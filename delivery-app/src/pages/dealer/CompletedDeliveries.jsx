@@ -3,7 +3,7 @@ import { orderService } from '../../services';
 import StatusBadge from '../../components/StatusBadge';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
-import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport } from '../../utils/formatters';
+import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport, isTractorOrder } from '../../utils/formatters';
 import { ShieldCheck, Calendar, Search, Truck, ExternalLink, Package, ChevronDown } from 'lucide-react';
 
 export default function CompletedDeliveries() {
@@ -109,6 +109,18 @@ export default function CompletedDeliveries() {
                   <span className="text-slate-500 block text-[10px] font-bold uppercase tracking-wider">Material & Tonnage</span>
                   <span className="font-bold text-slate-900 text-sm block">{order.productNameSnapshot}</span>
                   <span className="text-amber-600 font-medium block">{formatOrderQuantity(order)} ({formatOrderTransport(order)})</span>
+                  {(order.sandLocation || order.aggregateType) && (
+                    <span className="text-slate-500 block">
+                      {order.sandLocation ? `Origin: ${order.sandLocation}` : ''}
+                      {order.aggregateType ? ` • Grade: ${order.aggregateType}` : ''}
+                      {order.category === 'Sand' && order.vehicleOptionSnapshot ? ` • ${order.vehicleOptionSnapshot}` : ''}
+                    </span>
+                  )}
+                  {order.pricePerTonSnapshot ? (
+                    <span className="text-slate-700 font-bold block">
+                      Rate/{isTractorOrder(order) ? 'Tractor' : 'Ton'}: <span className="font-mono text-amber-700">{formatINR(order.pricePerTonSnapshot)}</span>
+                    </span>
+                  ) : null}
                 </div>
 
                 <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">

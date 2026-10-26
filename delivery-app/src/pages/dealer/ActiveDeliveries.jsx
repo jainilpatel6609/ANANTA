@@ -4,7 +4,7 @@ import StatusBadge from '../../components/StatusBadge';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
 import Modal from '../../components/Modal';
-import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport } from '../../utils/formatters';
+import { formatINR, formatDate, formatOrderQuantity, formatOrderTransport, isTractorOrder } from '../../utils/formatters';
 import {
   Truck,
   ShieldCheck,
@@ -151,6 +151,18 @@ export default function ActiveDeliveries() {
                   <div className="text-sm font-black text-slate-900">{order.productNameSnapshot}</div>
                   <div className="text-amber-600 font-mono font-bold text-base">{formatOrderQuantity(order)}</div>
                   <div className="text-[11px] text-slate-500">{formatOrderTransport(order)}</div>
+                  {(order.sandLocation || order.aggregateType) && (
+                    <div className="text-[11px] text-slate-500">
+                      {order.sandLocation ? `Origin: ${order.sandLocation}` : ''}
+                      {order.aggregateType ? ` • Grade: ${order.aggregateType}` : ''}
+                      {order.category === 'Sand' && order.vehicleOptionSnapshot ? ` • ${order.vehicleOptionSnapshot}` : ''}
+                    </div>
+                  )}
+                  {order.pricePerTonSnapshot ? (
+                    <div className="text-[11px] text-slate-700 font-bold">
+                      Rate/{isTractorOrder(order) ? 'Tractor' : 'Ton'}: <span className="font-mono text-amber-700">{formatINR(order.pricePerTonSnapshot)}</span>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
