@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { orderService } from '../../services';
+import { orderService, dealerService } from '../../services';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
 import { formatINR, formatDate, formatShortDate, formatOrderQuantity, formatOrderTransport, isTractorOrder } from '../../utils/formatters';
-import { Ban, Wallet, CheckCircle2, Clock, Building2, Loader2, ChevronDown, Filter, Package, Truck, Calendar } from 'lucide-react';
+import { Ban, Wallet, CheckCircle2, Clock, Building2, Loader2, ChevronDown, Filter, Package, Truck, Calendar, UserCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const resolutionBadge = (order) => {
@@ -34,11 +34,17 @@ const cancellationTypeBadge = (order) => {
 
 export default function DealerCancelledOrders() {
   const [orders, setOrders] = useState([]);
+  const [dealers, setDealers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
 
   const [typeFilter, setTypeFilter] = useState('ALL');
+
+  // Inline "Assign New Dealer" form state -- which order's form is open, which dealer is picked.
+  const [assigningOrderId, setAssigningOrderId] = useState(null);
+  const [selectedDealerId, setSelectedDealerId] = useState('');
+  const [submittingAssign, setSubmittingAssign] = useState(false);
 
   const loadOrders = async () => {
     setLoading(true);
@@ -61,6 +67,13 @@ export default function DealerCancelledOrders() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [typeFilter]);
 
+  useEffect(() => {
+    dealerService
+      .getAllDealers()
+      .then((res) => setDealers((res.data?.dealers || []).filter((d) => d.isActive && !d.isDeleted)))
+      .catch(() => {});
+  }, []);
+
   const handleMarkProcessed = async (orderId) => {
     setProcessingId(orderId);
     try {
@@ -73,6 +86,31 @@ export default function DealerCancelledOrders() {
       toast.error(err.message || 'Failed to update refund status.');
     } finally {
       setProcessingId(null);
+    }
+  };
+
+  const openAssignForm = (orderId) => {
+    setAssigningOrderId(orderId);
+    setSelectedDealerId('');
+  };
+
+  const handleAssignDealer = async (order) => {
+    if (!selectedDealerId) {
+      toast.error('Please select a dealer to assign.');
+      return;
+    }
+    setSubmittingAssign(true);
+    try {
+      const res = await orderService.adminReassign(order._id, selectedDealerId);
+      if (res.data?.order) {
+        setOrders((prev) => prev.map((o) => (o._id === order._id ? res.data.order : o)));
+      }
+      toast.success(`Order #${order.orderNumber} assigned to the new dealer with a fresh 15-minute SLA timer.`);
+      setAssigningOrderId(null);
+    } catch (err) {
+      toast.error(err.message || 'Failed to assign dealer.');
+    } finally {
+      setSubmittingAssign(false);
     }
   };
 
@@ -255,9 +293,55 @@ export default function DealerCancelledOrders() {
                     )}
 
                     {order.awaitingCustomerDealerChoice && (
-                      <div className="flex items-center gap-2 text-xs text-rose-300 bg-rose-500/5 border border-rose-500/20 rounded-xl p-3">
-                        <Clock className="w-4 h-4 shrink-0" />
-                        <span>Waiting for the customer to pick a new dealer or request a refund.</span>
+                      <div className="space-y-2.5">
+                        <div className="flex items-center gap-2 text-xs text-rose-300 bg-rose-500/5 border border-rose-500/20 rounded-xl p-3">
+                          <Clock className="w-4 h-4 shrink-0" />
+                          <span>Waiting for the customer to pick a new dealer or request a refund.</span>
+                        </div>
+
+                        {assigningOrderId === order._id ? (
+                          <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                            <select
+                              value={selectedDealerId}
+                              onChange={(e) => setSelectedDealerId(e.target.value)}
+                              className="app-select flex-1 min-w-[200px] px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-500"
+                            >
+                              <option value="">-- Choose active dealer depot --</option>
+                              {dealers
+                                .filter((d) => !(order.declinedBy || []).includes(d._id))
+                                .map((d) => (
+                                  <option key={d._id} value={d._id}>
+                                    {d.companyName || d.name} — PIN: {d.pincode} ({d.city || d.state})
+                                  </option>
+                                ))}
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => handleAssignDealer(order)}
+                              disabled={submittingAssign || !selectedDealerId}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs disabled:opacity-50"
+                            >
+                              {submittingAssign ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserCheck className="w-3.5 h-3.5" />}
+                              <span>Confirm</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setAssigningOrderId(null)}
+                              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => openAssignForm(order._id)}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold text-xs transition-all"
+                          >
+                            <UserCheck className="w-3.5 h-3.5" />
+                            <span>Assign New Dealer</span>
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
