@@ -75,24 +75,6 @@ function InvoiceSection({
         </span>
       </div>
 
-      {/* Seller Header */}
-      <div className="space-y-1">
-        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-indigo-950 font-display">
-          {sellerName}
-        </h1>
-        {sellerAddress && <p className="text-xs text-slate-700 leading-relaxed font-medium">{sellerAddress}</p>}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-800 pt-0.5 font-medium">
-          {sellerMobile && <span>Mobile: <strong className="font-mono">{sellerMobile}</strong></span>}
-          <span>GSTIN: <strong className="font-mono">{sellerGstin || 'Unregistered Dealer'}</strong></span>
-          {sellerPan && <span>PAN Number: <strong className="font-mono">{sellerPan}</strong></span>}
-        </div>
-        {sellerEmail && (
-          <p className="text-xs text-slate-700 font-medium">
-            Email: <span className="font-mono">{sellerEmail}</span>
-          </p>
-        )}
-      </div>
-
       {/* Invoice Metadata Ribbon */}
       <div className="bg-slate-100 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-y-1 text-xs font-semibold text-slate-800 border border-slate-200">
         {orderNo && (
@@ -111,8 +93,20 @@ function InvoiceSection({
         </div>
       </div>
 
-      {/* 2-Column Party Details (BILL TO & SHIP TO) */}
-      <div className="grid grid-cols-2 gap-6 pt-1 text-xs">
+      {/* 3-Column Party Details: FROM (seller) / BILL TO / SHIP TO, side by side */}
+      <div className="grid grid-cols-3 gap-6 pt-1 text-xs">
+        <div className="space-y-1.5">
+          <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">FROM</h4>
+          <div className="font-black text-slate-950 text-sm">{sellerName}</div>
+          {sellerAddress && <p className="text-slate-700 leading-relaxed">{sellerAddress}</p>}
+          <div className="pt-1 space-y-0.5 text-slate-800">
+            {sellerMobile && <div>Mobile: <span className="font-mono font-bold">{sellerMobile}</span></div>}
+            <div>GSTIN: <span className="font-mono">{sellerGstin || 'Unregistered Dealer'}</span></div>
+            {sellerPan && <div>PAN: <span className="font-mono font-bold">{sellerPan}</span></div>}
+            {sellerEmail && <div className="break-all">Email: <span className="font-mono">{sellerEmail}</span></div>}
+          </div>
+        </div>
+
         <div className="space-y-1.5">
           <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">BILL TO</h4>
           <div className="font-black text-slate-950 text-sm">{buyerName}</div>
