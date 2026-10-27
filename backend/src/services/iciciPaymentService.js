@@ -67,7 +67,12 @@ const postJson = async (path, fields) => {
   try {
     return JSON.parse(text);
   } catch (e) {
-    throw new Error(`ICICI PG returned a non-JSON response (HTTP ${res.status}): ${text.slice(0, 300)}`);
+    // A non-JSON body here (an nginx/gateway error page, not an ICICI API response) means ICICI's
+    // own infrastructure is having a transient issue, not something wrong on our side -- the raw
+    // HTML dump is useful for debugging but must never reach the customer as-is. Logged here so
+    // it's still visible in server logs; the thrown message is what the customer actually sees.
+    console.error(`[ICICI PG] Non-JSON response (HTTP ${res.status}) from ${path}:`, text.slice(0, 500));
+    throw new Error('The payment gateway is temporarily unavailable. Please try again in a few minutes.');
   }
 };
 
