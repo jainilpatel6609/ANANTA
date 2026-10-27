@@ -5,7 +5,6 @@ import { numberToWordsIndian } from '../../utils/numberToWords';
 import { savePdfCrossPlatform } from '../../utils/downloadPdf';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import QRCode from 'qrcode';
 import {
   Download,
   Printer,
@@ -60,7 +59,6 @@ function InvoiceSection({
   receivedAmount,
   amountInWords,
   showPaymentInfo,
-  qrCodeUrl,
   showSignature
 }) {
   const halfTaxPercent = taxPercent / 2;
@@ -200,28 +198,6 @@ function InvoiceSection({
                   <span className="col-span-2 text-slate-900">ICICI Bank, JAGATPUR</span>
                 </div>
               </div>
-
-              <div className="flex items-start gap-4 pt-1">
-                <div className="space-y-1">
-                  <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">PAYMENT QR CODE</h4>
-                  <p className="text-[10px] text-slate-500">UPI ID:</p>
-                  <p className="text-xs font-mono font-bold text-indigo-900">anantatraders.ibz2@icici</p>
-                  <div className="flex items-center gap-1.5 pt-1 text-[9px] font-bold text-slate-600">
-                    <span className="text-indigo-600">PhonePe</span>
-                    <span>•</span>
-                    <span className="text-blue-600">GPay</span>
-                    <span>•</span>
-                    <span className="text-cyan-600">Paytm</span>
-                    <span>•</span>
-                    <span className="text-orange-600">UPI</span>
-                  </div>
-                </div>
-                {qrCodeUrl && (
-                  <div className="w-20 h-20 p-1 bg-white border border-slate-300 rounded-xl flex items-center justify-center shrink-0 shadow-sm">
-                    <img src={qrCodeUrl} alt="UPI Payment QR Code" className="w-full h-full object-contain" />
-                  </div>
-                )}
-              </div>
             </>
           )}
 
@@ -323,7 +299,6 @@ export default function OrderInvoice() {
   const [loading, setLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [justPaid, setJustPaid] = useState(false);
-  const [qrCodeUrl, setQrCodeUrl] = useState('');
   // Ananta's own "Service Charge" invoice (18% GST, Ananta's own GSTIN) -- NOT a Zoho invoice,
   // rendered by the app itself; created lazily the moment this page is viewed for a PAID order,
   // never at payment-confirmation time. null until it resolves; the invoice below falls back to a
@@ -362,18 +337,6 @@ export default function OrderInvoice() {
               console.warn('Service charge invoice notice:', scErr);
               toast.error('Could not generate the service charge invoice right now. The material invoice is still shown below.');
             });
-        }
-
-        // Generate high-resolution local QR code
-        if (orderData) {
-          const invNo = orderData.invoiceNumber || ('AN/SL/26-27/' + (orderData.orderNumber ? orderData.orderNumber.replace(/^[^\d]*/, '') : '234'));
-          const upiUrl = 'upi://pay?pa=anantatraders.ibz2@icici&pn=ANANTA%20TRADERS&am=' + (orderData.totalAmount || 0) + '&cu=INR&tn=Invoice%20' + invNo;
-          try {
-            const qrUrl = await QRCode.toDataURL(upiUrl, { width: 160, margin: 1, color: { dark: '#000000', light: '#ffffff' } });
-            setQrCodeUrl(qrUrl);
-          } catch (qrErr) {
-            console.warn('QR Code generation notice:', qrErr);
-          }
         }
       } catch (err) {
         toast.error('Failed to load invoice details.');
@@ -800,7 +763,6 @@ export default function OrderInvoice() {
               receivedAmount={isPaid ? materialAmount : 0}
               amountInWords={materialAmountInWords}
               showPaymentInfo={false}
-              qrCodeUrl={qrCodeUrl}
               showSignature={false}
             />
           </div>
@@ -853,7 +815,6 @@ export default function OrderInvoice() {
               receivedAmount={isPaid ? serviceChargeAmount : 0}
               amountInWords={serviceChargeAmountInWords}
               showPaymentInfo
-              qrCodeUrl={qrCodeUrl}
               showSignature
             />
           </div>
