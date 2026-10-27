@@ -224,6 +224,7 @@ export default function BookingVoucher() {
 
           <div className="bg-slate-100 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-y-1 text-xs font-semibold text-slate-800 border border-slate-200">
             <div>Order No.: <strong className="font-mono text-slate-950">#{order.orderNumber}</strong></div>
+            <div>Product: <strong className="text-slate-950">{order.productNameSnapshot || 'Construction Material'}</strong></div>
             <div>Date: <strong className="font-mono text-slate-950">{formattedBookingDate}</strong></div>
           </div>
 

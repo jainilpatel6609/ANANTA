@@ -33,6 +33,9 @@ function InvoiceSection({
   invoiceNo,
   invoiceDate,
   dueDate,
+  orderNo,
+  deductionLabel,
+  deductionAmount,
   buyerName,
   buyerAddressLine1,
   buyerArea,
@@ -93,7 +96,12 @@ function InvoiceSection({
       </div>
 
       {/* Invoice Metadata Ribbon */}
-      <div className="bg-slate-100 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs font-semibold text-slate-800 border border-slate-200">
+      <div className="bg-slate-100 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-y-1 text-xs font-semibold text-slate-800 border border-slate-200">
+        {orderNo && (
+          <div>
+            Order No.: <strong className="font-mono text-slate-950 font-bold">#{orderNo}</strong>
+          </div>
+        )}
         <div>
           Invoice No.: <strong className="font-mono text-slate-950 font-bold">{invoiceNo}</strong>
         </div>
@@ -246,8 +254,24 @@ function InvoiceSection({
                 ₹ {sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
+            {deductionAmount > 0 && (
+              <>
+                <div className="flex justify-between items-center text-slate-700 border-t border-slate-200 pt-1.5">
+                  <span>Total Amount (Before Booking Adjustment)</span>
+                  <span className="font-mono font-semibold">
+                    ₹ {(amount + deductionAmount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-rose-700">
+                  <span>Less: {deductionLabel || 'Booking Amount Paid'}</span>
+                  <span className="font-mono font-semibold">
+                    &minus; ₹ {deductionAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </>
+            )}
             <div className="flex justify-between items-center text-slate-950 font-bold border-t border-slate-200 pt-1.5 text-sm">
-              <span>Total Amount</span>
+              <span>{deductionAmount > 0 ? 'Final Amount Payable' : 'Total Amount'}</span>
               <span className="font-mono font-black text-indigo-950">
                 ₹ {amount.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
               </span>
@@ -525,6 +549,11 @@ export default function OrderInvoice() {
   const serviceChargeAmount = serviceChargeInfo ? serviceChargeInfo.serviceChargeAmount : 0;
   const serviceChargeInvoiceNo = serviceChargeInfo?.zohoInvoiceNumber || invoiceNo + '-SC';
 
+  // Dumper's flat booking amount, already netted out of materialAmount above (see
+  // backend's enterTotalWeight/invoiceSplit) -- shown here explicitly so the invoice visibly
+  // shows Total Amount minus the Booking Amount already paid, not just a silently-reduced total.
+  const bookingAmountDeducted = !pendingFinalSettlement ? (order.bookingAmountSnapshot || 0) : 0;
+
   // Material Invoice: 5% GST (the existing rate for sand/aggregate goods).
   const materialTaxable = Math.round((materialAmount / 1.05) * 100) / 100;
   const materialTax = Math.round((materialAmount - materialTaxable) * 100) / 100;
@@ -744,6 +773,9 @@ export default function OrderInvoice() {
               invoiceNo={invoiceNo}
               invoiceDate={formattedInvoiceDate}
               dueDate={formattedDueDate}
+              orderNo={order.orderNumber}
+              deductionLabel="Booking Amount Paid"
+              deductionAmount={bookingAmountDeducted}
               buyerName={customerName}
               buyerAddressLine1={customerAddress1}
               buyerArea={customerArea}
@@ -796,6 +828,7 @@ export default function OrderInvoice() {
               invoiceNo={serviceChargeInvoiceNo}
               invoiceDate={formattedInvoiceDate}
               dueDate={formattedDueDate}
+              orderNo={order.orderNumber}
               buyerName={customerName}
               buyerAddressLine1={customerAddress1}
               buyerArea={customerArea}
