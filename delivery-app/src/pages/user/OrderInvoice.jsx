@@ -75,6 +75,12 @@ function InvoiceSection({
         </span>
       </div>
 
+      {/* ANANTA TRADERS platform branding -- always this, on every invoice (Material or Service
+          Charge), regardless of who the actual "FROM" seller party below is. */}
+      <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-indigo-950 font-display">
+        ANANTA TRADERS
+      </h1>
+
       {/* Invoice Metadata Ribbon */}
       <div className="bg-slate-100 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-y-1 text-xs font-semibold text-slate-800 border border-slate-200">
         {orderNo && (
@@ -568,10 +574,9 @@ export default function OrderInvoice() {
   const siteAddress = order.shippingAddress || (customerAddress1 + ', ' + siteAreaPart + customerCity + ', ' + customerState + ' - ' + customerPincode);
   const siteShort = customerArea || customerCity || 'HIGH STREET';
 
-  // Selected dealer's own address/mobile/GSTIN -- the Material Invoice's "FROM" party details.
-  // The header NAME is always "ANANTA TRADERS" (not the dealer's own company name), per request.
-  // Real data only; a dealer who hasn't set their GST number yet shows a blank GSTIN rather than
-  // a fake one.
+  // Selected dealer's own details -- the Material Invoice's "FROM" party. Real data only; a
+  // dealer who hasn't set their GST number yet shows a blank GSTIN rather than a fake one.
+  const dealerName = order.dealerId?.companyName || order.dealerId?.name || 'Selected Dealer';
   const dealerAddress = order.dealerId?.officeAddress || '';
   const dealerCityStatePin = [order.dealerId?.city, order.dealerId?.state, order.dealerId?.pincode].filter(Boolean).join(', ');
   const dealerMobile = order.dealerId?.mobile || order.dealerId?.whatsappNumber || '';
@@ -728,7 +733,7 @@ export default function OrderInvoice() {
             </div>
             <InvoiceSection
               badgeLabel="ORIGINAL FOR RECIPIENT"
-              sellerName="ANANTA TRADERS"
+              sellerName={dealerName}
               sellerAddress={[dealerAddress, dealerCityStatePin].filter(Boolean).join(', ')}
               sellerMobile={dealerMobile}
               sellerGstin={dealerGstin}
