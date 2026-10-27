@@ -22,6 +22,14 @@ const vehicleSettingSchema = new mongoose.Schema(
       type: Number,
       default: 200,
       min: 0
+    },
+    // Flat upfront "booking" amount charged when a Dumper order is placed, regardless of the
+    // real per-ton rate -- the actual weight-based total is settled later (see
+    // orderController.enterTotalWeight), net of this amount.
+    dumperBookingAmount: {
+      type: Number,
+      default: 1000,
+      min: 0
     }
   },
   {

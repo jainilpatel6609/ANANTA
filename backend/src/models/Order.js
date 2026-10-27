@@ -116,6 +116,13 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
+    // Dumper only: the flat upfront "booking" amount actually charged at order creation
+    // (admin's dumperBookingAmount AT THAT MOMENT, snapshotted so a later admin change never
+    // retroactively changes what's deducted from this order's final payment). 0 for Tractor.
+    bookingAmountSnapshot: {
+      type: Number,
+      default: 0
+    },
     // Set once the Service Charge portion has actually been issued as a real Zoho Books invoice
     // (lazily, the first time the customer views/downloads this order's invoice) -- never
     // re-created on a later view, so a duplicate invoice is never issued in Zoho.

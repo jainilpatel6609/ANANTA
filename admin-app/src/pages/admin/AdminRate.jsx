@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { vehicleConfigService } from '../../services';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { formatINR } from '../../utils/formatters';
-import { Percent, Truck, Save, Loader2, Info } from 'lucide-react';
+import { Percent, Truck, Save, Loader2, Info, Wallet } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function AdminRate() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState({ dumperServiceCharge: 25, tractorServiceCharge: 200 });
-  const [form, setForm] = useState({ dumperServiceCharge: '25', tractorServiceCharge: '200' });
+  const [settings, setSettings] = useState({ dumperServiceCharge: 25, tractorServiceCharge: 200, dumperBookingAmount: 1000 });
+  const [form, setForm] = useState({ dumperServiceCharge: '25', tractorServiceCharge: '200', dumperBookingAmount: '1000' });
 
   const loadSettings = async () => {
     try {
@@ -19,7 +19,8 @@ export default function AdminRate() {
         setSettings(s);
         setForm({
           dumperServiceCharge: String(s.dumperServiceCharge ?? 25),
-          tractorServiceCharge: String(s.tractorServiceCharge ?? 200)
+          tractorServiceCharge: String(s.tractorServiceCharge ?? 200),
+          dumperBookingAmount: String(s.dumperBookingAmount ?? 1000)
         });
       }
     } catch (err) {
@@ -37,6 +38,7 @@ export default function AdminRate() {
     e.preventDefault();
     const dumperCharge = Number(form.dumperServiceCharge);
     const tractorCharge = Number(form.tractorServiceCharge);
+    const bookingAmount = Number(form.dumperBookingAmount);
 
     if (Number.isNaN(dumperCharge) || dumperCharge < 0) {
       toast.error('Dumper service charge must be a valid non-negative number.');
@@ -46,12 +48,17 @@ export default function AdminRate() {
       toast.error('Tractor service charge must be a valid non-negative number.');
       return;
     }
+    if (Number.isNaN(bookingAmount) || bookingAmount < 0) {
+      toast.error('Dumper booking amount must be a valid non-negative number.');
+      return;
+    }
 
     setSaving(true);
     try {
       const res = await vehicleConfigService.updateSettings({
         dumperServiceCharge: dumperCharge,
-        tractorServiceCharge: tractorCharge
+        tractorServiceCharge: tractorCharge,
+        dumperBookingAmount: bookingAmount
       });
       if (res.data?.settings) setSettings(res.data.settings);
       toast.success('Service charges updated successfully!');
@@ -132,6 +139,30 @@ export default function AdminRate() {
             </div>
             <p className="text-[11px] text-slate-500 mt-1.5">
               Added to the dealer's own Rate/Tractor, per tractor trip in the order.
+            </p>
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2 mb-2">
+              <Wallet className="w-4 h-4" />
+              Dumper Booking Amount (₹, flat)
+            </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-500 font-bold text-sm">₹</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.dumperBookingAmount}
+                onChange={(e) => setForm({ ...form, dumperBookingAmount: e.target.value })}
+                className="w-full pl-9 pr-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-sm font-mono font-bold text-white focus:outline-none focus:border-indigo-500"
+                required
+              />
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1.5">
+              Flat amount charged when a customer books a Dumper order, regardless of the real
+              Rate Per Ton. Deducted from the final weight-based payment once the dealer weighs
+              the material.
             </p>
           </div>
         </div>

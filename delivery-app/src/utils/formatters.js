@@ -41,7 +41,10 @@ export const formatOrderQuantity = (order) => {
 export const getOrderGrandTotal = (order) => {
   if (!order) return 0;
   if (!isTractorOrder(order) && order.totalWeight) {
-    return order.finalPaymentAmount || 0;
+    // finalPaymentAmount is already net of the upfront booking amount (see
+    // orderController.enterTotalWeight) -- add it back so this stays the TRUE bottom-line total,
+    // not just what's still owed.
+    return (order.finalPaymentAmount || 0) + (order.bookingAmountSnapshot || 0);
   }
   return order.totalAmount || 0;
 };

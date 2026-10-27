@@ -194,7 +194,7 @@ const toggleVehicleConfig = async (req, res) => {
 // @access  Private (Admin)
 const updateVehicleSettings = async (req, res) => {
   try {
-    const { dumperEnabled, tractorEnabled, dumperServiceCharge, tractorServiceCharge } = req.body;
+    const { dumperEnabled, tractorEnabled, dumperServiceCharge, tractorServiceCharge, dumperBookingAmount } = req.body;
     const settings = await VehicleSetting.getSettings();
 
     if (dumperEnabled !== undefined) settings.dumperEnabled = Boolean(dumperEnabled);
@@ -213,6 +213,13 @@ const updateVehicleSettings = async (req, res) => {
         return errorResponse(res, 'Tractor service charge must be a valid non-negative number.', 400);
       }
       settings.tractorServiceCharge = charge;
+    }
+    if (dumperBookingAmount !== undefined) {
+      const amount = Number(dumperBookingAmount);
+      if (Number.isNaN(amount) || amount < 0) {
+        return errorResponse(res, 'Dumper booking amount must be a valid non-negative number.', 400);
+      }
+      settings.dumperBookingAmount = amount;
     }
 
     await settings.save();

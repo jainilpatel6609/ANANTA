@@ -182,7 +182,7 @@ export default function ActiveDeliveries() {
                   <div className="text-[11px] text-slate-500">
                     {order.finalPaymentStatus === 'PAID' ? 'Order Total (Final)' : 'Order Total'}:{' '}
                     <strong className="text-slate-900 font-mono">
-                      {formatINR(order.finalPaymentStatus === 'PAID' ? order.finalPaymentAmount : order.totalAmount)}
+                      {formatINR(order.finalPaymentStatus === 'PAID' ? (order.finalPaymentAmount || 0) + (order.bookingAmountSnapshot || 0) : order.totalAmount)}
                     </strong>
                   </div>
                 </div>

@@ -139,7 +139,7 @@ export default function CompletedDeliveries() {
                     {order.finalPaymentStatus === 'PAID' ? 'Order Value (Final)' : 'Order Value'}
                   </span>
                   <span className="font-black text-amber-600 font-mono text-lg block">
-                    {formatINR(order.finalPaymentStatus === 'PAID' ? order.finalPaymentAmount : order.totalAmount)}
+                    {formatINR(order.finalPaymentStatus === 'PAID' ? (order.finalPaymentAmount || 0) + (order.bookingAmountSnapshot || 0) : order.totalAmount)}
                   </span>
                 </div>
               </div>

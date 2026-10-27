@@ -26,6 +26,7 @@ import CreateOrder from '../pages/user/CreateOrder';
 import MyOrders from '../pages/user/MyOrders';
 import OrderDetails from '../pages/user/OrderDetails';
 import OrderInvoice from '../pages/user/OrderInvoice';
+import BookingVoucher from '../pages/user/BookingVoucher';
 import UserProfile from '../pages/user/UserProfile';
 import UserNotifications from '../pages/user/UserNotifications';
 
@@ -74,6 +75,7 @@ export default function AppRoutes() {
           <Route path="/user/orders" element={<MyOrders />} />
           <Route path="/user/orders/:id" element={<OrderDetails />} />
           <Route path="/user/orders/:id/invoice" element={<OrderInvoice />} />
+          <Route path="/user/orders/:id/booking-voucher" element={<BookingVoucher />} />
           <Route path="/user/profile" element={<UserProfile />} />
           <Route path="/user/notifications" element={<UserNotifications />} />
         </Route>

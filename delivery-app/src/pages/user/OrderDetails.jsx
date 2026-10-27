@@ -607,12 +607,20 @@ export default function OrderDetails() {
                 <span className="text-amber-800">Rate Per Ton:</span>
                 <span className="font-mono font-bold text-slate-900">{formatINR(order.pricePerTonSnapshot)}</span>
               </div>
+              {order.bookingAmountSnapshot > 0 && (
+                <div className="flex justify-between py-1 border-b border-amber-200/60 text-xs">
+                  <span className="text-amber-800">Booking Amount Already Paid:</span>
+                  <span className="font-mono font-bold text-emerald-700">&minus;{formatINR(order.bookingAmountSnapshot)}</span>
+                </div>
+              )}
               <div className="pt-1 flex justify-between items-baseline">
-                <span className="text-sm font-black text-slate-900">Total Price:</span>
+                <span className="text-sm font-black text-slate-900">Amount Due Now:</span>
                 <span className="text-2xl font-black text-amber-700 font-mono">{formatINR(order.finalPaymentAmount)}</span>
               </div>
               <p className="text-[11px] text-amber-800/80">
-                Your Dumper will be dispatched as soon as this payment is completed.
+                {order.bookingAmountSnapshot > 0
+                  ? `Your ₹${order.bookingAmountSnapshot.toLocaleString('en-IN')} booking amount has already been deducted. Your Dumper will be dispatched as soon as the remaining amount is paid.`
+                  : 'Your Dumper will be dispatched as soon as this payment is completed.'}
               </p>
 
               <div className="space-y-2 pt-1">

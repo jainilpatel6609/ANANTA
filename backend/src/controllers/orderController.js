@@ -484,6 +484,12 @@ const createOrder = async (req, res) => {
       unitPrice = deliveryCharge;
     }
 
+    // Dumper's upfront charge is a flat, admin-configured "booking amount" -- NOT the Rate Per
+    // Ton computed above (that stays in unitPrice/pricePerTonSnapshot for display and for the
+    // real weight-based final payment later). Snapshotted so a later admin change never alters
+    // what was actually charged/owed on an already-placed order.
+    const dumperBookingAmount = Math.round((settings.dumperBookingAmount ?? 1000) * 100) / 100;
+
     // TRACTOR material price is the selling dealer's own configured rate for this exact
     // Material + Location/Grain + Patiya type -- never the old admin-fixed flat price. A
     // dealer without one isn't a valid selection (mirrors the Dumper requirement above).
@@ -509,7 +515,7 @@ const createOrder = async (req, res) => {
       subtotal = Math.round(unitPrice * qty);
     }
 
-    const totalAmount = subtotal + deliveryCharge + tax;
+    const totalAmount = vehicleType === 'DUMPER' ? dumperBookingAmount : subtotal + deliveryCharge + tax;
 
     // 8. Build the full order payload now (everything Order.create() will eventually need), but
     // do NOT persist it yet -- no Order document exists until the upfront payment actually
@@ -551,6 +557,7 @@ const createOrder = async (req, res) => {
       // Admin's platform service-charge rate AT THIS MOMENT, snapshotted so a later rate change
       // never retroactively changes this order's GST invoice split (see utils/invoiceSplit.js).
       serviceChargeRateSnapshot: vehicleType === 'TRACTOR' ? settings.tractorServiceCharge : settings.dumperServiceCharge,
+      bookingAmountSnapshot: vehicleType === 'DUMPER' ? dumperBookingAmount : 0,
       shippingAddress: finalShippingAddress,
       deliveryAddress: finalShippingAddress,
       pincode,
@@ -998,7 +1005,11 @@ const getDealerVehicleSalesReport = async (req, res) => {
           totalTonnage: { $sum: { $ifNull: ['$totalWeight', 0] } },
           totalSales: {
             $sum: {
-              $cond: [{ $eq: ['$finalPaymentStatus', 'PAID'] }, '$finalPaymentAmount', '$totalAmount']
+              $cond: [
+                { $eq: ['$finalPaymentStatus', 'PAID'] },
+                { $add: [{ $ifNull: ['$finalPaymentAmount', 0] }, { $ifNull: ['$bookingAmountSnapshot', 0] }] },
+                '$totalAmount'
+              ]
             }
           },
           driverName: { $last: '$driverName' }
@@ -1529,7 +1540,10 @@ const enterTotalWeight = async (req, res) => {
       return errorResponse(res, 'The driver must submit all required weighbridge photos before Total Weight can be entered.', 400);
     }
 
-    const finalPaymentAmount = Math.round(weight * order.pricePerTonSnapshot * 100) / 100;
+    const grossFinalAmount = Math.round(weight * order.pricePerTonSnapshot * 100) / 100;
+    // Net of the flat booking amount already paid upfront (see createOrder) -- the customer
+    // only owes the remainder, never the full weight-based total again on top of it.
+    const finalPaymentAmount = Math.max(0, Math.round((grossFinalAmount - (order.bookingAmountSnapshot || 0)) * 100) / 100);
 
     // Note: unlike Razorpay's order_id (durable, reusable across checkout attempts), ICICI's
     // redirectURI is tied to a time-boxed transaction context. This endpoint is called by the
@@ -1554,7 +1568,9 @@ const enterTotalWeight = async (req, res) => {
       recipientRole: 'USER',
       type: 'GENERAL',
       title: 'Final Weight Confirmed — Payment Due',
-      message: `Order #${order.orderNumber}: Total Weight ${weight} Ton x ₹${order.pricePerTonSnapshot}/Ton = ₹${finalPaymentAmount.toLocaleString('en-IN')}. Please complete the final payment to dispatch your material.`,
+      message: order.bookingAmountSnapshot
+        ? `Order #${order.orderNumber}: Total Weight ${weight} Ton x ₹${order.pricePerTonSnapshot}/Ton = ₹${grossFinalAmount.toLocaleString('en-IN')}. ₹${order.bookingAmountSnapshot.toLocaleString('en-IN')} already paid at booking is deducted — please pay the remaining ₹${finalPaymentAmount.toLocaleString('en-IN')} to dispatch your material.`
+        : `Order #${order.orderNumber}: Total Weight ${weight} Ton x ₹${order.pricePerTonSnapshot}/Ton = ₹${finalPaymentAmount.toLocaleString('en-IN')}. Please complete the final payment to dispatch your material.`,
       orderId: order._id,
       targetPhone: order.userId.whatsappNumber || order.userId.mobile
     });

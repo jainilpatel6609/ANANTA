@@ -364,7 +364,7 @@ const processIciciPaymentResult = async (body) => {
     }
     // UPFRONT here means a redelivered webhook for an order already created -- nothing left to do.
 
-    return { order, success: isSuccess };
+    return { order, success: isSuccess, purpose: transaction.paymentPurpose };
   }
 
   const intent = await PendingOrderIntent.findOne({ gateway: 'ICICI', gatewayRef: merchantTxnNo });
@@ -375,7 +375,7 @@ const processIciciPaymentResult = async (body) => {
   if (!isSuccess) {
     // Never became a real order -- nothing to roll back. The intent is simply left as an
     // uncommitted draft; it never materializes into an Order.
-    return { order: null, success: false };
+    return { order: null, success: false, purpose: 'UPFRONT' };
   }
 
   const order = await materializeIciciUpfrontFromIntent(intent, merchantTxnNo, {
@@ -386,7 +386,7 @@ const processIciciPaymentResult = async (body) => {
     rawAdvicePayload: body
   });
 
-  return { order, success: true };
+  return { order, success: true, purpose: 'UPFRONT' };
 };
 
 // @desc    Shared by processIciciPaymentResult (webhook/callback path) and the stuck-transaction
@@ -423,7 +423,12 @@ const iciciReturnCallback = async (req, res) => {
   try {
     const result = await processIciciPaymentResult(req.body);
     if (result.success && result.order) {
-      return res.redirect(`${CLIENT_URL}/user/orders/${result.order._id}/invoice?justPaid=true`);
+      // Only a Dumper's UPFRONT (booking) payment lands on the simple Payment Voucher/"Thanks"
+      // page -- Tractor's single payment, and any Dumper FINAL (weight-based) settlement, land
+      // on the full GST tax invoice as before.
+      const isDumperUpfront = result.purpose === 'UPFRONT' && result.order.vehicleTypeSnapshot === 'DUMPER';
+      const destination = isDumperUpfront ? 'booking-voucher' : 'invoice';
+      return res.redirect(`${CLIENT_URL}/user/orders/${result.order._id}/${destination}?justPaid=true`);
     }
     if (result.order) {
       return res.redirect(`${CLIENT_URL}/user/orders/${result.order._id}?paymentFailed=true`);

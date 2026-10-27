@@ -821,7 +821,8 @@ export default function CreateOrder() {
       toast.success('🎉 Payment Confirmed (Demo Mode)! Order dispatched to Nearest Dealer.', { id: 'pay' });
       setIsPaid(true);
       setShowPaymentModal(false);
-      navigate(`/user/orders/${order._id}/invoice`, { state: { justCreated: true, justPaid: true } });
+      const destination = order.vehicleTypeSnapshot === 'DUMPER' ? 'booking-voucher' : 'invoice';
+      navigate(`/user/orders/${order._id}/${destination}`, { state: { justCreated: true, justPaid: true } });
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Demo payment failed.', { id: 'pay' });
     } finally {
@@ -865,7 +866,8 @@ export default function CreateOrder() {
           toast.success('Payment verified! Order dispatched to nearest dealer.', { id: 'pay' });
           setIsPaid(true);
           setShowPaymentModal(false);
-          navigate(`/user/orders/${order._id}/invoice`, { state: { justCreated: true, justPaid: true } });
+          const destination = order.vehicleTypeSnapshot === 'DUMPER' ? 'booking-voucher' : 'invoice';
+          navigate(`/user/orders/${order._id}/${destination}`, { state: { justCreated: true, justPaid: true } });
         } catch (err) {
           toast.error('Payment verification failed. Please contact support.', { id: 'pay' });
         }
