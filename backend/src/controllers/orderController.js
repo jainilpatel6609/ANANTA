@@ -748,9 +748,14 @@ const ensureServiceChargeInvoice = async (order) => {
   const isTractorOrder = order.vehicleTypeSnapshot === 'TRACTOR' || order.transportType === 'Tractor';
   const quantity = isTractorOrder ? (order.numberOfTractors || order.quantity || 1) : (order.totalWeight || 1);
   const unit = isTractorOrder ? 'trip' : 'ton';
+  // Dumper's upfront booking amount is a payment adjustment already netted out of materialAmount
+  // (see invoiceSplit.js) -- it must NOT affect the taxable rate, so the rate is computed from
+  // the full, pre-deduction material value (matching what the Material Invoice's own GST
+  // breakdown is computed from).
+  const materialGrossAmountForRate = materialAmount + (order.bookingAmountSnapshot || 0);
   // Pre-tax (5% GST not yet added) per-unit rate -- the Material Invoice shows RATE and TAX as
   // separate columns, so RATE itself must be the pre-tax figure, not the GST-inclusive total.
-  const materialTaxableForRate = Math.round((materialAmount / 1.05) * 100) / 100;
+  const materialTaxableForRate = Math.round((materialGrossAmountForRate / 1.05) * 100) / 100;
   const materialRatePerUnit = quantity > 0 ? Math.round((materialTaxableForRate / quantity) * 100) / 100 : materialTaxableForRate;
 
   if (order.zohoServiceChargeInvoiceNumber) {

@@ -235,7 +235,7 @@ function InvoiceSection({
                 <div className="flex justify-between items-center text-slate-700 border-t border-slate-200 pt-1.5">
                   <span>Total Amount (Before Booking Adjustment)</span>
                   <span className="font-mono font-semibold">
-                    ₹ {(amount + deductionAmount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ₹ {amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-rose-700">
@@ -249,7 +249,7 @@ function InvoiceSection({
             <div className="flex justify-between items-center text-slate-950 font-bold border-t border-slate-200 pt-1.5 text-sm">
               <span>{deductionAmount > 0 ? 'Final Amount Payable' : 'Total Amount'}</span>
               <span className="font-mono font-black text-indigo-950">
-                ₹ {amount.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
+                ₹ {(amount - deductionAmount).toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
               </span>
             </div>
             <div className="flex justify-between items-center text-slate-700 pt-0.5">
@@ -517,9 +517,15 @@ export default function OrderInvoice() {
   // shows Total Amount minus the Booking Amount already paid, not just a silently-reduced total.
   const bookingAmountDeducted = !pendingFinalSettlement ? (order.bookingAmountSnapshot || 0) : 0;
 
+  // The booking amount is a payment adjustment (an advance already collected), NOT a price
+  // discount -- GST must be computed on the full, pre-deduction material value, otherwise the
+  // Taxable/CGST/SGST rows wouldn't add up to the "Total Amount (Before Booking Adjustment)"
+  // row shown below them.
+  const materialGrossAmount = materialAmount + bookingAmountDeducted;
+
   // Material Invoice: 5% GST (the existing rate for sand/aggregate goods).
-  const materialTaxable = Math.round((materialAmount / 1.05) * 100) / 100;
-  const materialTax = Math.round((materialAmount - materialTaxable) * 100) / 100;
+  const materialTaxable = Math.round((materialGrossAmount / 1.05) * 100) / 100;
+  const materialTax = Math.round((materialGrossAmount - materialTaxable) * 100) / 100;
   const materialCgst = Math.round((materialTax / 2) * 100) / 100;
   const materialSgst = Math.round((materialTax - materialCgst) * 100) / 100;
 
@@ -756,7 +762,7 @@ export default function OrderInvoice() {
               ratePerUnit={ratePerUnit}
               taxPercent={5}
               taxAmount={materialTax}
-              amount={materialAmount}
+              amount={materialGrossAmount}
               taxableAmount={materialTaxable}
               cgstAmount={materialCgst}
               sgstAmount={materialSgst}
