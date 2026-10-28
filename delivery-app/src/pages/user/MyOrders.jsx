@@ -41,7 +41,15 @@ export default function MyOrders() {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
-  const filteredOrders = orders.filter((o) => {
+  // Scoped to "today" first (if that's how this page was reached, e.g. a dashboard "Ready Slip"
+  // card) -- the tab counts below are computed from THIS, not the raw `orders` array, so a tab's
+  // count always matches what tapping it will actually show. Otherwise a count like
+  // "Delivered (14)" (all-time) next to an empty "today"-scoped list looks like a bug.
+  const todayScopedOrders = orders.filter(
+    (o) => !onlyToday || (o.createdAt && new Date(o.createdAt) >= startOfToday)
+  );
+
+  const filteredOrders = todayScopedOrders.filter((o) => {
     const matchSearch =
       o.orderNumber?.toLowerCase().includes(search.toLowerCase()) ||
       o.productNameSnapshot?.toLowerCase().includes(search.toLowerCase()) ||
@@ -53,21 +61,29 @@ export default function MyOrders() {
       (statusFilter === 'ACTIVE' && ['ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)) ||
       (statusFilter === 'DELIVERED' && o.orderStatus === 'DELIVERED');
 
-    const matchToday = !onlyToday || (o.createdAt && new Date(o.createdAt) >= startOfToday);
-
-    return matchSearch && matchStatus && matchToday;
+    return matchSearch && matchStatus;
   });
 
   return (
     <div className="space-y-3 sm:space-y-6 select-none max-w-5xl mx-auto">
       {/* Header */}
-      <div>
-        <h1 className="text-lg sm:text-3xl font-black text-slate-900 font-display tracking-tight">
-          My Material Orders
-        </h1>
-        <p className="text-[11px] sm:text-sm text-slate-500 font-medium">
-          Track delivery progress, driver contacts, and gate pass OTPs
-        </p>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div>
+          <h1 className="text-lg sm:text-3xl font-black text-slate-900 font-display tracking-tight">
+            My Material Orders
+          </h1>
+          <p className="text-[11px] sm:text-sm text-slate-500 font-medium">
+            Track delivery progress, driver contacts, and gate pass OTPs
+          </p>
+        </div>
+        {onlyToday && (
+          <Link
+            to="/user/orders"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-bold cursor-pointer"
+          >
+            Showing: Today only &times;
+          </Link>
+        )}
       </div>
 
       {/* Filters & Search Bar */}
@@ -88,18 +104,18 @@ export default function MyOrders() {
         {/* Status Filter Chips */}
         <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 scrollbar-none">
           {[
-            { id: 'ALL', label: `All (${orders.length})` },
+            { id: 'ALL', label: `All (${todayScopedOrders.length})` },
             {
               id: 'PENDING',
-              label: `Pending (${orders.filter((o) => o.orderStatus === 'PLACED').length})`
+              label: `Pending (${todayScopedOrders.filter((o) => o.orderStatus === 'PLACED').length})`
             },
             {
               id: 'ACTIVE',
-              label: `In Transit (${orders.filter((o) => ['ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length})`
+              label: `In Transit (${todayScopedOrders.filter((o) => ['ACCEPTED', 'OUT_FOR_DELIVERY'].includes(o.orderStatus)).length})`
             },
             {
               id: 'DELIVERED',
-              label: `Delivered (${orders.filter((o) => o.orderStatus === 'DELIVERED').length})`
+              label: `Delivered (${todayScopedOrders.filter((o) => o.orderStatus === 'DELIVERED').length})`
             }
           ].map((tab) => (
             <button
