@@ -18,7 +18,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Route as RouteIcon,
-  FileBarChart
+  FileBarChart,
+  ListOrdered
 } from 'lucide-react';
 
 export default function DealerLayout() {
@@ -29,6 +30,7 @@ export default function DealerLayout() {
 
   const navItems = [
     { name: 'Dashboard', path: '/dealer/dashboard', icon: LayoutDashboard },
+    { name: 'Orders', path: '/dealer/orders', icon: ListOrdered },
     { name: 'New Pool', path: '/dealer/new-orders', icon: Inbox, alert: true, highlight: true },
     { name: 'Accepted', path: '/dealer/accepted', icon: CheckCircle },
     { name: 'Active (OTP)', path: '/dealer/active', icon: Truck },
