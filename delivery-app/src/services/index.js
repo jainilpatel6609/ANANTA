@@ -7,7 +7,6 @@ export const authService = {
   registerDealer: (dealerData) => api.post('/auth/dealer/register', dealerData),
   sendDealerSignupOtp: (mobile) => api.post('/auth/dealer/send-otp', { mobile }),
   verifyDealerSignupOtp: (mobile, otp) => api.post('/auth/dealer/verify-otp', { mobile, otp }),
-  verifyDealerGst: (gstin, businessName) => api.post('/auth/dealer/verify-gst', { gstin, businessName }),
   uploadDoc: (formData) =>
     api.post('/auth/upload-doc', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   registerSuperAdmin: (adminData) => api.post('/auth/super-admin/register', adminData),

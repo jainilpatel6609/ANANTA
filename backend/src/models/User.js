@@ -148,9 +148,38 @@ const userSchema = new mongoose.Schema(
       trim: true,
       default: ''
     },
+    gstCertificateUrl: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    // A self-registered dealer has no password until admin approval -- passwordHash is
+    // therefore no longer unconditionally required at the schema level.
     passwordHash: {
       type: String,
-      required: [true, 'Password hash is required']
+      default: ''
+    },
+    // Gates dealer login: a self-registered dealer starts PENDING_APPROVAL (no passwordHash yet)
+    // until an admin reviews their KYC/GST documents and approves or rejects them (see
+    // dealerRequestController.js). Every other creation path (customer signup, admin manually
+    // adding a dealer, super admin) defaults to APPROVED so it's unaffected.
+    registrationStatus: {
+      type: String,
+      enum: ['PENDING_APPROVAL', 'APPROVED', 'REJECTED'],
+      default: 'APPROVED'
+    },
+    rejectionReason: {
+      type: String,
+      default: ''
+    },
+    approvedAt: {
+      type: Date,
+      default: null
+    },
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
     },
     role: {
       type: String,

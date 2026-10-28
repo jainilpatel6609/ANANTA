@@ -40,6 +40,14 @@ export default function Login() {
     }
   }, [searchParams]);
 
+  // Arrived straight from dealer registration -- let them know what to expect next instead of
+  // silently landing on an ordinary login screen.
+  useEffect(() => {
+    if (searchParams.get('registered') === 'pending') {
+      toast.success('Registration submitted! Our team will review your KYC and notify you once approved.', { duration: 6000 });
+    }
+  }, []);
+
   // Mode: 'LOGIN' | 'FORGOT_PASSWORD'
   const [mode, setMode] = useState('LOGIN');
 
@@ -341,6 +349,12 @@ export default function Login() {
                     Forgot Password?
                   </button>
                 </div>
+                {selectedRole === 'DEALER' && (
+                  <p className="text-[11px] text-slate-500 mb-1.5">
+                    Just approved? Use "Forgot Password?" above with your registered mobile number
+                    to set your first password.
+                  </p>
+                )}
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
                     <Lock className="w-4 h-4" />

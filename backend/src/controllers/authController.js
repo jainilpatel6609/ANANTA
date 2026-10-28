@@ -9,7 +9,6 @@ const PincodeService = require('../services/pincodeService');
 const OtpService = require('../services/otpService');
 const SmsService = require('../services/smsService');
 const { logDealerActivity } = require('../utils/dealerActivityLogger');
-const CashfreeVerificationService = require('../services/cashfreeVerificationService');
 
 const generateToken = (user) => {
   return jwt.sign(
@@ -208,43 +207,6 @@ const uploadRegistrationDoc = async (req, res) => {
   }
 };
 
-// @desc    Verify a GSTIN (via Cashfree's Verification Suite) before letting a Dealer proceed
-//          with signup. A 15-character format check happens first so a genuinely malformed GSTIN
-//          never even reaches Cashfree.
-// @route   POST /api/auth/dealer/verify-gst
-// @access  Public
-const verifyDealerGst = async (req, res) => {
-  try {
-    const gstin = String(req.body.gstin || '').trim().toUpperCase();
-    const businessName = req.body.businessName ? String(req.body.businessName).trim().slice(0, 200) : undefined;
-
-    if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gstin)) {
-      return errorResponse(res, 'That does not look like a valid 15-character GSTIN. Please check and re-enter.', 400);
-    }
-
-    const result = await CashfreeVerificationService.verifyGSTIN(gstin, businessName);
-
-    if (!result.valid) {
-      return successResponse(res, result.message || 'This GSTIN could not be verified.', {
-        verified: false,
-        message: result.message || 'This GSTIN could not be verified.'
-      });
-    }
-
-    return successResponse(res, 'GSTIN verified successfully.', {
-      verified: true,
-      legalName: result.legalName,
-      tradeName: result.tradeName,
-      gstInStatus: result.gstInStatus,
-      dateOfRegistration: result.dateOfRegistration,
-      principalPlaceAddress: result.principalPlaceAddress
-    });
-  } catch (error) {
-    console.error('[Cashfree GST Verification Error]', error.message);
-    return errorResponse(res, 'Unable to verify GSTIN right now. Please try again shortly.', 502);
-  }
-};
-
 // @desc    Register a new Authorized Dealer (Role forced to DEALER with Full KYC & Live GPS Location)
 // @route   POST /api/auth/dealer/register
 // @access  Public
@@ -272,9 +234,9 @@ const registerDealer = async (req, res) => {
       panBackUrl,
       dealerPhotoUrl,
       officeFrontPhotoUrl,
+      gstCertificateUrl,
       latitude,
-      longitude,
-      password
+      longitude
     } = req.body;
 
     // 1. Mandatory Name
@@ -338,17 +300,15 @@ const registerDealer = async (req, res) => {
     if (!officeFrontPhotoUrl || !officeFrontPhotoUrl.trim()) {
       return errorResponse(res, 'Dealer Office / Depot Front photo is mandatory.', 400);
     }
+    if (!gstCertificateUrl || !gstCertificateUrl.trim()) {
+      return errorResponse(res, 'GST Registration Certificate (PDF) is mandatory.', 400);
+    }
 
     // 8. Mandatory Live GPS Location
     const lat = latitude !== undefined && latitude !== null ? parseFloat(latitude) : null;
     const lng = longitude !== undefined && longitude !== null ? parseFloat(longitude) : null;
     if (lat === null || lng === null || Number.isNaN(lat) || Number.isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
       return errorResponse(res, 'Compulsory Live GPS Location is required. Please turn ON your device location.', 400);
-    }
-
-    // 9. Mandatory Password
-    if (!password || password.trim().length < 6) {
-      return errorResponse(res, 'Password must be at least 6 characters long.', 400);
     }
 
     const cleanPin = String(pincode || '').trim();
@@ -363,8 +323,6 @@ const registerDealer = async (req, res) => {
       : [resolvedLine1, resolvedLine2, resolvedArea, resolvedCity, cleanPin ? `${resolvedState} - ${cleanPin}` : resolvedState]
           .filter(Boolean)
           .join(', ');
-
-    const passwordHash = await User.hashPassword(password.trim());
 
     const dealer = await User.create({
       name: name.trim(),
@@ -388,12 +346,13 @@ const registerDealer = async (req, res) => {
       panBackUrl: panBackUrl.trim(),
       dealerPhotoUrl: dealerPhotoUrl.trim(),
       officeFrontPhotoUrl: officeFrontPhotoUrl.trim(),
+      gstCertificateUrl: gstCertificateUrl.trim(),
       latitude: lat,
       longitude: lng,
       isLocationActive: true,
       locationUpdatedAt: new Date(),
-      passwordHash,
       role: 'DEALER',
+      registrationStatus: 'PENDING_APPROVAL',
       isActive: true,
       isDeleted: false
     });
@@ -401,12 +360,13 @@ const registerDealer = async (req, res) => {
     // Cleanup signup OTP record after successful registration
     await SignupOtp.deleteMany({ mobile: cleanMobile });
 
-    const token = generateToken(dealer);
-
+    // No password was set and no session token is issued here -- the dealer can't log in until
+    // an admin approves this submission (see dealerRequestController.js), at which point they use
+    // the existing "Forgot Password" OTP flow to set their first password.
     return successResponse(
       res,
-      'Authorized Dealer registration completed successfully with verified KYC. Welcome to ANANTA TRADERS!',
-      { token, user: dealer },
+      'Registration submitted! Our team will review your KYC documents and notify you once approved.',
+      { dealerId: dealer._id },
       201
     );
   } catch (error) {
@@ -490,6 +450,24 @@ const login = async (req, res) => {
 
     if (!user.isActive) {
       return errorResponse(res, 'Your account is deactivated. Please contact ANANTA TRADERS administration.', 403);
+    }
+
+    // A self-registered dealer can't log in until an admin reviews and approves their KYC
+    // submission -- give a clear, specific reason instead of a generic credentials error.
+    if (user.role === 'DEALER') {
+      if (user.registrationStatus === 'PENDING_APPROVAL') {
+        return errorResponse(res, 'Your dealer registration is still under review by ANANTA TRADERS admin. We will notify you once approved.', 403);
+      }
+      if (user.registrationStatus === 'REJECTED') {
+        return errorResponse(
+          res,
+          `Your dealer registration was not approved.${user.rejectionReason ? ` Reason: ${user.rejectionReason}` : ''} Please contact support for help.`,
+          403
+        );
+      }
+      if (!user.passwordHash) {
+        return errorResponse(res, "Your registration is approved! Please use 'Forgot Password' on this screen to set your password before logging in.", 403);
+      }
     }
 
     const isMatch = await user.comparePassword(password);
@@ -850,6 +828,19 @@ const forgotPasswordSendOtp = async (req, res) => {
       return errorResponse(res, 'No registered account found with this mobile number.', 404);
     }
 
+    // A dealer who isn't approved yet must not be able to use "Forgot Password" to set a
+    // password and bypass the admin approval gate entirely.
+    if (user.role === 'DEALER' && user.registrationStatus !== 'APPROVED') {
+      if (user.registrationStatus === 'PENDING_APPROVAL') {
+        return errorResponse(res, 'Your dealer registration is still under review by ANANTA TRADERS admin. We will notify you once approved.', 403);
+      }
+      return errorResponse(
+        res,
+        `Your dealer registration was not approved.${user.rejectionReason ? ` Reason: ${user.rejectionReason}` : ''} Please contact support for help.`,
+        403
+      );
+    }
+
     // Cooldown & Rate Limit check: prevent hammering if an OTP was sent < 30 seconds ago
     if (user.resetPasswordOtpExpiresAt && user.resetPasswordOtpExpiresAt > new Date()) {
       const remainingMs = user.resetPasswordOtpExpiresAt.getTime() - Date.now();
@@ -993,7 +984,6 @@ module.exports = {
   sendDealerSignupOtp,
   verifyDealerSignupOtp,
   uploadRegistrationDoc,
-  verifyDealerGst,
   registerSuperAdmin,
   login,
   updateLiveLocation,

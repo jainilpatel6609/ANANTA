@@ -82,11 +82,6 @@ export default function Register() {
   const [depotCoordinates, setDepotCoordinates] = useState(null); // { lat, lng }
   const [showDepotMapModal, setShowDepotMapModal] = useState(false);
 
-  // Dealer GST Verification State -- gates signup submission until the entered GSTIN is verified
-  // against the government registry (via Cashfree). Resets to 'idle' the moment the GST field is
-  // edited again, so a stale verification can never cover a different (unverified) number.
-  const [gstVerification, setGstVerification] = useState({ status: 'idle', message: '', legalName: '' });
-
   // Dealer Phone OTP Verification State
   const [dealerOtp, setDealerOtp] = useState({
     sent: false,
@@ -126,7 +121,8 @@ export default function Register() {
     panFront: { file: null, url: '', uploading: false, error: '' },
     panBack: { file: null, url: '', uploading: false, error: '' },
     dealerPhoto: { file: null, url: '', uploading: false, error: '' },
-    officeFrontPhoto: { file: null, url: '', uploading: false, error: '' }
+    officeFrontPhoto: { file: null, url: '', uploading: false, error: '' },
+    gstCertificate: { file: null, url: '', uploading: false, error: '' }
   });
 
   // Live Camera Modal State for Dealer Photo & Office Front Photo
@@ -174,10 +170,18 @@ export default function Register() {
   };
 
   // 2. Upload Document Helper
-  const handleFileUpload = async (fieldKey, file) => {
+  const handleFileUpload = async (
+    fieldKey,
+    file,
+    allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
+  ) => {
     if (!file) return;
-    if (!['image/jpeg', 'image/png', 'image/webp', 'image/jpg'].includes(file.type)) {
-      toast.error('Please select an image file (JPG, JPEG, PNG, WEBP).');
+    if (!allowedTypes.includes(file.type)) {
+      toast.error(
+        allowedTypes.includes('application/pdf')
+          ? 'Please select a PDF file.'
+          : 'Please select an image file (JPG, JPEG, PNG, WEBP).'
+      );
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -224,6 +228,8 @@ export default function Register() {
         return 'Dealer Passport / Selfie Photo';
       case 'officeFrontPhoto':
         return 'Depot / Office Front Photo';
+      case 'gstCertificate':
+        return 'GST Registration Certificate';
       default:
         return 'Document';
     }
@@ -286,34 +292,6 @@ export default function Register() {
     }
   };
 
-  // 4b. Verify the Dealer's GSTIN against the government registry (via Cashfree) -- required
-  // before signup can proceed, same gating pattern as mobile OTP verification above.
-  const handleVerifyGst = async () => {
-    const gstin = formData.gstNumber.trim().toUpperCase();
-    if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gstin)) {
-      toast.error('Please enter a valid 15-character GSTIN before verifying.');
-      return;
-    }
-
-    setGstVerification({ status: 'checking', message: '', legalName: '' });
-    try {
-      const res = await authService.verifyDealerGst(gstin, formData.companyName.trim());
-      if (res.data?.verified) {
-        setGstVerification({
-          status: 'verified',
-          message: res.data.legalName ? `Registered to: ${res.data.legalName}` : 'GSTIN verified.',
-          legalName: res.data.legalName || ''
-        });
-        toast.success('✓ GSTIN verified successfully!');
-      } else {
-        setGstVerification({ status: 'failed', message: res.data?.message || 'This GSTIN could not be verified.', legalName: '' });
-        toast.error(res.data?.message || 'This GSTIN could not be verified.');
-      }
-    } catch (err) {
-      setGstVerification({ status: 'failed', message: err.message || 'GST verification failed.', legalName: '' });
-      toast.error(err.message || 'GST verification failed. Please try again.');
-    }
-  };
 
   const handleBackToRoleSelection = () => {
     setSelectedRole(null);
@@ -339,14 +317,17 @@ export default function Register() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      toast.error('Password must be at least 6 characters.');
-      return;
-    }
+    // Dealers set no password at signup -- it's set after admin approval via "Forgot Password".
+    if (selectedRole !== 'DEALER') {
+      if (formData.password.length < 6) {
+        toast.error('Password must be at least 6 characters.');
+        return;
+      }
 
-    if (formData.password !== formData.confirmPassword) {
-      toast.error('Password and Confirm Password do not match.');
-      return;
+      if (formData.password !== formData.confirmPassword) {
+        toast.error('Password and Confirm Password do not match.');
+        return;
+      }
     }
 
     // Role-specific validations
@@ -387,12 +368,7 @@ export default function Register() {
         return;
       }
 
-      if (gstVerification.status !== 'verified') {
-        toast.error('Please verify your GST Number before submitting.');
-        return;
-      }
-
-      // Check all 6 KYC documents
+      // Check all 7 KYC documents
       if (!kycDocs.aadharFront.url) {
         toast.error('Please upload Aadhar Card (Front Side) photo.');
         return;
@@ -415,6 +391,10 @@ export default function Register() {
       }
       if (!kycDocs.officeFrontPhoto.url) {
         toast.error('Please upload Dealer Office / Depot Front Photo.');
+        return;
+      }
+      if (!kycDocs.gstCertificate.url) {
+        toast.error('Please upload your GST Registration Certificate (PDF).');
         return;
       }
     }
@@ -458,10 +438,16 @@ export default function Register() {
           panBackUrl: kycDocs.panBack.url,
           dealerPhotoUrl: kycDocs.dealerPhoto.url,
           officeFrontPhotoUrl: kycDocs.officeFrontPhoto.url,
+          gstCertificateUrl: kycDocs.gstCertificate.url,
           latitude: depotCoordinates.lat,
-          longitude: depotCoordinates.lng,
-          password: formData.password
+          longitude: depotCoordinates.lng
         });
+
+        // No password/session is created at this point -- the submission just goes into the
+        // admin's review queue. Send the dealer to Login with a clear explanation instead of
+        // the auto-logged-in "/auth-success" animation the other roles get.
+        navigate('/login?role=DEALER&registered=pending');
+        return;
       } else {
         await register({
           name: formData.name.trim(),
@@ -912,54 +898,15 @@ export default function Register() {
                   <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
                     GST Number (Mandatory) *
                   </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      required
-                      maxLength={15}
-                      placeholder="15-digit GSTIN (e.g. 24AAAAA0000A1Z5)"
-                      value={formData.gstNumber}
-                      onChange={(e) => {
-                        setFormData({ ...formData, gstNumber: e.target.value.toUpperCase() });
-                        // Editing the number after verification must never leave a stale "verified"
-                        // badge sitting over a now-different, unverified GSTIN.
-                        if (gstVerification.status !== 'idle') {
-                          setGstVerification({ status: 'idle', message: '', legalName: '' });
-                        }
-                      }}
-                      className="flex-1 min-w-0 px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-amber-400 placeholder-slate-600 focus:outline-none focus:border-blue-500 uppercase font-mono font-bold"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleVerifyGst}
-                      disabled={gstVerification.status === 'checking' || gstVerification.status === 'verified' || formData.gstNumber.trim().length !== 15}
-                      className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-xs transition-all disabled:opacity-50 ${
-                        gstVerification.status === 'verified'
-                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                      }`}
-                    >
-                      {gstVerification.status === 'checking' ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : gstVerification.status === 'verified' ? (
-                        <ShieldCheck className="w-3.5 h-3.5" />
-                      ) : null}
-                      <span>{gstVerification.status === 'verified' ? 'Verified' : gstVerification.status === 'checking' ? 'Checking...' : 'Verify'}</span>
-                    </button>
-                  </div>
-
-                  {gstVerification.status === 'verified' && (
-                    <p className="text-[11px] text-emerald-400 font-medium mt-1.5 flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                      {gstVerification.message}
-                    </p>
-                  )}
-                  {gstVerification.status === 'failed' && (
-                    <p className="text-[11px] text-rose-400 font-medium mt-1.5 flex items-center gap-1.5">
-                      <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
-                      Not Verified — {gstVerification.message}
-                    </p>
-                  )}
+                  <input
+                    type="text"
+                    required
+                    maxLength={15}
+                    placeholder="15-digit GSTIN (e.g. 24AAAAA0000A1Z5)"
+                    value={formData.gstNumber}
+                    onChange={(e) => setFormData({ ...formData, gstNumber: e.target.value.toUpperCase() })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-amber-400 placeholder-slate-600 focus:outline-none focus:border-blue-500 uppercase font-mono font-bold"
+                  />
                 </div>
               </div>
 
@@ -1045,9 +992,9 @@ export default function Register() {
               <div className="flex items-center justify-between">
                 <div className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
                   <CreditCard className="w-3.5 h-3.5" />
-                  <span>Mandatory KYC Documents & Photographs (6 Uploads) *</span>
+                  <span>Mandatory KYC Documents & Photographs (7 Uploads) *</span>
                 </div>
-                <span className="text-[11px] text-slate-400 font-mono">JPG / PNG / WEBP (Max 10MB)</span>
+                <span className="text-[11px] text-slate-400 font-mono">JPG / PNG / WEBP / PDF (Max 10MB)</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1101,6 +1048,17 @@ export default function Register() {
                   isCameraOnly={true}
                   onOpenLiveCamera={() => openLiveCameraFor('officeFrontPhoto')}
                   onUpload={(file) => handleFileUpload('officeFrontPhoto', file)}
+                />
+
+                {/* 7. GST Registration Certificate (PDF) */}
+                <DocUploadCard
+                  label="7. GST Registration Certificate (PDF) *"
+                  docKey="gstCertificate"
+                  state={kycDocs.gstCertificate}
+                  accept="application/pdf"
+                  hint="PDF Document Only"
+                  isPdf
+                  onUpload={(file) => handleFileUpload('gstCertificate', file, ['application/pdf'])}
                 />
               </div>
             </div>
@@ -1195,73 +1153,87 @@ export default function Register() {
           )}
 
           {/* ========================================================= */}
-          {/* SECTION 6: PASSWORD & CONFIRM PASSWORD */}
+          {/* SECTION 6: PASSWORD & CONFIRM PASSWORD -- Dealers set no password at signup; they
+              set one via "Forgot Password" on the Login screen only after admin approval. */}
           {/* ========================================================= */}
-          <div className="space-y-4 pt-2 border-t border-slate-800/80">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
-                  Password *
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    placeholder="At least 6 characters"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-brand-500 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-3 text-slate-500 hover:text-slate-300"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+          {selectedRole !== 'DEALER' && (
+            <div className="space-y-4 pt-2 border-t border-slate-800/80">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
+                    Password *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      placeholder="At least 6 characters"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-brand-500 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-3 text-slate-500 hover:text-slate-300"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
-                  Confirm Password *
-                </label>
-                <div className="relative">
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    required
-                    placeholder="Re-enter password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className={`w-full px-4 py-2.5 rounded-xl bg-slate-950 border text-sm text-white placeholder-slate-600 focus:outline-none pr-10 ${
-                      passwordsMatch
-                        ? 'border-emerald-500/80'
-                        : passwordsMismatch
-                        ? 'border-rose-500/80'
-                        : 'border-slate-800 focus:border-brand-500'
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3.5 top-3 text-slate-500 hover:text-slate-300"
-                  >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                <div>
+                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
+                    Confirm Password *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Re-enter password"
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                      className={`w-full px-4 py-2.5 rounded-xl bg-slate-950 border text-sm text-white placeholder-slate-600 focus:outline-none pr-10 ${
+                        passwordsMatch
+                          ? 'border-emerald-500/80'
+                          : passwordsMismatch
+                          ? 'border-rose-500/80'
+                          : 'border-slate-800 focus:border-brand-500'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3.5 top-3 text-slate-500 hover:text-slate-300"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {passwordsMatch && (
+                    <div className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1 font-medium">
+                      <CheckCircle2 className="w-3 h-3" /> Passwords match
+                    </div>
+                  )}
+                  {passwordsMismatch && (
+                    <div className="text-[10px] text-rose-400 mt-1 flex items-center gap-1 font-medium">
+                      <XCircle className="w-3 h-3" /> Passwords do not match
+                    </div>
+                  )}
                 </div>
-                {passwordsMatch && (
-                  <div className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1 font-medium">
-                    <CheckCircle2 className="w-3 h-3" /> Passwords match
-                  </div>
-                )}
-                {passwordsMismatch && (
-                  <div className="text-[10px] text-rose-400 mt-1 flex items-center gap-1 font-medium">
-                    <XCircle className="w-3 h-3" /> Passwords do not match
-                  </div>
-                )}
               </div>
             </div>
-          </div>
+          )}
+
+          {selectedRole === 'DEALER' && (
+            <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-xs text-blue-200 flex items-start gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+              <span>
+                No password needed right now. Once ANANTA TRADERS admin reviews and approves your
+                KYC, you'll be notified -- then use "Forgot Password" on the Login screen with this
+                mobile number to set your password.
+              </span>
+            </div>
+          )}
 
           {/* Submit Button */}
           <button
@@ -1272,7 +1244,7 @@ export default function Register() {
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Creating Account & Submitting KYC...</span>
+                <span>{selectedRole === 'DEALER' ? 'Submitting for Admin Approval...' : 'Creating Account & Submitting KYC...'}</span>
               </>
             ) : (
               <>
@@ -1280,7 +1252,7 @@ export default function Register() {
                   {selectedRole === 'ADMIN'
                     ? 'Create Super Admin Account'
                     : selectedRole === 'DEALER'
-                    ? 'Complete Dealership Registration & Submit KYC'
+                    ? 'Submit Registration for Admin Approval'
                     : 'Complete Customer Registration'}
                 </span>
                 <ArrowRight className="w-4 h-4" />
@@ -1362,7 +1334,10 @@ function DocUploadCard({
   state,
   onUpload,
   isCameraOnly = false,
-  onOpenLiveCamera
+  onOpenLiveCamera,
+  accept = 'image/jpeg,image/png,image/webp,image/jpg',
+  hint = 'Camera / File (JPG, PNG)',
+  isPdf = false
 }) {
   const fileInputRef = useRef(null);
 
@@ -1412,27 +1387,48 @@ function DocUploadCard({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/jpg"
+          accept={accept}
           onChange={handleFileChange}
           className="hidden"
         />
       )}
 
       {state.url ? (
-        <div className="relative group rounded-xl overflow-hidden border border-emerald-500/30 bg-slate-900 h-28 flex items-center justify-center">
-          <img
-            src={state.url}
-            alt={label}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-          />
-          <div
-            onClick={handleClick}
-            className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer gap-1.5 text-xs text-white font-bold"
-          >
-            <Camera className="w-4 h-4 text-blue-400" />
-            <span>{isCameraOnly ? 'Retake Live Photo' : 'Change Photo'}</span>
+        isPdf ? (
+          <div className="relative group rounded-xl overflow-hidden border border-emerald-500/30 bg-slate-900 h-28 flex flex-col items-center justify-center gap-1.5">
+            <FileCheck className="w-7 h-7 text-emerald-400" />
+            <a
+              href={state.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-blue-400 hover:text-blue-300 font-bold underline"
+            >
+              View PDF
+            </a>
+            <button
+              type="button"
+              onClick={handleClick}
+              className="text-[10px] text-slate-400 hover:text-slate-200"
+            >
+              Change File
+            </button>
           </div>
-        </div>
+        ) : (
+          <div className="relative group rounded-xl overflow-hidden border border-emerald-500/30 bg-slate-900 h-28 flex items-center justify-center">
+            <img
+              src={state.url}
+              alt={label}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+            />
+            <div
+              onClick={handleClick}
+              className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer gap-1.5 text-xs text-white font-bold"
+            >
+              <Camera className="w-4 h-4 text-blue-400" />
+              <span>{isCameraOnly ? 'Retake Live Photo' : 'Change Photo'}</span>
+            </div>
+          </div>
+        )
       ) : (
         <button
           type="button"
@@ -1461,7 +1457,7 @@ function DocUploadCard({
             <div className="flex flex-col items-center gap-1.5 text-slate-400 group-hover:text-blue-400 transition-colors">
               <UploadCloud className="w-6 h-6 text-slate-500 group-hover:text-blue-400 transition-colors" />
               <span className="text-xs font-bold">Click to Upload Document</span>
-              <span className="text-[10px] text-slate-500">Camera / File (JPG, PNG)</span>
+              <span className="text-[10px] text-slate-500">{hint}</span>
             </div>
           )}
         </button>

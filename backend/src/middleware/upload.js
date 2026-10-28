@@ -21,13 +21,13 @@ const storage = multer.diskStorage({
   }
 });
 
-// File filter
+// File filter -- images for KYC photos, plus PDF for the GST Registration Certificate upload.
 const fileFilter = (req, file, cb) => {
-  const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file format. Allowed formats: JPG, JPEG, PNG, WEBP.'), false);
+    cb(new Error('Invalid file format. Allowed formats: JPG, JPEG, PNG, WEBP, PDF.'), false);
   }
 };
 
@@ -35,7 +35,7 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5 MB max
+    fileSize: 10 * 1024 * 1024 // 10 MB max -- matches the frontend's own client-side check
   }
 });
 
@@ -49,7 +49,9 @@ const processUploadedFile = async (file, folderName = 'ananta_traders') => {
     try {
       const result = await cloudinary.uploader.upload(file.path, {
         folder: folderName,
-        resource_type: 'image'
+        // 'auto' lets Cloudinary detect images vs. non-image files (e.g. the GST Certificate PDF)
+        // correctly -- 'image' would reject/corrupt a PDF upload.
+        resource_type: 'auto'
       });
       // Remove local temp file after upload to Cloudinary
       if (fs.existsSync(file.path)) {

@@ -22,7 +22,8 @@ import {
   LifeBuoy,
   Ban,
   Percent,
-  MapPin
+  MapPin,
+  ClipboardCheck
 } from 'lucide-react';
 
 export default function AdminLayout() {
@@ -35,6 +36,7 @@ export default function AdminLayout() {
     { name: "Today's Orders", path: '/todays-orders', icon: Clock, highlight: true },
     { name: 'All Orders Master', path: '/orders', icon: FileSpreadsheet },
     { name: 'Dealer Network', path: '/dealers', icon: Building2 },
+    { name: 'Dealer Requests', path: '/dealer-requests', icon: ClipboardCheck, highlight: true },
     { name: 'Fleet Drivers', path: '/drivers', icon: Truck },
     { name: 'Customer Directory', path: '/customers', icon: Users },
     { name: 'Materials & Pricing', path: '/products', icon: Coins },

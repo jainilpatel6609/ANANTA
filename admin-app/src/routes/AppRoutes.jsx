@@ -16,6 +16,7 @@ import AdminDashboard from '../pages/admin/AdminDashboard';
 import TodaysOrders from '../pages/admin/TodaysOrders';
 import OrderManagement from '../pages/admin/OrderManagement';
 import DealerManagement from '../pages/admin/DealerManagement';
+import DealerRequests from '../pages/admin/DealerRequests';
 import CustomerManagement from '../pages/admin/CustomerManagement';
 import DriverManagement from '../pages/admin/DriverManagement';
 import ProductManagement from '../pages/admin/ProductManagement';
@@ -45,6 +46,7 @@ export default function AppRoutes() {
           <Route path="/todays-orders" element={<TodaysOrders />} />
           <Route path="/orders" element={<OrderManagement />} />
           <Route path="/dealers" element={<DealerManagement />} />
+          <Route path="/dealer-requests" element={<DealerRequests />} />
           <Route path="/drivers" element={<DriverManagement />} />
           <Route path="/users" element={<CustomerManagement />} />
           <Route path="/customers" element={<CustomerManagement />} />

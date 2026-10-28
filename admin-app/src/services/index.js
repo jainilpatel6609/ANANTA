@@ -94,6 +94,13 @@ export const dealerService = {
   getActivityLogs: (id) => api.get(`/admin/dealers/${id}/logs`)
 };
 
+export const dealerRequestService = {
+  getAll: () => api.get('/admin/dealer-requests'),
+  getById: (id) => api.get(`/admin/dealer-requests/${id}`),
+  approve: (id) => api.post(`/admin/dealer-requests/${id}/approve`),
+  reject: (id, reason) => api.post(`/admin/dealer-requests/${id}/reject`, { reason })
+};
+
 export const adminService = {
   getDashboardStats: () => api.get('/admin/dashboard'),
   getReports: (month, year) => api.get('/admin/reports', { params: { month, year } }),

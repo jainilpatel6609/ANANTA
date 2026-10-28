@@ -87,8 +87,15 @@ export const AuthProvider = ({ children }) => {
   const registerDealer = async (dealerData) => {
     try {
       const res = await authService.registerDealer(dealerData);
-      const { token: newToken, user: authUser } = res.data;
 
+      // No token is issued here -- a self-registered dealer stays pending until an admin
+      // approves their KYC submission, so there's nothing to auto-login into yet.
+      if (!res.data?.token) {
+        toast.success(res.message || 'Registration submitted! Our team will review your KYC and notify you once approved.');
+        return res.data;
+      }
+
+      const { token: newToken, user: authUser } = res.data;
       localStorage.setItem('ananta_token', newToken);
       localStorage.setItem('ananta_user', JSON.stringify(authUser));
 
