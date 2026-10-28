@@ -34,7 +34,7 @@ function InvoiceSection({
   dueDate,
   orderNo,
   deductionLabel,
-  deductionAmount,
+  deductionAmount = 0,
   buyerName,
   buyerAddressLine1,
   buyerArea,
@@ -728,9 +728,6 @@ export default function OrderInvoice() {
         >
           {/* 1. MATERIAL INVOICE -- issued under the selected dealer's own GSTIN, on their behalf */}
           <div>
-            <div className="mb-3 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-[11px] font-black text-amber-800 uppercase tracking-wider inline-block">
-              Invoice 1 of 2 &mdash; Material (Dealer)
-            </div>
             <InvoiceSection
               badgeLabel="ORIGINAL FOR RECIPIENT"
               sellerName={dealerName}
@@ -782,9 +779,6 @@ export default function OrderInvoice() {
               locally-generated invoice number and the same Qty/Rate breakdown the backend
               computes. */}
           <div>
-            <div className="mb-3 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-[11px] font-black text-indigo-800 uppercase tracking-wider inline-block">
-              Invoice 2 of 2 &mdash; Platform Service Charge (Ananta Traders)
-            </div>
             <InvoiceSection
               badgeLabel="ORIGINAL FOR RECIPIENT"
               sellerName="ANANTA TRADERS"
